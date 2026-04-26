@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>光影AI - AI摄影</title>
-    <link rel="stylesheet" href="./styles.css?v=20260426-restore1" />
+    <link rel="stylesheet" href="./styles.css?v=20260426-carousel1" />
   </head>
   <body>
     <header class="site-header">
@@ -26,15 +26,23 @@
     </header>
 
     <main>
-      <section class="hero" aria-label="首屏">
+      <section
+        class="hero"
+        aria-label="首屏"
+        data-hero-carousel
+        data-slides="./assets/hero-clean.jpg|./assets/work-landscape.jpg|./assets/style-cinematic.jpg|./assets/work-sunset.jpg"
+      >
         <button class="hero-arrow hero-prev" aria-label="上一张">‹</button>
         <div class="shell hero-content">
           <h1>AI让你的每一张<br />照片都更像作品</h1>
           <p>光影AI · 用智能与美学，重塑每一次快门记忆</p>
-          <a class="primary-btn" href="#works">探索作品 <span>→</span></a>
+          <a class="primary-btn" href="#works" aria-label="探索作品">探索作品 <span aria-hidden="true">→</span></a>
         </div>
-        <div class="hero-dots" aria-hidden="true">
-          <span></span><span></span><span></span><span></span>
+        <div class="hero-dots" aria-label="首页大图轮播">
+          <button class="active" type="button" aria-label="切换到第1张" aria-current="true"></button>
+          <button type="button" aria-label="切换到第2张"></button>
+          <button type="button" aria-label="切换到第3张"></button>
+          <button type="button" aria-label="切换到第4张"></button>
         </div>
         <button class="hero-arrow hero-next" aria-label="下一张">›</button>
       </section>
@@ -283,5 +291,58 @@
       </div>
       <p class="copyright">© 2024 光影AI 版权所有｜京ICP备2024001234号</p>
     </footer>
+    <script>
+      (() => {
+        const hero = document.querySelector("[data-hero-carousel]");
+        if (!hero) return;
+
+        const slides = (hero.dataset.slides || "").split("|").filter(Boolean);
+        const dots = Array.from(hero.querySelectorAll(".hero-dots button"));
+        const prev = hero.querySelector(".hero-prev");
+        const next = hero.querySelector(".hero-next");
+        let current = 0;
+        let timer = null;
+
+        const showSlide = (index) => {
+          current = (index + slides.length) % slides.length;
+          hero.style.setProperty("--hero-image", `url("${slides[current]}")`);
+          dots.forEach((dot, dotIndex) => {
+            const active = dotIndex === current;
+            dot.classList.toggle("active", active);
+            dot.setAttribute("aria-current", active ? "true" : "false");
+          });
+        };
+
+        const start = () => {
+          window.clearInterval(timer);
+          timer = window.setInterval(() => showSlide(current + 1), 5000);
+        };
+
+        const move = (step) => {
+          showSlide(current + step);
+          start();
+        };
+
+        prev.addEventListener("click", () => move(-1));
+        next.addEventListener("click", () => move(1));
+        dots.forEach((dot, index) => {
+          dot.addEventListener("click", () => {
+            showSlide(index);
+            start();
+          });
+        });
+        hero.addEventListener("keydown", (event) => {
+          if (event.key === "ArrowLeft") move(-1);
+          if (event.key === "ArrowRight") move(1);
+        });
+        hero.addEventListener("mouseenter", () => window.clearInterval(timer));
+        hero.addEventListener("mouseleave", start);
+        hero.addEventListener("focusin", () => window.clearInterval(timer));
+        hero.addEventListener("focusout", start);
+
+        showSlide(0);
+        start();
+      })();
+    </script>
   </body>
 </html>
