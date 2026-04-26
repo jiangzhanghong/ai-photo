@@ -387,7 +387,8 @@ const planDto = (plan) => ({
   quota: Number(plan.quota),
   features: jsonParse(plan.features_json, []),
   durationDays: Number(plan.duration_days),
-  isActive: Boolean(plan.is_active)
+  isActive: Boolean(plan.is_active),
+  sortOrder: Number(plan.sort_order || 0)
 });
 
 const modelDto = (model, includeSensitive = false) => {

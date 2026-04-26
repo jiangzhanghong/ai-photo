@@ -376,6 +376,13 @@
         gap: 6px;
       }
 
+      .list-tools {
+        display: grid;
+        grid-template-columns: minmax(180px, 1fr) 140px 120px auto auto;
+        gap: 8px;
+        align-items: center;
+      }
+
       .table-actions .btn {
         height: 26px;
         padding: 0 8px;
@@ -414,6 +421,54 @@
         font-size: 12px;
       }
 
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: none;
+        place-items: center;
+        padding: 20px;
+        background: rgba(20, 31, 27, 0.28);
+      }
+
+      .modal-backdrop.open {
+        display: grid;
+      }
+
+      .modal {
+        width: min(760px, 100%);
+        max-height: calc(100vh - 40px);
+        overflow: auto;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: 0 20px 60px rgba(19, 32, 26, 0.2);
+      }
+
+      .modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line-soft);
+      }
+
+      .modal-head h2 {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      .modal-body {
+        padding: 16px;
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 12px 16px 16px;
+      }
+
       .wide {
         grid-column: span 2;
       }
@@ -438,7 +493,8 @@
 
         .stats-grid,
         .dashboard-grid,
-        .form-grid {
+        .form-grid,
+        .list-tools {
           grid-template-columns: 1fr 1fr;
         }
       }
@@ -449,6 +505,7 @@
         .stats-grid,
         .dashboard-grid,
         .form-grid,
+        .list-tools,
         .nav {
           grid-template-columns: 1fr;
         }
@@ -582,8 +639,27 @@
               </div>
             </section>
             <section class="panel">
-              <div class="panel-head"><h2>提示词列表</h2></div>
-              <div class="table-wrap"><table><thead><tr><th>标题</th><th>类型</th><th>场景</th><th>积分</th><th>状态</th><th>更新时间</th></tr></thead><tbody data-prompt-list></tbody></table></div>
+              <div class="panel-head">
+                <h2>提示词列表</h2>
+                <div class="list-tools">
+                  <input type="search" placeholder="查询标题、场景、prompt" data-prompt-query />
+                  <select data-prompt-filter-type>
+                    <option value="">全部类型</option>
+                    <option value="generate">生成图片</option>
+                    <option value="image_to_image">以图生图</option>
+                    <option value="edit">修改图片</option>
+                  </select>
+                  <select data-prompt-filter-status>
+                    <option value="">全部状态</option>
+                    <option value="1">上架</option>
+                    <option value="0">下架</option>
+                  </select>
+                  <button class="btn secondary" type="button" data-prompt-import>导入</button>
+                  <button class="btn secondary" type="button" data-prompt-export>导出</button>
+                  <input type="file" accept="application/json,.json" hidden data-prompt-import-file />
+                </div>
+              </div>
+              <div class="table-wrap"><table><thead><tr><th>标题</th><th>类型</th><th>场景</th><th>积分</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody data-prompt-list></tbody></table></div>
             </section>
           </section>
 
@@ -627,7 +703,7 @@
             </section>
             <section class="panel">
               <div class="panel-head"><h2>套餐列表</h2></div>
-              <div class="table-wrap"><table><thead><tr><th>名称</th><th>编码</th><th>价格</th><th>积分</th><th>张数</th><th>状态</th></tr></thead><tbody data-plan-list></tbody></table></div>
+              <div class="table-wrap"><table><thead><tr><th>名称</th><th>编码</th><th>价格</th><th>积分</th><th>张数</th><th>状态</th><th>操作</th></tr></thead><tbody data-plan-list></tbody></table></div>
             </section>
           </section>
 
@@ -643,6 +719,23 @@
       </div>
     </div>
 
+    <div class="modal-backdrop" data-edit-backdrop>
+      <div class="modal" role="dialog" aria-modal="true" aria-label="编辑">
+        <div class="modal-head">
+          <h2 data-edit-title>编辑</h2>
+          <button class="btn secondary" type="button" data-edit-close>关闭</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid" data-edit-form></div>
+          <p class="message" data-edit-message></p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn secondary" type="button" data-edit-close-secondary>取消</button>
+          <button class="btn" type="button" data-edit-save>保存</button>
+        </div>
+      </div>
+    </div>
+
     <script>
       (() => {
         const $ = (selector, root = document) => root.querySelector(selector);
@@ -651,6 +744,8 @@
         const titles = { dashboard: "管理后台首页", tasks: "AI 任务", users: "会员管理", credits: "积分流水", prompts: "核心提示词", models: "生图模型", plans: "套餐管理", settings: "系统设置" };
         const statusText = { queued: "排队中", processing: "生成中", succeeded: "成功", failed: "失败", active: "启用", disabled: "禁用" };
         const taskTypeText = { generate: "生成图片", image_to_image: "以图生图", edit: "修改图片" };
+        const cache = { models: [], prompts: [], plans: [] };
+        let editState = null;
 
         const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (s) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[s]);
         const fmtTime = (value) => value ? new Date(value).toLocaleString("zh-CN", { hour12: false }) : "";
@@ -670,6 +765,177 @@
 
         const setText = (selector, text) => { const el = $(selector); if (el) el.textContent = text ?? ""; };
         const setModelMessage = (text) => setText("[data-model-message]", text);
+        const field = (name) => $(`[data-edit-field="${name}"]`);
+        const downloadJson = (filename, data) => {
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = filename;
+          link.click();
+          URL.revokeObjectURL(url);
+        };
+        const boolValue = (value, fallback = true) => {
+          if (value === undefined || value === null || value === "") return fallback;
+          return value === true || value === 1 || value === "1" || value === "true";
+        };
+        const promptPayload = (prompt) => ({
+          title: prompt.title || "新提示词",
+          taskType: prompt.taskType || "generate",
+          scene: prompt.scene || "",
+          promptContent: prompt.promptContent || "",
+          negativePrompt: prompt.negativePrompt || "",
+          creditCost: Number(prompt.creditCost || 0),
+          resultImageUrl: prompt.resultImageUrl || "",
+          sortOrder: Number(prompt.sortOrder || 0),
+          isActive: boolValue(prompt.isActive, true),
+          version: prompt.version || "2026.04"
+        });
+        const normalizePromptImport = (data) => {
+          const items = Array.isArray(data) ? data : Array.isArray(data.prompts) ? data.prompts : [];
+          return items.map((item) => {
+            const normalized = {
+              id: item.id || "",
+              title: item.title,
+              taskType: item.taskType || item.task_type,
+              scene: item.scene,
+              promptContent: item.promptContent || item.prompt_content,
+              negativePrompt: item.negativePrompt || item.negative_prompt,
+              creditCost: item.creditCost ?? item.credit_cost,
+              resultImageUrl: item.resultImageUrl || item.result_image_url,
+              sortOrder: item.sortOrder ?? item.sort_order,
+              isActive: boolValue(item.isActive ?? item.is_active, true),
+              version: item.version
+            };
+            return { id: normalized.id, ...promptPayload(normalized) };
+          }).filter((item) => item.title && item.promptContent);
+        };
+        const closeEdit = () => {
+          editState = null;
+          $("[data-edit-backdrop]").classList.remove("open");
+          $("[data-edit-form]").innerHTML = "";
+          setText("[data-edit-message]", "");
+        };
+        const openEdit = (type, item) => {
+          editState = { type, id: item.id };
+          const form = $("[data-edit-form]");
+          setText("[data-edit-message]", "");
+          if (type === "prompt") {
+            setText("[data-edit-title]", "编辑提示词");
+            form.innerHTML = `
+              <label><span>标题</span><input data-edit-field="title" value="${esc(item.title)}" /></label>
+              <label><span>类型</span><select data-edit-field="taskType"><option value="generate">生成图片</option><option value="image_to_image">以图生图</option><option value="edit">修改图片</option></select></label>
+              <label><span>场景</span><input data-edit-field="scene" value="${esc(item.scene)}" /></label>
+              <label><span>积分</span><input type="number" min="0" data-edit-field="creditCost" value="${item.creditCost}" /></label>
+              <label><span>排序</span><input type="number" min="0" data-edit-field="sortOrder" value="${item.sortOrder}" /></label>
+              <label><span>状态</span><select data-edit-field="isActive"><option value="1">上架</option><option value="0">下架</option></select></label>
+              <label class="full"><span>核心 prompt</span><textarea data-edit-field="promptContent">${esc(item.promptContent)}</textarea></label>
+              <label class="full"><span>反向 prompt</span><textarea data-edit-field="negativePrompt">${esc(item.negativePrompt || "")}</textarea></label>
+            `;
+            field("taskType").value = item.taskType;
+            field("isActive").value = item.isActive ? "1" : "0";
+          }
+          if (type === "model") {
+            setText("[data-edit-title]", "编辑生图模型");
+            form.innerHTML = `
+              <label><span>名称</span><input data-edit-field="name" value="${esc(item.name)}" /></label>
+              <label><span>供应商</span><input data-edit-field="provider" value="${esc(item.provider)}" /></label>
+              <label><span>模型编码</span><input data-edit-field="modelCode" value="${esc(item.modelCode)}" /></label>
+              <label class="wide"><span>Base URL</span><input data-edit-field="baseUrl" value="${esc(item.baseUrl || "")}" /></label>
+              <label><span>API Key</span><input data-edit-field="apiKey" placeholder="留空不修改密钥" /></label>
+              <label><span>鉴权</span><select data-edit-field="authType"><option value="bearer">Bearer</option><option value="header">Bearer + X-Api-Key</option></select></label>
+              <label><span>支持类型</span><select data-edit-field="supportedTaskTypes"><option value="generate,image_to_image,edit">生成 + 以图生图 + 修改</option><option value="generate,edit">生成 + 修改</option><option value="generate">仅生成</option><option value="image_to_image">仅以图生图</option><option value="edit">仅修改</option></select></label>
+              <label><span>生成积分</span><input type="number" min="0" data-edit-field="generateCost" value="${item.creditCostConfig.generate || 0}" /></label>
+              <label><span>以图生图积分</span><input type="number" min="0" data-edit-field="imageToImageCost" value="${item.creditCostConfig.image_to_image || 0}" /></label>
+              <label><span>改图积分</span><input type="number" min="0" data-edit-field="editCost" value="${item.creditCostConfig.edit || 0}" /></label>
+              <label><span>状态</span><select data-edit-field="isActive"><option value="1">上架</option><option value="0">下架</option></select></label>
+              <label class="full"><span>备注</span><textarea data-edit-field="remark">${esc(item.remark || "")}</textarea></label>
+            `;
+            field("authType").value = item.authType || "bearer";
+            field("supportedTaskTypes").value = item.supportedTaskTypes.join(",");
+            field("isActive").value = item.isActive ? "1" : "0";
+          }
+          if (type === "plan") {
+            setText("[data-edit-title]", "编辑套餐");
+            form.innerHTML = `
+              <label><span>编码</span><input data-edit-field="code" value="${esc(item.code)}" disabled /></label>
+              <label><span>名称</span><input data-edit-field="name" value="${esc(item.name)}" /></label>
+              <label><span>版本</span><input data-edit-field="version" value="${esc(item.version)}" /></label>
+              <label><span>价格</span><input type="number" min="0" data-edit-field="price" value="${item.price}" /></label>
+              <label><span>积分</span><input type="number" min="0" data-edit-field="credits" value="${item.credits}" /></label>
+              <label><span>张数</span><input type="number" min="0" data-edit-field="quota" value="${item.quota}" /></label>
+              <label><span>有效天数</span><input type="number" min="1" data-edit-field="durationDays" value="${item.durationDays || 30}" /></label>
+              <label><span>排序</span><input type="number" min="0" data-edit-field="sortOrder" value="${item.sortOrder || 0}" /></label>
+              <label><span>状态</span><select data-edit-field="isActive"><option value="1">上架</option><option value="0">下架</option></select></label>
+              <label class="full"><span>权益，每行一条</span><textarea data-edit-field="features">${esc((item.features || []).join("\n"))}</textarea></label>
+            `;
+            field("isActive").value = item.isActive ? "1" : "0";
+          }
+          $("[data-edit-backdrop]").classList.add("open");
+        };
+
+        const saveEdit = async () => {
+          if (!editState) return;
+          try {
+            if (editState.type === "prompt") {
+              await api(`/api/admin/prompt-templates/${editState.id}`, {
+                method: "PATCH",
+                body: JSON.stringify({
+                  title: field("title").value,
+                  taskType: field("taskType").value,
+                  scene: field("scene").value,
+                  creditCost: Number(field("creditCost").value || 0),
+                  sortOrder: Number(field("sortOrder").value || 0),
+                  isActive: field("isActive").value === "1",
+                  promptContent: field("promptContent").value,
+                  negativePrompt: field("negativePrompt").value
+                })
+              });
+              closeEdit();
+              await loadPrompts();
+            } else if (editState.type === "model") {
+              const apiKey = field("apiKey").value;
+              const body = {
+                name: field("name").value,
+                provider: field("provider").value,
+                modelCode: field("modelCode").value,
+                baseUrl: field("baseUrl").value,
+                authType: field("authType").value,
+                supportedTaskTypes: field("supportedTaskTypes").value.split(","),
+                creditCostConfig: {
+                  generate: Number(field("generateCost").value || 0),
+                  image_to_image: Number(field("imageToImageCost").value || 0),
+                  edit: Number(field("editCost").value || 0)
+                },
+                remark: field("remark").value
+              };
+              if (apiKey) body.apiKey = apiKey;
+              await api(`/api/admin/ai-models/${editState.id}`, { method: "PATCH", body: JSON.stringify(body) });
+              await api(`/api/admin/ai-models/${editState.id}/status`, { method: "PATCH", body: JSON.stringify({ isActive: field("isActive").value === "1" }) });
+              closeEdit();
+              await loadModels();
+            } else if (editState.type === "plan") {
+              await api(`/api/admin/membership-plans/${editState.id}`, {
+                method: "PATCH",
+                body: JSON.stringify({
+                  name: field("name").value,
+                  version: field("version").value,
+                  price: Number(field("price").value || 0),
+                  credits: Number(field("credits").value || 0),
+                  quota: Number(field("quota").value || 0),
+                  durationDays: Number(field("durationDays").value || 30),
+                  sortOrder: Number(field("sortOrder").value || 0),
+                  isActive: field("isActive").value === "1",
+                  features: field("features").value.split("\n").map((item) => item.trim()).filter(Boolean)
+                })
+              });
+              closeEdit();
+              await loadPlans();
+            }
+          } catch (error) {
+            setText("[data-edit-message]", error.message);
+          }
+        };
 
         const switchView = async (name) => {
           $$("[data-nav]").forEach((btn) => btn.classList.toggle("active", btn.dataset.nav === name));
@@ -707,6 +973,7 @@
 
         const loadModels = async () => {
           const data = await api("/api/admin/ai-models");
+          cache.models = data.models;
           $("[data-model-list]").innerHTML = data.models.map((model) => `
             <tr>
               <td>${esc(model.name)}${model.isDefault ? " · 默认" : ""}<br><small>${esc(model.provider)}</small></td>
@@ -716,7 +983,7 @@
               <td>生成 ${model.creditCostConfig.generate || 0}<br>图生图 ${model.creditCostConfig.image_to_image || 0}<br>改图 ${model.creditCostConfig.edit || 0}</td>
               <td>${badge(model.lastTestStatus || "未测试", model.lastTestStatus === "failed" ? "red" : "")}<br><small>${esc(model.lastTestMessage || "")}</small></td>
               <td>${model.isActive ? badge("上架") : badge("下架", "red")}</td>
-              <td><div class="table-actions"><button class="btn secondary" type="button" data-default="${model.id}">默认</button><button class="btn secondary" type="button" data-toggle="${model.id}" data-active="${model.isActive ? "0" : "1"}">${model.isActive ? "下架" : "上架"}</button><button class="btn secondary" type="button" data-test="${model.id}">测试</button></div></td>
+              <td><div class="table-actions"><button class="btn secondary" type="button" data-edit-model="${model.id}">编辑</button><button class="btn secondary" type="button" data-default="${model.id}">默认</button><button class="btn secondary" type="button" data-toggle="${model.id}" data-active="${model.isActive ? "0" : "1"}">${model.isActive ? "下架" : "上架"}</button><button class="btn secondary" type="button" data-test="${model.id}">测试</button></div></td>
             </tr>
           `).join("");
         };
@@ -748,17 +1015,37 @@
           `).join("") || `<tr><td colspan="7">暂无数据</td></tr>`;
         };
 
+        const filteredPrompts = () => {
+          const keyword = ($("[data-prompt-query]")?.value || "").trim().toLowerCase();
+          const taskType = $("[data-prompt-filter-type]")?.value || "";
+          const status = $("[data-prompt-filter-status]")?.value || "";
+          return cache.prompts.filter((prompt) => {
+            const text = [prompt.title, prompt.scene, prompt.promptContent, prompt.negativePrompt].join(" ").toLowerCase();
+            const matchesKeyword = !keyword || text.includes(keyword);
+            const matchesType = !taskType || prompt.taskType === taskType;
+            const matchesStatus = !status || String(prompt.isActive ? 1 : 0) === status;
+            return matchesKeyword && matchesType && matchesStatus;
+          });
+        };
+
+        const renderPrompts = () => {
+          const prompts = filteredPrompts();
+          $("[data-prompt-list]").innerHTML = prompts.map((prompt) => `
+            <tr><td>${esc(prompt.title)}</td><td>${badge(taskTypeText[prompt.taskType] || prompt.taskType, "blue")}</td><td>${esc(prompt.scene)}</td><td>${prompt.creditCost}</td><td>${prompt.isActive ? badge("上架") : badge("下架", "red")}</td><td>${fmtTime(prompt.updatedAt)}</td><td><div class="table-actions"><button class="btn secondary" type="button" data-edit-prompt="${prompt.id}">编辑</button><button class="btn danger" type="button" data-delete-prompt="${prompt.id}">删除</button></div></td></tr>
+          `).join("") || `<tr><td colspan="7">暂无数据</td></tr>`;
+        };
+
         const loadPrompts = async () => {
           const data = await api("/api/admin/prompt-templates");
-          $("[data-prompt-list]").innerHTML = data.prompts.map((prompt) => `
-            <tr><td>${esc(prompt.title)}</td><td>${badge(taskTypeText[prompt.taskType] || prompt.taskType, "blue")}</td><td>${esc(prompt.scene)}</td><td>${prompt.creditCost}</td><td>${prompt.isActive ? badge("上架") : badge("下架", "red")}</td><td>${fmtTime(prompt.updatedAt)}</td></tr>
-          `).join("") || `<tr><td colspan="6">暂无数据</td></tr>`;
+          cache.prompts = data.prompts;
+          renderPrompts();
         };
 
         const loadPlans = async () => {
           const data = await api("/api/admin/membership-plans");
+          cache.plans = data.plans;
           $("[data-plan-list]").innerHTML = data.plans.map((plan) => `
-            <tr><td>${esc(plan.name)}</td><td>${esc(plan.code)}</td><td>¥${plan.price}${esc(plan.suffix)}</td><td>${plan.credits}</td><td>${plan.quota}</td><td>${plan.isActive ? badge("上架") : badge("下架", "red")}</td></tr>
+            <tr><td>${esc(plan.name)}</td><td>${esc(plan.code)}</td><td>¥${plan.price}${esc(plan.suffix)}</td><td>${plan.credits}</td><td>${plan.quota}</td><td>${plan.isActive ? badge("上架") : badge("下架", "red")}</td><td><button class="btn secondary" type="button" data-edit-plan="${plan.id}">编辑</button></td></tr>
           `).join("") || `<tr><td colspan="6">暂无数据</td></tr>`;
         };
 
@@ -782,6 +1069,10 @@
           $("[data-refresh]").addEventListener("click", loadStats);
           $("[data-open-tasks]").addEventListener("click", () => switchView("tasks"));
           $("[data-task-status]").addEventListener("change", loadTasks);
+          $("[data-edit-close]").addEventListener("click", closeEdit);
+          $("[data-edit-close-secondary]").addEventListener("click", closeEdit);
+          $("[data-edit-backdrop]").addEventListener("click", (event) => { if (event.target === $("[data-edit-backdrop]")) closeEdit(); });
+          $("[data-edit-save]").addEventListener("click", saveEdit);
 
           $("[data-create-model]").addEventListener("click", async () => {
             try {
@@ -806,10 +1097,16 @@
           });
 
           $("[data-model-list]").addEventListener("click", async (event) => {
+            const editButton = event.target.closest("[data-edit-model]");
             const defaultButton = event.target.closest("[data-default]");
             const toggleButton = event.target.closest("[data-toggle]");
             const testButton = event.target.closest("[data-test]");
             try {
+              if (editButton) {
+                const model = cache.models.find((item) => item.id === editButton.dataset.editModel);
+                if (model) openEdit("model", model);
+                return;
+              }
               if (defaultButton) await api(`/api/admin/ai-models/${defaultButton.dataset.default}/set-default`, { method: "POST" });
               if (toggleButton) await api(`/api/admin/ai-models/${toggleButton.dataset.toggle}/status`, { method: "PATCH", body: JSON.stringify({ isActive: toggleButton.dataset.active === "1" }) });
               if (testButton) await api(`/api/admin/ai-models/${testButton.dataset.test}/test`, { method: "POST", body: JSON.stringify({ taskType: "generate", prompt: "一张柔光人像测试图", size: "2048x2048", count: 1 }) });
@@ -841,6 +1138,62 @@
               setText("[data-prompt-message]", error.message);
             }
           });
+          ["[data-prompt-query]", "[data-prompt-filter-type]", "[data-prompt-filter-status]"].forEach((selector) => {
+            $(selector).addEventListener("input", renderPrompts);
+            $(selector).addEventListener("change", renderPrompts);
+          });
+          $("[data-prompt-export]").addEventListener("click", () => {
+            const prompts = filteredPrompts();
+            downloadJson(`prompt-templates-${new Date().toISOString().slice(0, 10)}.json`, { exportedAt: new Date().toISOString(), prompts });
+            setText("[data-prompt-message]", `已导出 ${prompts.length} 条提示词。`);
+          });
+          $("[data-prompt-import]").addEventListener("click", () => $("[data-prompt-import-file]").click());
+          $("[data-prompt-import-file]").addEventListener("change", async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            try {
+              const prompts = normalizePromptImport(JSON.parse(await file.text()));
+              if (!prompts.length) throw new Error("没有可导入的提示词。");
+              let created = 0;
+              let updated = 0;
+              for (const prompt of prompts) {
+                const exists = prompt.id && cache.prompts.some((item) => item.id === prompt.id);
+                if (exists) {
+                  await api(`/api/admin/prompt-templates/${prompt.id}`, { method: "PATCH", body: JSON.stringify(promptPayload(prompt)) });
+                  updated += 1;
+                } else {
+                  const result = await api("/api/admin/prompt-templates", { method: "POST", body: JSON.stringify(promptPayload(prompt)) });
+                  if (prompt.isActive === false && result.id) {
+                    await api(`/api/admin/prompt-templates/${result.id}`, { method: "PATCH", body: JSON.stringify({ ...promptPayload(prompt), isActive: false }) });
+                  }
+                  created += 1;
+                }
+              }
+              await loadPrompts();
+              setText("[data-prompt-message]", `导入完成：新增 ${created} 条，更新 ${updated} 条。`);
+            } catch (error) {
+              setText("[data-prompt-message]", error.message);
+            } finally {
+              event.target.value = "";
+            }
+          });
+
+          $("[data-prompt-list]").addEventListener("click", async (event) => {
+            const editButton = event.target.closest("[data-edit-prompt]");
+            const deleteButton = event.target.closest("[data-delete-prompt]");
+            try {
+              if (editButton) {
+                const prompt = cache.prompts.find((item) => item.id === editButton.dataset.editPrompt);
+                if (prompt) openEdit("prompt", prompt);
+              }
+              if (deleteButton && window.confirm("确认删除这个提示词？")) {
+                await api(`/api/admin/prompt-templates/${deleteButton.dataset.deletePrompt}`, { method: "DELETE" });
+                await loadPrompts();
+              }
+            } catch (error) {
+              setText("[data-prompt-message]", error.message);
+            }
+          });
 
           $("[data-create-plan]").addEventListener("click", async () => {
             try {
@@ -850,6 +1203,13 @@
             } catch (error) {
               setText("[data-plan-message]", error.message);
             }
+          });
+
+          $("[data-plan-list]").addEventListener("click", (event) => {
+            const editButton = event.target.closest("[data-edit-plan]");
+            if (!editButton) return;
+            const plan = cache.plans.find((item) => item.id === editButton.dataset.editPlan);
+            if (plan) openEdit("plan", plan);
           });
         };
 
