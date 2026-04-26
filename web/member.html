@@ -4,9 +4,52 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>会员中心 - 光影AI</title>
-    <link rel="stylesheet" href="./styles.css?v=20260426-member3" />
+    <link rel="stylesheet" href="./styles.css?v=20260426-member5" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body id="top" class="member-page">
+
+    <!-- Login modal -->
+    <div class="auth-modal-backdrop" data-auth-backdrop aria-hidden="true">
+      <div class="auth-modal" role="dialog" aria-modal="true" aria-label="登录注册">
+        <button class="auth-modal-close" type="button" data-auth-close aria-label="关闭">✕</button>
+        <div class="auth-modal-header">
+          <h2>登录 / 注册</h2>
+          <p>手机号验证码登录，未注册自动创建账号</p>
+        </div>
+        <div class="segmented auth-tabs" data-auth-mode>
+          <button class="active" type="button" data-mode="phone-login">手机号登录</button>
+          <button type="button" data-mode="reset">忘记密码</button>
+          <button type="button" data-mode="wechat">微信扫码</button>
+        </div>
+        <div class="auth-modal-fields">
+          <label class="mc-label">
+            <span>手机号</span>
+            <input type="tel" inputmode="numeric" maxlength="11" placeholder="请输入手机号" data-auth-phone />
+          </label>
+          <label class="mc-label" data-code-row>
+            <span>验证码</span>
+            <span class="inline-field">
+              <input type="text" inputmode="numeric" maxlength="4" placeholder="开发验证码 8888" data-auth-code />
+              <button type="button" data-send-code>获取验证码</button>
+            </span>
+          </label>
+          <label class="mc-label" data-password-row>
+            <span>新密码</span>
+            <input type="password" placeholder="8-32 位，至少 3 类字符" data-auth-password />
+          </label>
+          <label class="mc-label" data-confirm-row>
+            <span>确认密码</span>
+            <input type="password" placeholder="再次输入密码" data-auth-confirm />
+          </label>
+          <button class="mc-btn mc-btn-primary auth-submit-btn" type="button" data-auth-submit>登录</button>
+          <p class="form-message" data-auth-message role="status"></p>
+        </div>
+      </div>
+    </div>
+
     <header class="site-header">
       <div class="shell header-inner">
         <a class="brand" href="./index.html" aria-label="光影AI 首页">
@@ -25,86 +68,46 @@
     </header>
 
     <main class="member-main">
+
+      <!-- Hero -->
       <section class="member-hero">
         <div class="shell member-hero-inner">
-          <div>
+          <div class="member-hero-text">
             <h1>会员中心</h1>
             <p>管理积分，生成图片，查看创作记录</p>
           </div>
           <div class="member-summary">
-            <span>登录状态</span>
-            <strong data-login-state>未登录</strong>
-            <em>当前方案：<b data-current-plan>未开通</b></em>
-            <em><b data-credit-balance>0</b> 积分</em>
-            <button class="member-login-toggle" type="button" data-login-toggle>登录 / 注册</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="member-section">
-        <div class="shell">
-          <div class="auth-panel" data-auth-panel>
-            <div class="section-title">
-              <div>
-                <h2>注册登录</h2>
-                <p>手机号验证码登录，未注册手机号会自动创建账号</p>
-              </div>
+            <div class="member-summary-row">
+              <span class="summary-label">登录状态</span>
+              <strong class="summary-state" data-login-state>未登录</strong>
             </div>
-            <div class="auth-grid">
-              <div class="segmented auth-tabs" data-auth-mode>
-                <button class="active" type="button" data-mode="phone-login">手机号登录</button>
-                <button type="button" data-mode="reset">忘记密码</button>
-                <button type="button" data-mode="wechat">微信扫码</button>
-              </div>
-              <label>
-                手机号
-                <input type="tel" inputmode="numeric" maxlength="11" placeholder="请输入手机号" data-auth-phone />
-              </label>
-              <label data-code-row>
-                验证码
-                <span class="inline-field">
-                  <input type="text" inputmode="numeric" maxlength="4" placeholder="开发验证码 8888" data-auth-code />
-                  <button type="button" data-send-code>获取验证码</button>
-                </span>
-              </label>
-              <label data-password-row>
-                新密码
-                <input type="password" placeholder="8-32 位，至少 3 类字符" data-auth-password />
-              </label>
-              <label data-confirm-row>
-                确认密码
-                <input type="password" placeholder="再次输入密码" data-auth-confirm />
-              </label>
-              <button class="submit-ai" type="button" data-auth-submit>提交</button>
-              <button class="member-login-toggle logout-button" type="button" data-logout>退出登录</button>
-              <p class="form-message" data-auth-message role="status"></p>
+            <div class="member-summary-divider"></div>
+            <div class="member-summary-row">
+              <span class="summary-label">当前方案</span>
+              <b class="summary-value" data-current-plan>未开通</b>
+            </div>
+            <div class="member-summary-row">
+              <span class="summary-label">可用积分</span>
+              <b class="summary-value summary-credits"><b data-credit-balance>0</b> 分</b>
+            </div>
+            <div class="member-summary-actions">
+              <button class="member-login-toggle" type="button" data-login-toggle>登录 / 注册</button>
+              <button class="member-logout-btn" type="button" data-logout>退出登录</button>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="member-section">
-        <div class="shell">
-          <div class="section-title">
-            <div>
-              <h2>会员订阅</h2>
-              <p>套餐版本、积分和生成张数由 mock 数据维护</p>
-            </div>
-          </div>
-          <div class="member-plan-grid" data-plan-list></div>
-        </div>
-      </section>
-
+      <!-- Studio + Records -->
       <section id="studio" class="member-section">
         <div class="shell">
-          <div class="section-title">
-            <div>
-              <h2>AI 图片生成 / 修改</h2>
-              <p>选择提示词标题并提交任务，核心 prompt 不在前台展示</p>
-            </div>
+          <div class="mc-section-header">
+            <h2>AI 创作工作台</h2>
+            <p>选择风格提示词，提交生成任务</p>
           </div>
           <div class="member-workbench">
-            <div class="ai-form">
+
+            <div class="mc-card ai-form">
               <div class="credit-bar">
                 <span data-member-state>未开通会员</span>
                 <strong><b data-form-credit>0</b> 积分</strong>
@@ -114,50 +117,69 @@
                 <button type="button" data-type="image_to_image">以图生图</button>
                 <button type="button" data-type="edit">修改图片</button>
               </div>
-              <label>
-                提示词标题
+              <label class="mc-label">
+                <span>提示词标题</span>
                 <select data-prompt-select></select>
               </label>
-              <label>
-                生图模型
+              <label class="mc-label">
+                <span>生图模型</span>
                 <select data-model-select></select>
               </label>
-              <label>
-                图片尺寸
-                <select data-size-select>
-                  <option value="1:1">1:1 方图</option>
-                  <option value="3:4">3:4 人像</option>
-                  <option value="16:9">16:9 横图</option>
-                </select>
-              </label>
-              <label>
-                数量
-                <input type="number" min="1" max="4" value="1" data-image-count />
-              </label>
-              <div class="upload-field" data-upload-field>
-                <span class="upload-title">上传参考图</span>
-                <input id="image-upload-input" type="file" accept="image/*" data-image-upload />
-                <span data-upload-name>修改图片时需要上传原图</span>
+              <div class="form-row-2">
+                <label class="mc-label">
+                  <span>图片尺寸</span>
+                  <select data-size-select>
+                    <option value="1:1">1:1 方图</option>
+                    <option value="3:4">3:4 人像</option>
+                    <option value="16:9">16:9 横图</option>
+                  </select>
+                </label>
+                <label class="mc-label">
+                  <span>数量</span>
+                  <input type="number" min="1" max="4" value="1" data-image-count />
+                </label>
               </div>
-              <label>
-                补充说明
+              <div class="upload-field" data-upload-field>
+                <span class="upload-title">上传参考图 <em class="upload-size-hint">（自动压缩至 1MB 以内）</em></span>
+                <label class="upload-zone" for="image-upload-input" data-upload-zone>
+                  <span class="upload-zone-placeholder" data-upload-placeholder>点击或拖拽上传图片</span>
+                  <img class="upload-preview" data-upload-preview src="" alt="参考图预览" />
+                  <button class="upload-clear" type="button" data-upload-clear aria-label="移除图片">✕</button>
+                </label>
+                <input id="image-upload-input" type="file" accept="image/*" data-image-upload />
+              </div>
+              <label class="mc-label">
+                <span>补充说明</span>
                 <textarea rows="3" placeholder="例如：保留自然肤色，背景更干净" data-user-instruction></textarea>
               </label>
-              <p class="cost-line">预计消耗 <strong data-credit-cost>0</strong> 积分</p>
-              <button class="submit-ai" type="button" data-submit-ai>提交 AI 任务</button>
+              <div class="cost-line">预计消耗 <strong data-credit-cost>0</strong> 积分</div>
+              <button class="mc-btn mc-btn-primary submit-ai" type="button" data-submit-ai>提交 AI 任务</button>
               <p class="form-message" data-ai-message role="status"></p>
             </div>
 
-            <div id="records" class="record-panel">
+            <div id="records" class="mc-card record-panel">
               <div class="task-head">
                 <h3>生成记录</h3>
                 <span data-task-count>0 条</span>
               </div>
               <div class="result-grid" data-task-list></div>
             </div>
+
           </div>
         </div>
       </section>
+
+      <!-- Plans / Credits -->
+      <section class="member-section member-section-last">
+        <div class="shell">
+          <div class="mc-section-header">
+            <h2 data-plans-title>积分套餐</h2>
+            <p data-plans-subtitle>购买积分，继续创作</p>
+          </div>
+          <div class="member-plan-grid" data-plan-list></div>
+        </div>
+      </section>
+
     </main>
 
     <script>
@@ -218,18 +240,44 @@
           $("[data-auth-message]").textContent = text || "";
         };
 
+        // Modal open/close
+        const openModal = () => {
+          $("[data-auth-backdrop]").classList.add("is-open");
+          $("[data-auth-backdrop]").removeAttribute("aria-hidden");
+          $("[data-auth-phone]").focus();
+        };
+
+        const closeModal = () => {
+          $("[data-auth-backdrop]").classList.remove("is-open");
+          $("[data-auth-backdrop]").setAttribute("aria-hidden", "true");
+          setAuthMessage("");
+        };
+
         const updateMemberState = () => {
           const membership = state.user?.membership;
           const credits = state.user?.credits || 0;
-          $("[data-login-state]").textContent = state.user ? "已登录" : "未登录";
+          const loggedIn = !!state.user;
+
+          $("[data-login-state]").textContent = loggedIn ? "已登录" : "未登录";
           $("[data-current-plan]").textContent = membership ? membership.planName : "未开通";
           $("[data-credit-balance]").textContent = credits;
           $("[data-form-credit]").textContent = credits;
-          $("[data-member-state]").textContent = state.user ? (membership ? `${membership.planName} · ${state.user.phone}` : "已登录，未开通会员") : "未登录";
-          $("[data-login-toggle]").textContent = state.user ? "账号信息" : "登录 / 注册";
-          $("[data-logout]").style.display = state.user ? "inline-flex" : "none";
-          $$("[data-open-plan]").forEach((button) => {
-            button.textContent = membership?.planId === button.dataset.planId ? "当前方案" : "开通会员";
+          $("[data-member-state]").textContent = loggedIn
+            ? (membership ? `${membership.planName} · ${state.user.phone}` : `已登录 · ${state.user.phone}`)
+            : "未登录";
+
+          $("[data-login-toggle]").textContent = loggedIn ? "账号信息" : "登录 / 注册";
+          $("[data-login-toggle]").style.display = loggedIn ? "none" : "";
+          $("[data-logout]").style.display = loggedIn ? "" : "none";
+
+          // Plans section: title changes based on login state
+          $("[data-plans-title]").textContent = loggedIn ? "购买积分" : "会员套餐";
+          $("[data-plans-subtitle]").textContent = loggedIn ? "选择套餐，积分即时到账" : "开通会员，解锁 AI 创作能力";
+
+          $$("[data-open-plan]").forEach((btn) => {
+            const isCurrent = membership?.planId === btn.dataset.planId;
+            btn.textContent = isCurrent ? "当前方案" : (loggedIn ? "购买积分" : "开通会员");
+            btn.disabled = isCurrent;
           });
         };
 
@@ -238,7 +286,7 @@
           try {
             const data = await api("/api/auth/me");
             state.user = data.user;
-          } catch (error) {
+          } catch {
             clearSession();
           }
         };
@@ -251,7 +299,7 @@
               <h3>${plan.name}</h3>
               <strong><small>¥</small>${plan.price}<em>${plan.suffix}</em></strong>
               <p>${plan.credits} 积分 · 可生成 ${plan.quota} 张</p>
-              <ul>${plan.features.map((feature) => `<li>${feature}</li>`).join("")}</ul>
+              <ul>${plan.features.map((f) => `<li>${f}</li>`).join("")}</ul>
               <button type="button" data-open-plan="${plan.code}" data-plan-id="${plan.id}">开通会员</button>
             </article>
           `).join("");
@@ -259,29 +307,109 @@
         };
 
         const updateTaskTypeButtons = () => {
-          $$("[data-task-type] button").forEach((button) => {
-            button.classList.toggle("active", button.dataset.type === state.taskType);
+          $$("[data-task-type] button").forEach((btn) => {
+            btn.classList.toggle("active", btn.dataset.type === state.taskType);
           });
-          $("[data-upload-field]").classList.toggle("is-visible", state.taskType !== "generate");
-          $("[data-upload-name]").textContent = state.taskType === "generate" ? "" : "请上传参考图";
+          const needsUpload = state.taskType !== "generate";
+          $("[data-upload-field]").classList.toggle("is-visible", needsUpload);
+          if (!needsUpload) clearUpload();
+        };
+
+        // ── Image compress + preview ──────────────────────────────
+        const MAX_BYTES = 1 * 1024 * 1024; // 1 MB
+        const MAX_PX = 1200;
+
+        const compressImage = (file) => new Promise((resolve, reject) => {
+          const img = new Image();
+          const url = URL.createObjectURL(file);
+          img.onload = () => {
+            URL.revokeObjectURL(url);
+            let { width, height } = img;
+            if (width > MAX_PX || height > MAX_PX) {
+              const ratio = Math.min(MAX_PX / width, MAX_PX / height);
+              width = Math.round(width * ratio);
+              height = Math.round(height * ratio);
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+            // Try quality 0.85 first, drop to 0.7 if still too large
+            let dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+            if (dataUrl.length * 0.75 > MAX_BYTES) {
+              dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+            }
+            resolve(dataUrl);
+          };
+          img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("图片读取失败，请重新选择。")); };
+          img.src = url;
+        });
+
+        const setUploadPreview = (dataUrl) => {
+          const zone = $("[data-upload-zone]");
+          const preview = $("[data-upload-preview]");
+          const placeholder = $("[data-upload-placeholder]");
+          preview.src = dataUrl;
+          preview.style.display = "block";
+          placeholder.style.display = "none";
+          zone.classList.add("has-preview");
+          state.uploadedDataUrl = dataUrl;
+          state.uploadedImageUrl = "";
+        };
+
+        const clearUpload = () => {
+          const zone = $("[data-upload-zone]");
+          const preview = $("[data-upload-preview]");
+          const placeholder = $("[data-upload-placeholder]");
+          $("[data-image-upload]").value = "";
+          preview.src = "";
+          preview.style.display = "none";
+          placeholder.style.display = "";
+          zone.classList.remove("has-preview");
+          state.uploadedDataUrl = null;
+          state.uploadedImageUrl = "";
+        };
+
+        const uploadReferenceImage = async () => {
+          if (!state.uploadedDataUrl) return "";
+          if (state.uploadedImageUrl) return state.uploadedImageUrl;
+          const data = await api("/api/uploads/images", {
+            method: "POST",
+            body: JSON.stringify({ imageData: state.uploadedDataUrl })
+          });
+          state.uploadedImageUrl = data.url;
+          return data.url;
+        };
+
+        const handleImageFile = async (file) => {
+          if (!file || !file.type.startsWith("image/")) {
+            setMessage("请选择图片文件。");
+            return;
+          }
+          try {
+            const dataUrl = await compressImage(file);
+            setUploadPreview(dataUrl);
+          } catch (e) {
+            setMessage(e.message);
+          }
         };
 
         const renderPromptOptions = async () => {
           const data = await api(`/api/prompts?taskType=${state.taskType}`);
           state.prompts = data.prompts;
-          $("[data-prompt-select]").innerHTML = state.prompts.map((prompt) => `<option value="${prompt.id}">${prompt.title} · ${prompt.scene}</option>`).join("");
+          $("[data-prompt-select]").innerHTML = state.prompts.map((p) => `<option value="${p.id}">${p.title} · ${p.scene}</option>`).join("");
           updateCost();
         };
 
         const renderModels = async () => {
           const data = await api(`/api/ai-models?taskType=${state.taskType}`);
           state.models = data.models;
-          $("[data-model-select]").innerHTML = state.models.map((model) => `<option value="${model.id}">${model.name}</option>`).join("");
+          $("[data-model-select]").innerHTML = state.models.map((m) => `<option value="${m.id}">${m.name}</option>`).join("");
           if (data.preferredModelId) $("[data-model-select]").value = data.preferredModelId;
           updateCost();
         };
 
-        const currentModel = () => state.models.find((model) => model.id === $("[data-model-select]").value);
+        const currentModel = () => state.models.find((m) => m.id === $("[data-model-select]").value);
 
         const updateCost = () => {
           const count = Math.max(1, Number($("[data-image-count]").value || 1));
@@ -291,13 +419,7 @@
           return cost;
         };
 
-        const statusText = (status) => ({
-          queued: "排队中",
-          processing: "生成中",
-          succeeded: "已完成",
-          failed: "失败",
-          refunded: "已退款"
-        })[status] || status;
+        const statusText = (s) => ({ queued: "排队中", processing: "生成中", succeeded: "已完成", failed: "失败", refunded: "已退款" })[s] || s;
 
         const renderTasks = () => {
           const list = $("[data-task-list]");
@@ -306,7 +428,6 @@
             list.innerHTML = `<p class="empty-task">暂无生成记录。</p>`;
             return;
           }
-
           list.innerHTML = state.tasks.map((task) => `
             <article class="result-card">
               <img src="${task.resultImageUrls?.[0] || "./assets/work-portrait.jpg"}" alt="${task.promptTitle}" />
@@ -321,27 +442,17 @@
         };
 
         const loadTasks = async () => {
-          if (!state.user) {
-            renderTasks();
-            return;
-          }
+          if (!state.user) { renderTasks(); return; }
           const data = await api("/api/ai-image-tasks");
           state.tasks = data.tasks;
           renderTasks();
         };
 
-        const fileToDataUrl = (file) => new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = () => reject(new Error("图片读取失败，请重新选择。"));
-          reader.readAsDataURL(file);
-        });
-
         const watchTaskUntilDone = async (taskId) => {
-          for (let index = 0; index < 60; index += 1) {
-            await new Promise((resolve) => window.setTimeout(resolve, 2000));
+          for (let i = 0; i < 60; i++) {
+            await new Promise((r) => window.setTimeout(r, 2000));
             await loadTasks();
-            const task = state.tasks.find((item) => item.id === taskId);
+            const task = state.tasks.find((t) => t.id === taskId);
             if (!task || task.status === "succeeded" || task.status === "failed") {
               setMessage(task?.status === "succeeded" ? "任务已完成，可在右侧查看和下载。" : (task?.failureReason || "任务处理结束。"));
               return;
@@ -351,24 +462,28 @@
         };
 
         const updateAuthMode = () => {
-          $$("[data-auth-mode] button").forEach((button) => button.classList.toggle("active", button.dataset.mode === state.authMode));
-          const needsCode = state.authMode !== "wechat";
-          const needsPassword = state.authMode === "reset";
-          const needsConfirm = state.authMode === "reset";
-          $("[data-code-row]").style.display = needsCode ? "grid" : "none";
-          $("[data-password-row]").style.display = needsPassword ? "grid" : "none";
-          $("[data-confirm-row]").style.display = needsConfirm ? "grid" : "none";
+          $$("[data-auth-mode] button").forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === state.authMode));
+          $("[data-code-row]").style.display = state.authMode !== "wechat" ? "grid" : "none";
+          $("[data-password-row]").style.display = state.authMode === "reset" ? "grid" : "none";
+          $("[data-confirm-row]").style.display = state.authMode === "reset" ? "grid" : "none";
+          $("[data-auth-submit]").textContent = state.authMode === "reset" ? "重置密码" : "登录";
         };
 
         const initAuth = () => {
-          $("[data-login-toggle]").addEventListener("click", () => {
-            $("[data-auth-panel]").scrollIntoView({ behavior: "smooth", block: "start" });
+          $("[data-login-toggle]").addEventListener("click", openModal);
+
+          $("[data-auth-close]").addEventListener("click", closeModal);
+          $("[data-auth-backdrop]").addEventListener("click", (e) => {
+            if (e.target === $("[data-auth-backdrop]")) closeModal();
+          });
+          document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") closeModal();
           });
 
-          $("[data-auth-mode]").addEventListener("click", (event) => {
-            const button = event.target.closest("[data-mode]");
-            if (!button) return;
-            state.authMode = button.dataset.mode;
+          $("[data-auth-mode]").addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-mode]");
+            if (!btn) return;
+            state.authMode = btn.dataset.mode;
             updateAuthMode();
           });
 
@@ -379,9 +494,9 @@
                 method: "POST",
                 body: JSON.stringify({ targetType: "phone", target: $("[data-auth-phone]").value, scene: sceneMap[state.authMode] || "login" })
               });
-              setAuthMessage(data.devCode ? `验证码已发送，开发环境验证码：${data.devCode}` : "验证码已发送。");
-            } catch (error) {
-              setAuthMessage(error.message);
+              setAuthMessage(data.devCode ? `验证码已发送，开发验证码：${data.devCode}` : "验证码已发送。");
+            } catch (e) {
+              setAuthMessage(e.message);
             }
           });
 
@@ -391,47 +506,41 @@
             const password = $("[data-auth-password]").value;
             const confirmPassword = $("[data-auth-confirm]").value;
             try {
-              let data;
               if (state.authMode === "phone-login") {
-                data = await api("/api/auth/login/phone-code", { method: "POST", body: JSON.stringify({ phone, code }) });
+                const data = await api("/api/auth/login/phone-code", { method: "POST", body: JSON.stringify({ phone, code }) });
+                saveSession(data);
+                await Promise.all([renderModels(), loadTasks()]);
+                updateMemberState();
+                closeModal();
               } else if (state.authMode === "wechat") {
                 const qr = await api("/api/auth/wechat/qr/create", { method: "POST" });
                 setAuthMessage(qr.message || "微信扫码登录待接入。");
-                return;
               } else {
                 await api("/api/auth/password/reset", { method: "POST", body: JSON.stringify({ phone, code, password, confirmPassword }) });
                 clearSession();
                 updateMemberState();
                 setAuthMessage("密码已重设，请重新登录。");
-                return;
               }
-              saveSession(data);
-              await Promise.all([renderModels(), loadTasks()]);
-              updateMemberState();
-              setAuthMessage("已登录。");
-            } catch (error) {
-              setAuthMessage(error.message);
+            } catch (e) {
+              setAuthMessage(e.message);
             }
           });
 
           $("[data-logout]").addEventListener("click", async () => {
             try {
               await api("/api/auth/logout", { method: "POST", body: JSON.stringify({ refreshToken: localStorage.getItem(refreshKey) }) });
-            } catch (error) {
-              setAuthMessage(error.message);
-            }
+            } catch { /* ignore */ }
             clearSession();
             updateMemberState();
             renderTasks();
-            setAuthMessage("已退出登录。");
           });
         };
 
         const initStudio = () => {
-          $("[data-task-type]").addEventListener("click", (event) => {
-            const button = event.target.closest("button");
-            if (!button) return;
-            state.taskType = button.dataset.type;
+          $("[data-task-type]").addEventListener("click", (e) => {
+            const btn = e.target.closest("button");
+            if (!btn) return;
+            state.taskType = btn.dataset.type;
             updateTaskTypeButtons();
             Promise.all([renderPromptOptions(), renderModels()]);
           });
@@ -439,27 +548,46 @@
           $("[data-prompt-select]").addEventListener("change", updateCost);
           $("[data-model-select]").addEventListener("change", updateCost);
           $("[data-image-count]").addEventListener("input", updateCost);
-          $("[data-image-upload]").addEventListener("change", (event) => {
-            const file = event.target.files[0];
-            $("[data-upload-name]").textContent = file ? file.name : "请上传参考图";
+
+          // File input change
+          $("[data-image-upload]").addEventListener("change", (e) => {
+            handleImageFile(e.target.files[0]);
           });
 
+          // Drag and drop
+          const zone = $("[data-upload-zone]");
+          zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("drag-over"); });
+          zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
+          zone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            zone.classList.remove("drag-over");
+            handleImageFile(e.dataTransfer.files[0]);
+          });
+
+          // Clear button
+          $("[data-upload-clear]").addEventListener("click", (e) => {
+            e.preventDefault();
+            clearUpload();
+          });
+
+          // Submit with loading state
+          const submitBtn = $("[data-submit-ai]");
           $("[data-submit-ai]").addEventListener("click", async () => {
-            if (!state.user) {
-              setMessage("请先登录后再提交 AI 任务。");
-              return;
-            }
+            if (!state.user) { openModal(); return; }
             if (!state.user.membership) {
-              setMessage("请先开通会员方案。");
+              setMessage("请先购买积分套餐。");
+              document.querySelector(".member-section-last").scrollIntoView({ behavior: "smooth", block: "start" });
               return;
             }
-            if (state.taskType !== "generate" && !$("[data-image-upload]").files.length) {
+            if (state.taskType !== "generate" && !state.uploadedDataUrl) {
               setMessage("该任务类型需要先上传参考图。");
               return;
             }
+            submitBtn.disabled = true;
+            submitBtn.textContent = "提交中…";
+            setMessage("");
             try {
-              const uploadFile = $("[data-image-upload]").files[0];
-              const inputImageUrl = uploadFile ? await fileToDataUrl(uploadFile) : "";
+              const inputImageUrl = state.taskType === "generate" ? "" : await uploadReferenceImage();
               const data = await api("/api/ai-image-tasks", {
                 method: "POST",
                 body: JSON.stringify({
@@ -476,37 +604,32 @@
               state.tasks.unshift(data.task);
               updateMemberState();
               renderTasks();
-              setMessage("任务已提交，正在生成。");
+              setMessage("任务已提交，正在生成中…");
               watchTaskUntilDone(data.task.id);
-            } catch (error) {
-              setMessage(error.message);
+            } catch (e) {
+              setMessage(e.message);
+            } finally {
+              submitBtn.disabled = false;
+              submitBtn.textContent = "提交 AI 任务";
             }
           });
         };
 
-        const initPlanFromQuery = () => {
-          const code = new URLSearchParams(window.location.search).get("plan");
-          const plan = state.plans.find((item) => item.code === code);
-          if (!plan) return;
-          setMessage(`请先登录后开通 ${plan.name}。`);
-        };
-
         const initPlans = () => {
-          $("[data-plan-list]").addEventListener("click", async (event) => {
-            const button = event.target.closest("[data-open-plan]");
-            if (!button) return;
+          $("[data-plan-list]").addEventListener("click", async (e) => {
+            const btn = e.target.closest("[data-open-plan]");
+            if (!btn) return;
             if (!state.user) {
-              setMessage("请先登录后再开通会员方案。");
-              $("[data-auth-panel]").scrollIntoView({ behavior: "smooth", block: "start" });
+              openModal();
               return;
             }
             try {
-              const data = await api("/api/memberships/subscribe", { method: "POST", body: JSON.stringify({ planCode: button.dataset.openPlan }) });
+              const data = await api("/api/memberships/subscribe", { method: "POST", body: JSON.stringify({ planCode: btn.dataset.openPlan }) });
               state.user = data.user;
               updateMemberState();
-              setMessage("会员已开通，积分已发放。");
-            } catch (error) {
-              setMessage(error.message);
+              setMessage("积分已到账。");
+            } catch (e) {
+              setMessage(e.message);
             }
           });
         };
@@ -523,9 +646,10 @@
             await refreshMe();
             renderPlans();
             await Promise.all([renderPromptOptions(), renderModels(), loadTasks()]);
-            initPlanFromQuery();
-          } catch (error) {
-            setMessage(error.message);
+            const planCode = new URLSearchParams(window.location.search).get("plan");
+            if (planCode && !state.user) openModal();
+          } catch (e) {
+            setMessage(e.message);
           }
           updateMemberState();
           renderTasks();

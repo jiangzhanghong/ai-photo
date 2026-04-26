@@ -7,6 +7,7 @@ const mysql = require("mysql2/promise");
 const { URL } = require("url");
 
 const ROOT = path.resolve(__dirname, "..");
+const UPLOAD_DIR = path.join(ROOT, "web", "uploads");
 const PORT = Number(process.env.PORT || 8000);
 const ACCESS_EXPIRES_SECONDS = 60 * 60 * 2;
 const REFRESH_EXPIRES_SECONDS = 60 * 60 * 24 * 30;
@@ -282,6 +283,26 @@ const readBody = async (req) => new Promise((resolve, reject) => {
     }
   });
 });
+
+const publicUrl = (req, pathname) => {
+  const proto = req.headers["x-forwarded-proto"] || "http";
+  const host = req.headers.host || `localhost:${PORT}`;
+  return `${proto}://${host}${pathname}`;
+};
+
+const saveUploadedImage = async (req, imageData) => {
+  const match = String(imageData || "").match(/^data:(image\/(?:jpeg|jpg|png|webp));base64,([a-zA-Z0-9+/=]+)$/);
+  if (!match) throw new Error("图片数据格式无效。");
+  const mime = match[1] === "image/jpg" ? "image/jpeg" : match[1];
+  const extMap = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+  const buffer = Buffer.from(match[2], "base64");
+  if (buffer.length > 5 * 1024 * 1024) throw new Error("图片不能超过 5MB。");
+  await fs.promises.mkdir(UPLOAD_DIR, { recursive: true });
+  const fileName = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}.${extMap[mime]}`;
+  const filePath = path.join(UPLOAD_DIR, fileName);
+  await fs.promises.writeFile(filePath, buffer);
+  return publicUrl(req, `/uploads/${fileName}`);
+};
 
 const requireAdmin = (req) => req.headers["x-admin-token"] === ADMIN_TOKEN;
 const requireUser = async (req) => {
@@ -905,6 +926,13 @@ const routeApi = async (req, res, url) => {
     return json(res, 200, { models: models.map((model) => modelDto(model)), preferredModelId: preferred?.id || "" });
   }
 
+  if (req.method === "POST" && url.pathname === "/api/uploads/images") {
+    const user = await requireUser(req);
+    if (!user) return json(res, 401, { message: "请先登录。" });
+    const url = await saveUploadedImage(req, body.imageData);
+    return json(res, 201, { url });
+  }
+
   if (req.method === "POST" && url.pathname === "/api/ai-image-tasks") {
     const user = await requireUser(req);
     if (!user) return json(res, 401, { message: "请先登录。" });
@@ -927,16 +955,27 @@ const routeApi = async (req, res, url) => {
     };
     const conn = await pool.getConnection();
     try {
+      await conn.execute("SET innodb_lock_wait_timeout = 5");
       await conn.beginTransaction();
-      await conn.execute("UPDATE users SET credits = credits - ?, preferred_ai_model_id = ?, updated_at = NOW() WHERE id = ? AND credits >= ?", [creditCost, model.id, user.id, creditCost]);
-      await conn.execute(`INSERT INTO ai_image_tasks
+      const [updateResult] = await conn.execute(
+        "UPDATE users SET credits = credits - ?, preferred_ai_model_id = ?, updated_at = NOW() WHERE id = ? AND credits >= ?",
+        [creditCost, model.id, user.id, creditCost]
+      );
+      if (updateResult.affectedRows === 0) {
+        await conn.rollback();
+        conn.release();
+        return json(res, 400, { message: "积分不足，请购买积分后重试。" });
+      }
+      await conn.execute(
+        `INSERT INTO ai_image_tasks
         (id, task_no, user_id, prompt_template_id, prompt_title, ai_model_id, ai_model_name, ai_model_version, task_type, status, credit_cost, size, count, input_image_url, user_instruction, result_image_urls_json, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?, '[]', NOW(), NOW())`,
         [task.id, task.taskNo, user.id, prompt.id, prompt.title, model.id, model.name, model.version, taskType, creditCost, body.size || model.default_size, count, body.inputImageUrl || "", body.userInstruction || ""]
       );
-      await conn.execute("INSERT INTO credit_transactions (id, user_id, amount, transaction_type, related_type, related_id, remark, created_at) VALUES (?, ?, ?, 'task_spend', 'ai_task', ?, ?, NOW())", [
-        uid("credit"), user.id, -creditCost, task.id, `${prompt.title} · ${model.name}`
-      ]);
+      await conn.execute(
+        "INSERT INTO credit_transactions (id, user_id, amount, transaction_type, related_type, related_id, remark, created_at) VALUES (?, ?, ?, 'task_spend', 'ai_task', ?, ?, NOW())",
+        [uid("credit"), user.id, -creditCost, task.id, `${prompt.title} · ${model.name}`]
+      );
       await conn.commit();
     } catch (error) {
       await conn.rollback();
@@ -1051,8 +1090,139 @@ const routeApi = async (req, res, url) => {
       }
     }
     if (req.method === "GET" && url.pathname === "/api/admin/ai-image-tasks") {
-      const rows = await db.query("SELECT * FROM ai_image_tasks ORDER BY created_at DESC LIMIT 100");
+      const status = url.searchParams.get("status") || "";
+      const rows = await db.query(
+        status
+          ? "SELECT * FROM ai_image_tasks WHERE status = ? ORDER BY created_at DESC LIMIT 200"
+          : "SELECT * FROM ai_image_tasks ORDER BY created_at DESC LIMIT 200",
+        status ? [status] : []
+      );
       return json(res, 200, { tasks: rows.map(taskDto) });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/admin/stats") {
+      const [[userCount]] = await pool.query("SELECT COUNT(*) AS n FROM users");
+      const [[activeMembers]] = await pool.query("SELECT COUNT(*) AS n FROM user_memberships WHERE status = 'active'");
+      const [[taskTotal]] = await pool.query("SELECT COUNT(*) AS n FROM ai_image_tasks");
+      const [[taskSucceeded]] = await pool.query("SELECT COUNT(*) AS n FROM ai_image_tasks WHERE status = 'succeeded'");
+      const [[taskFailed]] = await pool.query("SELECT COUNT(*) AS n FROM ai_image_tasks WHERE status = 'failed'");
+      const [[creditSpent]] = await pool.query("SELECT COALESCE(SUM(ABS(amount)), 0) AS n FROM credit_transactions WHERE transaction_type = 'task_spend'");
+      const recentTasks = await db.query("SELECT * FROM ai_image_tasks ORDER BY created_at DESC LIMIT 10");
+      const trend = await db.query(`
+        SELECT DATE(created_at) AS day, COUNT(*) AS tasks
+        FROM ai_image_tasks
+        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+        GROUP BY DATE(created_at)
+        ORDER BY day ASC
+      `);
+      return json(res, 200, {
+        userCount: Number(userCount.n),
+        activeMembers: Number(activeMembers.n),
+        taskTotal: Number(taskTotal.n),
+        taskSucceeded: Number(taskSucceeded.n),
+        taskFailed: Number(taskFailed.n),
+        taskSuccessRate: taskTotal.n > 0 ? Math.round(taskSucceeded.n / taskTotal.n * 100) : 0,
+        creditSpent: Number(creditSpent.n),
+        recentTasks: recentTasks.map(taskDto),
+        trend: trend.map((r) => ({ day: r.day instanceof Date ? r.day.toISOString().slice(0, 10) : String(r.day), tasks: Number(r.tasks) }))
+      });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/admin/credit-transactions") {
+      const userId = url.searchParams.get("userId") || "";
+      const rows = userId
+        ? await db.query("SELECT ct.*, u.nickname, u.phone, u.email FROM credit_transactions ct LEFT JOIN users u ON u.id = ct.user_id WHERE ct.user_id = ? ORDER BY ct.created_at DESC LIMIT 200", [userId])
+        : await db.query("SELECT ct.*, u.nickname, u.phone, u.email FROM credit_transactions ct LEFT JOIN users u ON u.id = ct.user_id ORDER BY ct.created_at DESC LIMIT 200");
+      return json(res, 200, {
+        transactions: rows.map((r) => ({
+          id: r.id,
+          userId: r.user_id,
+          userNickname: r.nickname || "",
+          userPhone: r.phone || "",
+          userEmail: r.email || "",
+          amount: Number(r.amount),
+          transactionType: r.transaction_type,
+          relatedType: r.related_type || "",
+          relatedId: r.related_id || "",
+          remark: r.remark || "",
+          createdAt: toIso(r.created_at)
+        }))
+      });
+    }
+
+    const userStatusMatch = url.pathname.match(/^\/api\/admin\/users\/([^/]+)\/status$/);
+    if (req.method === "PATCH" && userStatusMatch) {
+      const status = ["active", "disabled"].includes(body.status) ? body.status : null;
+      if (!status) return json(res, 400, { message: "状态值无效。" });
+      await db.exec("UPDATE users SET status = ?, updated_at = NOW() WHERE id = ?", [status, userStatusMatch[1]]);
+      if (status === "disabled") await refreshStore.revokeUser(userStatusMatch[1]);
+      return json(res, 200, { message: "用户状态已更新。" });
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/admin/membership-plans") {
+      const id = uid("plan");
+      await db.exec(
+        "INSERT INTO membership_plans (id, code, name, version, price, suffix, credits, quota, duration_days, features_json, sort_order, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())",
+        [id, body.code || id, body.name || "新方案", body.version || "v2026.04", Number(body.price || 0), body.suffix || "元", Number(body.credits || 0), Number(body.quota || 0), Number(body.durationDays || 30), jsonText(body.features || []), Number(body.sortOrder || 0)]
+      );
+      return json(res, 201, { plan: planDto((await db.query("SELECT * FROM membership_plans WHERE id = ?", [id]))[0]) });
+    }
+    const planMatch = url.pathname.match(/^\/api\/admin\/membership-plans\/([^/]+)$/);
+    if (planMatch) {
+      const plan = (await db.query("SELECT * FROM membership_plans WHERE id = ? LIMIT 1", [planMatch[1]]))[0];
+      if (!plan) return json(res, 404, { message: "方案不存在。" });
+      if (req.method === "PATCH") {
+        await db.exec(
+          "UPDATE membership_plans SET name = ?, version = ?, price = ?, suffix = ?, credits = ?, quota = ?, duration_days = ?, features_json = ?, sort_order = ?, is_active = ?, updated_at = NOW() WHERE id = ?",
+          [body.name ?? plan.name, body.version ?? plan.version, Number(body.price ?? plan.price), body.suffix ?? plan.suffix, Number(body.credits ?? plan.credits), Number(body.quota ?? plan.quota), Number(body.durationDays ?? plan.duration_days), jsonText(body.features || jsonParse(plan.features_json, [])), Number(body.sortOrder ?? plan.sort_order), body.isActive === false ? 0 : 1, plan.id]
+        );
+        return json(res, 200, { plan: planDto((await db.query("SELECT * FROM membership_plans WHERE id = ?", [plan.id]))[0]) });
+      }
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/admin/prompt-templates") {
+      const rows = await db.query("SELECT * FROM prompt_templates ORDER BY task_type ASC, sort_order ASC");
+      return json(res, 200, {
+        prompts: rows.map((p) => ({
+          id: p.id,
+          title: p.title,
+          taskType: p.task_type,
+          scene: p.scene || "",
+          promptContent: p.prompt_content,
+          negativePrompt: p.negative_prompt || "",
+          creditCost: Number(p.credit_cost),
+          resultImageUrl: p.result_image_url || "",
+          sortOrder: Number(p.sort_order),
+          isActive: Boolean(p.is_active),
+          version: p.version,
+          createdAt: toIso(p.created_at),
+          updatedAt: toIso(p.updated_at)
+        }))
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/admin/prompt-templates") {
+      const id = uid("prompt");
+      await db.exec(
+        "INSERT INTO prompt_templates (id, title, task_type, scene, prompt_content, negative_prompt, credit_cost, result_image_url, sort_order, is_active, version, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())",
+        [id, body.title || "新提示词", body.taskType || "generate", body.scene || "", body.promptContent || "", body.negativePrompt || "", Number(body.creditCost || 0), body.resultImageUrl || "", Number(body.sortOrder || 0), body.version || "2026.04"]
+      );
+      return json(res, 201, { message: "提示词已创建。", id });
+    }
+    const promptMatch = url.pathname.match(/^\/api\/admin\/prompt-templates\/([^/]+)$/);
+    if (promptMatch) {
+      const prompt = (await db.query("SELECT * FROM prompt_templates WHERE id = ? LIMIT 1", [promptMatch[1]]))[0];
+      if (!prompt) return json(res, 404, { message: "提示词不存在。" });
+      if (req.method === "PATCH") {
+        await db.exec(
+          "UPDATE prompt_templates SET title = ?, task_type = ?, scene = ?, prompt_content = ?, negative_prompt = ?, credit_cost = ?, result_image_url = ?, sort_order = ?, is_active = ?, version = ?, updated_at = NOW() WHERE id = ?",
+          [body.title ?? prompt.title, body.taskType ?? prompt.task_type, body.scene ?? prompt.scene, body.promptContent ?? prompt.prompt_content, body.negativePrompt ?? prompt.negative_prompt, Number(body.creditCost ?? prompt.credit_cost), body.resultImageUrl ?? prompt.result_image_url, Number(body.sortOrder ?? prompt.sort_order), body.isActive === false ? 0 : 1, body.version ?? prompt.version, prompt.id]
+        );
+        return json(res, 200, { message: "提示词已更新。" });
+      }
+      if (req.method === "DELETE") {
+        await db.exec("DELETE FROM prompt_templates WHERE id = ?", [prompt.id]);
+        return json(res, 200, { message: "提示词已删除。" });
+      }
     }
   }
 
