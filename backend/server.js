@@ -323,6 +323,7 @@ const publicUser = async (user) => {
     nickname: user.nickname,
     avatarUrl: user.avatar_url || "",
     credits: Number(user.credits || 0),
+    status: user.status || "active",
     preferredAiModelId: user.preferred_ai_model_id || "",
     membership: membership ? {
       id: membership.id,
