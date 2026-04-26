@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>会员中心 - 光影AI</title>
-    <link rel="stylesheet" href="./styles.css?v=20260426-member1" />
+    <link rel="stylesheet" href="./styles.css?v=20260426-member3" />
   </head>
   <body id="top" class="member-page">
     <header class="site-header">
@@ -111,6 +111,7 @@
               </div>
               <div class="segmented" data-task-type>
                 <button class="active" type="button" data-type="generate">生成图片</button>
+                <button type="button" data-type="image_to_image">以图生图</button>
                 <button type="button" data-type="edit">修改图片</button>
               </div>
               <label>
@@ -133,11 +134,11 @@
                 数量
                 <input type="number" min="1" max="4" value="1" data-image-count />
               </label>
-              <label class="upload-field" data-upload-field>
-                上传原图
-                <input type="file" accept="image/*" data-image-upload />
+              <div class="upload-field" data-upload-field>
+                <span class="upload-title">上传参考图</span>
+                <input id="image-upload-input" type="file" accept="image/*" data-image-upload />
                 <span data-upload-name>修改图片时需要上传原图</span>
-              </label>
+              </div>
               <label>
                 补充说明
                 <textarea rows="3" placeholder="例如：保留自然肤色，背景更干净" data-user-instruction></textarea>
@@ -261,7 +262,8 @@
           $$("[data-task-type] button").forEach((button) => {
             button.classList.toggle("active", button.dataset.type === state.taskType);
           });
-          $("[data-upload-field]").classList.toggle("is-visible", state.taskType === "edit");
+          $("[data-upload-field]").classList.toggle("is-visible", state.taskType !== "generate");
+          $("[data-upload-name]").textContent = state.taskType === "generate" ? "" : "请上传参考图";
         };
 
         const renderPromptOptions = async () => {
@@ -327,6 +329,13 @@
           state.tasks = data.tasks;
           renderTasks();
         };
+
+        const fileToDataUrl = (file) => new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error("图片读取失败，请重新选择。"));
+          reader.readAsDataURL(file);
+        });
 
         const watchTaskUntilDone = async (taskId) => {
           for (let index = 0; index < 60; index += 1) {
@@ -432,7 +441,7 @@
           $("[data-image-count]").addEventListener("input", updateCost);
           $("[data-image-upload]").addEventListener("change", (event) => {
             const file = event.target.files[0];
-            $("[data-upload-name]").textContent = file ? file.name : "修改图片时需要上传原图";
+            $("[data-upload-name]").textContent = file ? file.name : "请上传参考图";
           });
 
           $("[data-submit-ai]").addEventListener("click", async () => {
@@ -444,11 +453,13 @@
               setMessage("请先开通会员方案。");
               return;
             }
-            if (state.taskType === "edit" && !$("[data-image-upload]").files.length) {
-              setMessage("修改图片需要先上传原图。");
+            if (state.taskType !== "generate" && !$("[data-image-upload]").files.length) {
+              setMessage("该任务类型需要先上传参考图。");
               return;
             }
             try {
+              const uploadFile = $("[data-image-upload]").files[0];
+              const inputImageUrl = uploadFile ? await fileToDataUrl(uploadFile) : "";
               const data = await api("/api/ai-image-tasks", {
                 method: "POST",
                 body: JSON.stringify({
@@ -457,7 +468,7 @@
                   aiModelId: $("[data-model-select]").value,
                   size: $("[data-size-select]").value,
                   count: Number($("[data-image-count]").value),
-                  inputImageUrl: state.taskType === "edit" ? "./assets/work-portrait.jpg" : "",
+                  inputImageUrl,
                   userInstruction: $("[data-user-instruction]").value
                 })
               });

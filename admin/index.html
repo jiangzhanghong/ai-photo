@@ -189,8 +189,10 @@
           <label>
             支持类型
             <select data-model-types>
+              <option value="generate,image_to_image,edit">生成 + 以图生图 + 修改</option>
               <option value="generate,edit">生成 + 修改</option>
               <option value="generate">仅生成</option>
+              <option value="image_to_image">仅以图生图</option>
               <option value="edit">仅修改</option>
             </select>
           </label>
@@ -296,7 +298,7 @@
               <td>${model.baseUrl || ""}</td>
               <td>${model.apiKeyMasked || ""}</td>
               <td>${model.supportedTaskTypes.join(" / ")}</td>
-              <td>生成 ${model.creditCostConfig.generate || 0}，改图 ${model.creditCostConfig.edit || 0}</td>
+              <td>生成 ${model.creditCostConfig.generate || 0}，以图生图 ${model.creditCostConfig.image_to_image || 0}，改图 ${model.creditCostConfig.edit || 0}</td>
               <td>${model.lastTestStatus || "未测试"} ${model.lastTestMessage ? `· ${model.lastTestMessage}` : ""}</td>
               <td>${model.isActive ? "上架" : "下架"}</td>
               <td>
@@ -360,6 +362,7 @@
                   supportedTaskTypes: $("[data-model-types]").value.split(","),
                   creditCostConfig: {
                     generate: Number($("[data-generate-cost]").value || 0),
+                    image_to_image: Number($("[data-edit-cost]").value || 0),
                     edit: Number($("[data-edit-cost]").value || 0)
                   }
                 })

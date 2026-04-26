@@ -271,7 +271,7 @@ const readBody = async (req) => new Promise((resolve, reject) => {
   let data = "";
   req.on("data", (chunk) => {
     data += chunk;
-    if (data.length > 1024 * 1024 * 8) reject(new Error("Payload too large"));
+    if (data.length > 1024 * 1024 * 15) reject(new Error("Payload too large"));
   });
   req.on("end", () => {
     if (!data) return resolve({});
@@ -454,12 +454,13 @@ const callImageModel = async ({ model, taskType, prompt, inputImageUrl, size, co
   const defaultParams = jsonParse(model.default_params_json, {});
   const body = {
     model: model.model_code,
-    prompt: taskType === "edit" && inputImageUrl ? `${prompt}\n参考原图：${inputImageUrl}` : prompt,
+    prompt,
     size: normalizeImageSize(size || model.default_size),
     n: Math.max(1, Math.min(4, Number(count || 1))),
     ...defaultParams,
     ...overrideParams
   };
+  if (["edit", "image_to_image"].includes(taskType) && inputImageUrl) body.image = inputImageUrl;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), Number(model.timeout_seconds || 60) * 1000);
   const started = Date.now();
@@ -730,11 +731,24 @@ const seedData = async () => {
   }
 
   const prompts = [
-    ["portrait-soft", "柔光人像精修", "edit", "人像", "对上传的人像照片进行自然柔光精修，保留身份特征，优化肤色、光线和背景质感。", 8, "./assets/work-portrait.jpg", 1],
-    ["product-clean", "商品白底优化", "edit", "商品", "将商品图优化为干净商业白底效果，增强主体清晰度和真实质感。", 10, "./assets/work-still.jpg", 2],
-    ["cinematic", "电影感写真生成", "generate", "写真", "生成电影感人像写真，柔和布光，高级色彩，真实摄影质感。", 5, "./assets/style-cinematic.jpg", 1],
-    ["travel-poster", "旅行海报生成", "generate", "旅行", "生成旅行海报风格图片，明亮自然光，具有目的地氛围和商业海报构图。", 6, "./assets/work-sunset.jpg", 2],
-    ["vintage-magazine", "复古杂志封面", "generate", "品牌", "生成复古杂志封面风格图片，胶片色彩，精致排版感，商业摄影质感。", 7, "./assets/style-vintage.jpg", 3]
+    ["generate-cinematic-portrait", "电影感写真生成", "generate", "写真", "生成电影感人像写真，柔和布光，高级色彩，真实摄影质感，主体清晰，背景有浅景深。", 5, "./assets/style-cinematic.jpg", 1],
+    ["generate-product-poster", "商品商业海报", "generate", "商品", "生成高端商品商业海报，干净背景，柔和棚拍光，突出产品材质和品牌质感，适合电商主图。", 6, "./assets/work-still.jpg", 2],
+    ["generate-travel-poster", "旅行目的地海报", "generate", "旅行", "生成旅行目的地海报，明亮自然光，开阔构图，真实摄影质感，适合社媒宣传。", 6, "./assets/work-sunset.jpg", 3],
+    ["generate-vintage-magazine", "复古杂志封面", "generate", "品牌", "生成复古杂志封面风格图片，胶片色彩，精致排版感，商业摄影质感，画面高级。", 7, "./assets/style-vintage.jpg", 4],
+    ["generate-minimal-lifestyle", "极简生活方式图", "generate", "生活方式", "生成极简生活方式摄影，留白充足，色彩克制，柔和自然光，适合品牌内容配图。", 5, "./assets/style-minimal.jpg", 5],
+    ["generate-chinese-new-year", "节日营销主视觉", "generate", "营销", "生成节日营销主视觉，氛围热烈但不过度堆砌，主体突出，适合活动海报和社媒封面。", 7, "./assets/cta-clean.jpg", 6],
+    ["edit-portrait-retouch", "人像自然精修", "edit", "人像", "基于上传人像做自然精修，保留身份特征，优化肤色、光线、皮肤瑕疵和背景质感，不要过度磨皮。", 8, "./assets/work-portrait.jpg", 1],
+    ["edit-product-clean", "商品白底优化", "edit", "商品", "基于上传商品图优化为干净商业白底效果，增强主体清晰度、边缘质感和真实材质。", 10, "./assets/work-still.jpg", 2],
+    ["edit-background-replace", "背景替换优化", "edit", "通用", "保持主体不变，将背景替换为干净、有层次的商业摄影背景，光影方向与主体一致。", 9, "./assets/work-girl.jpg", 3],
+    ["edit-color-grade", "高级调色增强", "edit", "调色", "保持原图内容和构图，进行高级调色，提升通透感、对比度和质感，避免过饱和。", 7, "./assets/work-bw.jpg", 4],
+    ["edit-remove-clutter", "杂物清理修图", "edit", "修图", "清理画面中影响观感的杂物、污点和多余元素，保持原始场景自然真实。", 8, "./assets/work-landscape.jpg", 5],
+    ["edit-social-cover", "社媒封面优化", "edit", "社媒", "基于上传图片优化为适合小红书、公众号或朋友圈封面的视觉效果，主体突出，文字区域留白充足。", 8, "./assets/work-tram.jpg", 6],
+    ["img2img-style-transfer", "参考图风格迁移", "image_to_image", "风格迁移", "参考上传图片的主体和构图，生成同主题的新图片，保持核心元素，整体转为高级商业摄影风格。", 8, "./assets/style-french.jpg", 1],
+    ["img2img-outfit-variant", "服装造型变化", "image_to_image", "人像", "参考上传人像的姿态和气质，生成不同服装造型版本，保持人物身份特征和自然摄影质感。", 9, "./assets/style-korean.jpg", 2],
+    ["img2img-scene-variant", "场景氛围变化", "image_to_image", "场景", "参考上传图片主体，生成不同场景氛围版本，例如咖啡馆、街头、自然户外或高级室内。", 9, "./assets/work-arch.jpg", 3],
+    ["img2img-product-variant", "商品场景扩展", "image_to_image", "商品", "参考上传商品图，生成多个真实使用场景，保持产品外观准确，增强商业广告质感。", 10, "./assets/work-still.jpg", 4],
+    ["img2img-ip-character", "角色形象延展", "image_to_image", "角色", "参考上传角色或头像，生成同一角色的不同动作、表情和场景版本，保持角色一致性。", 9, "./assets/creator-yuki.jpg", 5],
+    ["img2img-poster-remix", "海报视觉重构", "image_to_image", "海报", "参考上传图片的主体信息，重新生成更有设计感的海报视觉，构图更清晰，层次更丰富。", 10, "./assets/cta-bg.jpg", 6]
   ];
   for (const prompt of prompts) {
     await db.exec(`INSERT INTO prompt_templates
@@ -758,9 +772,9 @@ const seedData = async () => {
       encrypt(modelKey),
       maskSecret(modelKey),
       process.env.default_model_auth_type || "bearer",
-      jsonText(["generate", "edit"]),
+      jsonText(["generate", "edit", "image_to_image"]),
       jsonText({ response_format: "url" }),
-      jsonText({ generate: 5, edit: 8 }),
+      jsonText({ generate: 5, edit: 8, image_to_image: 8 }),
       jsonText({ currency: "CNY", unit: "image", amount: 0 }),
       jsonText({ taskType: "generate", prompt: "一张柔光人像测试图", size: "2048x2048", count: 1 })
     ]
@@ -896,10 +910,10 @@ const routeApi = async (req, res, url) => {
     if (!user) return json(res, 401, { message: "请先登录。" });
     const membership = (await db.query("SELECT * FROM user_memberships WHERE user_id = ? AND status = 'active' LIMIT 1", [user.id]))[0];
     if (!membership) return json(res, 403, { message: "请先开通会员方案。" });
-    const taskType = body.taskType === "edit" ? "edit" : "generate";
+    const taskType = ["generate", "edit", "image_to_image"].includes(body.taskType) ? body.taskType : "generate";
     const prompt = (await db.query("SELECT * FROM prompt_templates WHERE id = ? AND task_type = ? AND is_active = 1 LIMIT 1", [body.promptTemplateId, taskType]))[0];
     if (!prompt) return json(res, 404, { message: "提示词不存在。" });
-    if (taskType === "edit" && !body.inputImageUrl) return json(res, 400, { message: "修改图片需要上传原图。" });
+    if (["edit", "image_to_image"].includes(taskType) && !body.inputImageUrl) return json(res, 400, { message: "该任务类型需要上传参考图。" });
     const model = await resolveModel(user, taskType, body.aiModelId);
     if (!model) return json(res, 400, { message: "没有可用模型。" });
     const count = Math.max(1, Math.min(4, Number(body.count || 1)));
