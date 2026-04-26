@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>会员中心 - 光影AI</title>
+    <link rel="stylesheet" href="./styles.css?v=20260426-member1" />
+  </head>
+  <body id="top" class="member-page">
+    <header class="site-header">
+      <div class="shell header-inner">
+        <a class="brand" href="./index.html" aria-label="光影AI 首页">
+          <span class="brand-name">光影AI</span>
+          <span class="brand-line">AI摄影 · 创作 · 美学</span>
+        </a>
+        <nav class="nav" aria-label="主导航">
+          <a href="./index.html">首页</a>
+          <a href="./index.html#works">作品集</a>
+          <a class="active" href="#top">会员中心</a>
+          <a href="#studio">AI创作</a>
+          <a href="#records">生成记录</a>
+        </nav>
+        <a class="header-cta" href="./index.html#booking">预约咨询</a>
+      </div>
+    </header>
+
+    <main class="member-main">
+      <section class="member-hero">
+        <div class="shell member-hero-inner">
+          <div>
+            <h1>会员中心</h1>
+            <p>管理积分，生成图片，查看创作记录</p>
+          </div>
+          <div class="member-summary">
+            <span>当前方案</span>
+            <strong data-current-plan>未开通</strong>
+            <em><b data-credit-balance>0</b> 积分</em>
+          </div>
+        </div>
+      </section>
+
+      <section class="member-section">
+        <div class="shell">
+          <div class="section-title">
+            <div>
+              <h2>会员订阅</h2>
+              <p>套餐版本、积分和生成张数由 mock 数据维护</p>
+            </div>
+          </div>
+          <div class="member-plan-grid" data-plan-list></div>
+        </div>
+      </section>
+
+      <section id="studio" class="member-section">
+        <div class="shell">
+          <div class="section-title">
+            <div>
+              <h2>AI 图片生成 / 修改</h2>
+              <p>选择提示词标题并提交任务，核心 prompt 不在前台展示</p>
+            </div>
+          </div>
+          <div class="member-workbench">
+            <div class="ai-form">
+              <div class="credit-bar">
+                <span data-member-state>未开通会员</span>
+                <strong><b data-form-credit>0</b> 积分</strong>
+              </div>
+              <div class="segmented" data-task-type>
+                <button class="active" type="button" data-type="generate">生成图片</button>
+                <button type="button" data-type="edit">修改图片</button>
+              </div>
+              <label>
+                提示词标题
+                <select data-prompt-select></select>
+              </label>
+              <label>
+                图片尺寸
+                <select data-size-select>
+                  <option value="1:1">1:1 方图</option>
+                  <option value="3:4">3:4 人像</option>
+                  <option value="16:9">16:9 横图</option>
+                </select>
+              </label>
+              <label>
+                数量
+                <input type="number" min="1" max="4" value="1" data-image-count />
+              </label>
+              <label class="upload-field" data-upload-field>
+                上传原图
+                <input type="file" accept="image/*" data-image-upload />
+                <span data-upload-name>修改图片时需要上传原图</span>
+              </label>
+              <label>
+                补充说明
+                <textarea rows="3" placeholder="例如：保留自然肤色，背景更干净" data-user-instruction></textarea>
+              </label>
+              <p class="cost-line">预计消耗 <strong data-credit-cost>0</strong> 积分</p>
+              <button class="submit-ai" type="button" data-submit-ai>提交 AI 任务</button>
+              <p class="form-message" data-ai-message role="status"></p>
+            </div>
+
+            <div id="records" class="record-panel">
+              <div class="task-head">
+                <h3>生成记录</h3>
+                <span data-task-count>0 条</span>
+              </div>
+              <div class="result-grid" data-task-list></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      (() => {
+        const mockData = {
+          plans: [
+            { code: "free", name: "免费方案", version: "v2026.04", price: "0", suffix: "元", credits: 20, quota: 4, features: ["赠送 20 积分", "可生成 4 张图片"] },
+            { code: "standard", name: "标准版", version: "v2026.04", price: "9.9", suffix: "元", credits: 80, quota: 16, features: ["赠送 80 积分", "可生成 16 张图片"] },
+            { code: "premium", name: "高级版", version: "v2026.04", price: "19.9", suffix: "元", credits: 180, quota: 36, features: ["赠送 180 积分", "可生成 36 张图片"] },
+            { code: "custom", name: "定制版", version: "v2026.04", price: "99", suffix: "元起", credits: 500, quota: 100, features: ["定制积分额度", "商业项目支持"] }
+          ],
+          prompts: [
+            { id: "portrait-soft", title: "柔光人像精修", type: "edit", scene: "人像", cost: 8, result: "./assets/work-portrait.jpg" },
+            { id: "product-clean", title: "商品白底优化", type: "edit", scene: "商品", cost: 10, result: "./assets/work-still.jpg" },
+            { id: "cinematic", title: "电影感写真生成", type: "generate", scene: "写真", cost: 5, result: "./assets/style-cinematic.jpg" },
+            { id: "travel-poster", title: "旅行海报生成", type: "generate", scene: "旅行", cost: 6, result: "./assets/work-sunset.jpg" },
+            { id: "vintage-magazine", title: "复古杂志封面", type: "generate", scene: "品牌", cost: 7, result: "./assets/style-vintage.jpg" }
+          ]
+        };
+
+        const state = {
+          plan: null,
+          credits: 0,
+          taskType: "generate",
+          tasks: []
+        };
+
+        const $ = (selector, root = document) => root.querySelector(selector);
+        const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+        const setMessage = (text) => {
+          $("[data-ai-message]").textContent = text;
+        };
+
+        const updateMemberState = () => {
+          $("[data-current-plan]").textContent = state.plan ? state.plan.name : "未开通";
+          $("[data-credit-balance]").textContent = state.credits;
+          $("[data-form-credit]").textContent = state.credits;
+          $("[data-member-state]").textContent = state.plan ? `${state.plan.name} · ${state.plan.version}` : "未开通会员";
+          $$("[data-open-plan]").forEach((button) => {
+            button.textContent = state.plan?.code === button.dataset.openPlan ? "当前方案" : "开通会员";
+          });
+        };
+
+        const renderPlans = () => {
+          const list = $("[data-plan-list]");
+          list.innerHTML = mockData.plans.map((plan) => `
+            <article class="member-plan-card">
+              <span>${plan.version}</span>
+              <h3>${plan.name}</h3>
+              <strong><small>¥</small>${plan.price}<em>${plan.suffix}</em></strong>
+              <p>${plan.credits} 积分 · 可生成 ${plan.quota} 张</p>
+              <ul>${plan.features.map((feature) => `<li>${feature}</li>`).join("")}</ul>
+              <button type="button" data-open-plan="${plan.code}">开通会员</button>
+            </article>
+          `).join("");
+
+          list.addEventListener("click", (event) => {
+            const button = event.target.closest("[data-open-plan]");
+            if (!button) return;
+            const plan = mockData.plans.find((item) => item.code === button.dataset.openPlan);
+            state.plan = plan;
+            state.credits = plan.credits;
+            updateMemberState();
+            setMessage(`${plan.name} 已开通，积分已发放。`);
+          });
+        };
+
+        const updateTaskTypeButtons = () => {
+          $$("[data-task-type] button").forEach((button) => {
+            button.classList.toggle("active", button.dataset.type === state.taskType);
+          });
+          $("[data-upload-field]").classList.toggle("is-visible", state.taskType === "edit");
+        };
+
+        const renderPromptOptions = () => {
+          const prompts = mockData.prompts.filter((prompt) => prompt.type === state.taskType);
+          $("[data-prompt-select]").innerHTML = prompts.map((prompt) => `<option value="${prompt.id}">${prompt.title} · ${prompt.scene}</option>`).join("");
+          updateCost();
+        };
+
+        const currentPrompt = () => mockData.prompts.find((prompt) => prompt.id === $("[data-prompt-select]").value);
+
+        const updateCost = () => {
+          const count = Math.max(1, Number($("[data-image-count]").value || 1));
+          const cost = currentPrompt().cost * count;
+          $("[data-credit-cost]").textContent = cost;
+          return cost;
+        };
+
+        const renderTasks = () => {
+          const list = $("[data-task-list]");
+          $("[data-task-count]").textContent = `${state.tasks.length} 条`;
+          if (!state.tasks.length) {
+            list.innerHTML = `<p class="empty-task">暂无生成记录。</p>`;
+            return;
+          }
+
+          list.innerHTML = state.tasks.map((task) => `
+            <article class="result-card">
+              <img src="${task.result}" alt="${task.title}" />
+              <div>
+                <strong>${task.title}</strong>
+                <span>${task.status} · ${task.count} 张 · ${task.cost} 积分</span>
+                <a href="${task.result}" download>下载图片</a>
+              </div>
+            </article>
+          `).join("");
+        };
+
+        const initStudio = () => {
+          $("[data-task-type]").addEventListener("click", (event) => {
+            const button = event.target.closest("button");
+            if (!button) return;
+            state.taskType = button.dataset.type;
+            updateTaskTypeButtons();
+            renderPromptOptions();
+          });
+
+          $("[data-prompt-select]").addEventListener("change", updateCost);
+          $("[data-image-count]").addEventListener("input", updateCost);
+          $("[data-image-upload]").addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            $("[data-upload-name]").textContent = file ? file.name : "修改图片时需要上传原图";
+          });
+
+          $("[data-submit-ai]").addEventListener("click", () => {
+            const cost = updateCost();
+            const prompt = currentPrompt();
+            if (!state.plan) {
+              setMessage("请先开通会员方案。");
+              return;
+            }
+            if (state.taskType === "edit" && !$("[data-image-upload]").files.length) {
+              setMessage("修改图片需要先上传原图。");
+              return;
+            }
+            if (state.credits < cost) {
+              setMessage("积分不足，请选择更少数量或开通更高方案。");
+              return;
+            }
+
+            state.credits -= cost;
+            updateMemberState();
+            const task = {
+              title: prompt.title,
+              count: Number($("[data-image-count]").value),
+              cost,
+              result: prompt.result,
+              status: "处理中"
+            };
+            state.tasks.unshift(task);
+            renderTasks();
+            setMessage("任务已提交，正在模拟生成。");
+
+            window.setTimeout(() => {
+              task.status = "已完成";
+              renderTasks();
+              setMessage("任务已完成，可在生成记录查看和下载。");
+            }, 900);
+          });
+        };
+
+        const initPlanFromQuery = () => {
+          const code = new URLSearchParams(window.location.search).get("plan");
+          const plan = mockData.plans.find((item) => item.code === code);
+          if (!plan) return;
+          state.plan = plan;
+          state.credits = plan.credits;
+        };
+
+        renderPlans();
+        initPlanFromQuery();
+        updateMemberState();
+        updateTaskTypeButtons();
+        renderPromptOptions();
+        renderTasks();
+        initStudio();
+      })();
+    </script>
+  </body>
+</html>

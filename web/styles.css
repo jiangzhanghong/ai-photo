@@ -374,9 +374,7 @@ img {
 .gallery-grid figure,
 .style-card,
 .creator-card,
-.price-card,
-.membership-card,
-.ai-panel {
+.price-card {
   box-shadow: 0 8px 22px rgba(21, 31, 26, 0.08);
 }
 
@@ -494,11 +492,19 @@ img {
 }
 
 .pricing-section {
-  padding: 12px 0 0;
+  padding: 10px 0 0;
 }
 
 .with-controls {
   align-items: center;
+}
+
+.section-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--green);
+  font: 12px/1 "Microsoft YaHei", Arial, sans-serif;
 }
 
 .mini-controls {
@@ -520,15 +526,15 @@ img {
 
 .pricing-grid {
   display: grid;
-  grid-template-columns: repeat(4, 210px);
-  gap: 23px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
   margin-top: 8px;
 }
 
 .price-card {
   position: relative;
-  height: 214px;
-  padding: 13px 18px 42px;
+  height: 158px;
+  padding: 12px 14px 34px;
   border: 1px solid #d2d6d3;
   background: #fff;
   border-radius: 2px;
@@ -543,15 +549,15 @@ img {
 }
 
 .price-card h3 {
-  margin: 0 0 8px;
-  font-size: 16px;
+  margin: 0 0 7px;
+  font-size: 15px;
   line-height: 1;
 }
 
 .price-card strong {
   display: block;
   color: #333;
-  font-size: 27px;
+  font-size: 24px;
   line-height: 1;
   font-weight: 700;
 }
@@ -568,7 +574,7 @@ img {
 }
 
 .price-card p {
-  margin: 8px 0 7px;
+  margin: 6px 0 5px;
   color: #8a8f8b;
   font: 11px/1.1 "Microsoft YaHei", Arial, sans-serif;
   letter-spacing: 0;
@@ -581,7 +587,7 @@ img {
 }
 
 .price-card li {
-  margin-top: 5px;
+  margin-top: 3px;
   color: #5d665f;
   font: 11px/1.1 "Microsoft YaHei", Arial, sans-serif;
   letter-spacing: 0;
@@ -594,9 +600,8 @@ img {
 }
 
 .price-card button,
-.membership-card button,
+.member-plan-card button,
 .submit-ai,
-.login-toggle,
 .booking-form button {
   position: absolute;
   left: 18px;
@@ -610,88 +615,6 @@ img {
   background: var(--green);
   color: #fff;
   font: 11px/1 "Microsoft YaHei", Arial, sans-serif;
-}
-
-.membership-section {
-  padding: 13px 0 0;
-}
-
-.membership-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 279px);
-  gap: 21px;
-  margin-top: 10px;
-}
-
-.membership-card {
-  position: relative;
-  min-height: 160px;
-  padding: 16px 18px 42px;
-  border: 1px solid #d2d6d3;
-  background: #fdfefd;
-}
-
-.membership-card h3 {
-  margin: 0 0 8px;
-  font-size: 16px;
-}
-
-.membership-card strong {
-  display: block;
-  font-size: 25px;
-  line-height: 1;
-}
-
-.membership-card strong span,
-.membership-card strong em {
-  color: #626762;
-  font: 11px/1 "Microsoft YaHei", Arial, sans-serif;
-}
-
-.membership-card p,
-.membership-card li {
-  color: #626b65;
-  font: 11px/1.35 "Microsoft YaHei", Arial, sans-serif;
-}
-
-.membership-card ul {
-  margin: 8px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.membership-card li::before {
-  content: "\2713";
-  margin-right: 8px;
-  color: var(--green);
-}
-
-.membership-card button {
-  background: #fff;
-  color: var(--green);
-  border: 1px solid var(--green);
-}
-
-.ai-section {
-  padding: 14px 0 0;
-}
-
-.login-toggle {
-  position: static;
-  width: 86px;
-  height: 25px;
-  border-radius: 4px;
-  background: var(--green);
-}
-
-.ai-panel {
-  display: grid;
-  grid-template-columns: 360px 1fr;
-  gap: 18px;
-  margin-top: 10px;
-  padding: 16px;
-  border: 1px solid #d2d6d3;
-  background: #fff;
 }
 
 .ai-form {
@@ -769,11 +692,11 @@ img {
   padding: 8px 9px;
 }
 
-.upload-field {
+.ai-form .upload-field {
   display: none;
 }
 
-.upload-field.is-visible {
+.ai-form .upload-field.is-visible {
   display: grid;
 }
 
@@ -816,50 +739,6 @@ img {
 .task-head span {
   color: #808882;
   font: 11px/1 "Microsoft YaHei", Arial, sans-serif;
-}
-
-.task-list {
-  display: grid;
-  gap: 8px;
-}
-
-.task-item {
-  display: grid;
-  grid-template-columns: 1fr 62px 60px;
-  align-items: center;
-  gap: 8px;
-  min-height: 48px;
-  padding: 10px;
-  border: 1px solid #e1e5e2;
-  background: #fafbf9;
-}
-
-.task-item strong {
-  display: block;
-  font-size: 13px;
-}
-
-.task-item span,
-.task-item a {
-  color: #6f7772;
-  font: 11px/1.25 "Microsoft YaHei", Arial, sans-serif;
-}
-
-.task-item em {
-  font-style: normal;
-  font: 11px/1 "Microsoft YaHei", Arial, sans-serif;
-}
-
-.task-item .queued {
-  color: #88630b;
-}
-
-.task-item .processing {
-  color: #1c5f86;
-}
-
-.task-item .succeeded {
-  color: var(--green);
 }
 
 .creator-section {
@@ -1144,6 +1023,200 @@ blockquote em {
   font: 9px/1 "Noto Sans CJK SC", "Microsoft YaHei", Arial, sans-serif;
 }
 
+.member-page {
+  background: #f6f8f6;
+}
+
+.member-main {
+  width: 1055px;
+  margin: 0 auto;
+  background: #f6f8f6;
+}
+
+.member-hero {
+  background:
+    linear-gradient(90deg, rgba(9, 31, 24, 0.9) 0%, rgba(9, 31, 24, 0.74) 48%, rgba(9, 31, 24, 0.18) 100%),
+    url("./assets/hero-slide-2.png") center center / cover no-repeat;
+  color: #fff;
+}
+
+.member-hero-inner {
+  min-height: 168px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.member-hero h1 {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.1;
+}
+
+.member-hero p {
+  margin: 10px 0 0;
+  color: rgba(255, 255, 255, 0.86);
+  font: 13px/1.4 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.member-summary {
+  width: 178px;
+  min-height: 86px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.member-summary span,
+.member-summary em {
+  display: block;
+  color: rgba(255, 255, 255, 0.78);
+  font: 11px/1 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.member-summary strong {
+  display: block;
+  margin: 8px 0 12px;
+  color: #fff;
+  font-size: 18px;
+}
+
+.member-summary em {
+  font-style: normal;
+}
+
+.member-section {
+  padding: 18px 0 0;
+}
+
+.member-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.member-plan-card {
+  position: relative;
+  min-height: 156px;
+  padding: 13px 14px 40px;
+  border: 1px solid #d2d6d3;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(21, 31, 26, 0.08);
+}
+
+.member-plan-card > span {
+  position: absolute;
+  top: 13px;
+  right: 14px;
+  color: #8a928d;
+  font: 10px/1 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.member-plan-card h3 {
+  margin: 0 0 7px;
+  font-size: 15px;
+}
+
+.member-plan-card strong {
+  display: block;
+  color: #333;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.member-plan-card small,
+.member-plan-card em {
+  color: #626762;
+  font: 11px/1 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.member-plan-card p,
+.member-plan-card li {
+  color: #626b65;
+  font: 11px/1.3 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.member-plan-card ul {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.member-plan-card li::before {
+  content: "\2713";
+  margin-right: 8px;
+  color: var(--green);
+}
+
+.member-plan-card button {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 10px;
+  background: var(--green);
+  color: #fff;
+}
+
+.member-workbench {
+  display: grid;
+  grid-template-columns: 334px 1fr;
+  gap: 16px;
+  margin-top: 10px;
+  padding-bottom: 24px;
+}
+
+.member-workbench .ai-form,
+.record-panel {
+  padding: 16px;
+  border: 1px solid #d2d6d3;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(21, 31, 26, 0.08);
+}
+
+.record-panel {
+  min-height: 356px;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.result-card {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  min-height: 92px;
+  border: 1px solid #e1e5e2;
+  background: #fafbf9;
+}
+
+.result-card img {
+  width: 112px;
+  height: 92px;
+  object-fit: cover;
+}
+
+.result-card div {
+  min-width: 0;
+  padding: 10px;
+}
+
+.result-card strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.result-card span,
+.result-card a {
+  display: block;
+  margin-top: 7px;
+  color: #6f7772;
+  font: 11px/1.25 "Microsoft YaHei", Arial, sans-serif;
+}
+
 @media (max-width: 760px) {
   body {
     min-width: 0;
@@ -1153,6 +1226,7 @@ blockquote em {
   .site-header,
   .hero,
   .section,
+  .member-main,
   .reviews,
   .booking,
   .site-footer {
@@ -1224,6 +1298,7 @@ blockquote em {
 
   .section-head,
   .section-title,
+  .member-hero-inner,
   .booking-inner {
     display: block;
     height: auto;
@@ -1252,9 +1327,10 @@ blockquote em {
 
   .style-grid,
   .pricing-grid,
-  .membership-grid,
+  .member-plan-grid,
+  .member-workbench,
+  .result-grid,
   .creator-grid,
-  .ai-panel,
   .footer-inner,
   .booking-form {
     grid-template-columns: 1fr;
@@ -1262,30 +1338,44 @@ blockquote em {
 
   .style-card,
   .price-card,
-  .membership-card,
+  .member-plan-card,
   .creator-card {
     width: 100%;
   }
 
   .price-card,
-  .membership-card {
+  .member-plan-card {
     height: auto;
     min-height: 0;
   }
 
   .price-card button,
-  .membership-card button {
+  .member-plan-card button {
     position: static;
     width: 100%;
     margin-top: 12px;
   }
 
-  .ai-panel {
+  .member-hero {
+    padding: 28px 0;
+  }
+
+  .member-summary {
+    width: 100%;
+    margin-top: 18px;
+  }
+
+  .member-workbench .ai-form,
+  .record-panel {
     padding: 12px;
   }
 
-  .task-item {
-    grid-template-columns: 1fr;
+  .result-card {
+    grid-template-columns: 104px 1fr;
+  }
+
+  .result-card img {
+    width: 104px;
   }
 
   .reviews {

@@ -16,9 +16,8 @@
         <nav class="nav" aria-label="主导航">
           <a class="active" href="#top">首页</a>
           <a href="#works">作品集</a>
-          <a href="#service">AI服务</a>
-          <a href="#memberships">会员方案</a>
-          <a href="#ai-studio">AI创作</a>
+          <a href="#service">会员订阅</a>
+          <a href="./member.html">AI创作</a>
           <a href="#styles">风格专辑</a>
           <a href="#creators">创作者</a>
           <a href="#about">关于我们</a>
@@ -78,7 +77,7 @@
             <p>多种美学风格，AI赋能镜头表达</p>
           </div>
           <div class="style-grid" data-style-list></div>
-          <p class="style-note" data-style-note>选择风格后，可在 AI 创作中自动带入对应提示词标题。</p>
+          <p class="style-note" data-style-note>选择风格后，可进入会员页使用相关提示词生成或修改图片。</p>
         </div>
       </section>
 
@@ -86,83 +85,12 @@
         <div class="shell">
           <div class="section-title with-controls">
             <div>
-              <h2>价格方案</h2>
-              <p>灵活选择，满足不同创作需求</p>
+              <h2>会员订阅</h2>
+              <p>选择积分方案，进入会员页生成和管理作品</p>
             </div>
-            <div class="mini-controls" aria-hidden="true"><span>‹</span><span>›</span></div>
+            <a class="section-link" href="./member.html">进入会员页 <span>→</span></a>
           </div>
           <div class="pricing-grid" data-pricing-list></div>
-        </div>
-      </section>
-
-      <section id="memberships" class="section membership-section">
-        <div class="shell">
-          <div class="section-title">
-            <div>
-              <h2>会员订阅</h2>
-              <p>获取积分、有效期和创作权益，后续可由后台维护</p>
-            </div>
-          </div>
-          <div class="membership-grid" data-membership-list></div>
-        </div>
-      </section>
-
-      <section id="ai-studio" class="section ai-section">
-        <div class="shell">
-          <div class="section-title">
-            <div>
-              <h2>AI 图片生成 / 修改</h2>
-              <p>模拟登录、积分扣减、任务状态和结果记录</p>
-            </div>
-            <button class="login-toggle" type="button" data-login-toggle>模拟登录</button>
-          </div>
-          <div class="ai-panel">
-            <div class="ai-form">
-              <div class="credit-bar">
-                <span data-login-state>未登录</span>
-                <strong><b data-credit-balance>0</b> 积分</strong>
-              </div>
-              <div class="segmented" data-task-type>
-                <button class="active" type="button" data-type="generate">生成图片</button>
-                <button type="button" data-type="edit">修改图片</button>
-              </div>
-              <label>
-                提示词标题
-                <select data-prompt-select></select>
-              </label>
-              <label>
-                图片尺寸
-                <select data-size-select>
-                  <option value="1:1">1:1 方图</option>
-                  <option value="3:4">3:4 人像</option>
-                  <option value="16:9">16:9 横图</option>
-                </select>
-              </label>
-              <label>
-                数量
-                <input type="number" min="1" max="4" value="1" data-image-count />
-              </label>
-              <label class="upload-field" data-upload-field>
-                上传原图
-                <input type="file" accept="image/*" data-image-upload />
-                <span data-upload-name>修改图片时需要上传原图</span>
-              </label>
-              <label>
-                补充说明
-                <textarea rows="3" placeholder="例如：想要更明亮的肤色、保留自然纹理" data-user-instruction></textarea>
-              </label>
-              <p class="cost-line">预计消耗 <strong data-credit-cost>0</strong> 积分</p>
-              <button class="submit-ai" type="button" data-submit-ai>提交 AI 任务</button>
-              <p class="form-message" data-ai-message role="status"></p>
-            </div>
-            <div class="task-board">
-              <div class="task-head">
-                <h3>创作记录</h3>
-                <span data-task-count>0 条</span>
-              </div>
-              <div class="task-list" data-task-list></div>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -236,13 +164,13 @@
           <h3>导航</h3>
           <a href="#top">首页</a>
           <a href="#works">作品集</a>
-          <a href="#service">AI服务</a>
+          <a href="#service">会员订阅</a>
         </div>
         <div class="footer-col">
           <h3>AI服务</h3>
-          <a href="#service">人像精修</a>
-          <a href="#service">风格化处理</a>
-          <a href="#service">商业摄影</a>
+          <a href="./member.html">AI 图片生成</a>
+          <a href="./member.html">AI 图片修改</a>
+          <a href="#service">会员积分</a>
         </div>
         <div class="footer-col">
           <h3>关于我们</h3>
@@ -253,7 +181,7 @@
         <div class="footer-col">
           <h3>帮助中心</h3>
           <a href="#service">常见问题</a>
-          <a href="#ai-studio">服务流程</a>
+          <a href="./member.html">服务流程</a>
           <a href="#about">隐私政策</a>
         </div>
         <div class="footer-contact">
@@ -333,30 +261,11 @@
               features: ["专属方案", "定制积分和额度", "人工与 AI 协同"]
             }
           ],
-          memberships: [
-            { name: "体验会员", price: "0", duration: "7 天", credits: 20, features: ["免费体验积分", "创作记录保存 7 天"] },
-            { name: "月度会员", price: "29.9", duration: "30 天", credits: 300, features: ["每月 300 积分", "结果图下载", "任务失败自动退回"] },
-            { name: "创作会员", price: "59.9", duration: "30 天", credits: 760, features: ["每月 760 积分", "优先生成", "适合商家日常出图"] }
-          ],
-          prompts: [
-            { id: "portrait-soft", title: "柔光人像精修", type: "edit", scene: "人像", cost: 8 },
-            { id: "product-clean", title: "商品白底优化", type: "edit", scene: "商品", cost: 10 },
-            { id: "cinematic", title: "电影感写真生成", type: "generate", scene: "写真", cost: 5 },
-            { id: "travel-poster", title: "旅行海报生成", type: "generate", scene: "旅行", cost: 6 },
-            { id: "vintage-magazine", title: "复古杂志封面", type: "generate", scene: "品牌", cost: 7 }
-          ],
           reviews: [
             { text: "非常满意这次拍摄体验，AI 修图让照片质感提升了不止一个档次，效率高，审美也在线。", name: "王小雅", title: "时尚博主", avatar: "./assets/avatar-wang.jpg" },
             { text: "从沟通到成片都很专业，摄影师很会引导，AI 优化后的细节也超出预期。", name: "李先生", title: "企业主", avatar: "./assets/avatar-li.jpg" },
             { text: "团队形象照和宣传图都在这里完成，结果稳定，交付也很清楚。", name: "张女士", title: "市场总监", avatar: "./assets/avatar-zhang.jpg" }
           ]
-        };
-
-        const state = {
-          loggedIn: false,
-          credits: 0,
-          taskType: "generate",
-          tasks: []
         };
 
         const $ = (selector, root = document) => root.querySelector(selector);
@@ -459,14 +368,7 @@
             if (!card) return;
             $$(".style-card", list).forEach((item) => item.classList.toggle("active", item === card));
             const selected = mockData.styles.find((style) => style.name === card.dataset.style);
-            setMessage($("[data-style-note]"), `${selected.name}：${selected.scene}。已为 AI 创作推荐相关提示词标题。`);
-            const prompt = mockData.prompts.find((item) => item.title.includes(selected.name) || item.scene === selected.name);
-            if (prompt) {
-              state.taskType = prompt.type;
-              updateTaskTypeButtons();
-              renderPromptOptions(prompt.id);
-            }
-            $("#ai-studio")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            setMessage($("[data-style-note]"), `${selected.name}：${selected.scene}。可进入会员页选择相关提示词生成或修改图片。`);
           });
         };
 
@@ -482,7 +384,7 @@
               <strong><span>¥</span>${item.price}<em>${item.suffix}</em></strong>
               <p>${item.description}</p>
               <ul>${item.features.map((feature) => `<li>${feature}</li>`).join("")}</ul>
-              <button type="button" data-package="${item.code}">${item.code === "custom" ? "联系我们" : "立即咨询"}</button>
+              <button type="button" data-package="${item.code}">${item.code === "custom" ? "联系我们" : "开通会员"}</button>
             </article>
           `).join("");
 
@@ -491,168 +393,13 @@
             const button = event.target.closest("button[data-package]");
             if (!button) return;
             const selected = mockData.packages.find((item) => item.code === button.dataset.package);
+            if (selected.code !== "custom") {
+              window.location.href = `./member.html?plan=${selected.code}`;
+              return;
+            }
             bookingSelect.value = selected.name;
             $("#booking")?.scrollIntoView({ behavior: "smooth", block: "center" });
             setMessage($("[data-booking-message]"), `已选择 ${selected.name}，请留下联系方式。`);
-          });
-        };
-
-        const renderMemberships = () => {
-          const list = $("[data-membership-list]");
-          if (!list) return;
-
-          list.innerHTML = mockData.memberships.map((item) => `
-            <article class="membership-card">
-              <h3>${item.name}</h3>
-              <strong><span>¥</span>${item.price}<em>/${item.duration}</em></strong>
-              <p>开通发放 ${item.credits} 积分</p>
-              <ul>${item.features.map((feature) => `<li>${feature}</li>`).join("")}</ul>
-              <button type="button" data-open-membership="${item.credits}">开通会员</button>
-            </article>
-          `).join("");
-
-          list.addEventListener("click", (event) => {
-            const button = event.target.closest("button[data-open-membership]");
-            if (!button) return;
-            state.loggedIn = true;
-            state.credits += Number(button.dataset.openMembership);
-            updateCreditUI();
-            $("#ai-studio")?.scrollIntoView({ behavior: "smooth", block: "start" });
-          });
-        };
-
-        const updateTaskTypeButtons = () => {
-          $$("[data-task-type] button").forEach((button) => button.classList.toggle("active", button.dataset.type === state.taskType));
-          const uploadField = $("[data-upload-field]");
-          if (uploadField) uploadField.classList.toggle("is-visible", state.taskType === "edit");
-        };
-
-        const renderPromptOptions = (selectedId) => {
-          const select = $("[data-prompt-select]");
-          if (!select) return;
-
-          const prompts = mockData.prompts.filter((prompt) => prompt.type === state.taskType);
-          select.innerHTML = prompts.map((prompt) => `<option value="${prompt.id}">${prompt.title} · ${prompt.scene}</option>`).join("");
-          if (selectedId && prompts.some((prompt) => prompt.id === selectedId)) {
-            select.value = selectedId;
-          }
-          updateCost();
-        };
-
-        const currentPrompt = () => mockData.prompts.find((prompt) => prompt.id === $("[data-prompt-select]")?.value);
-
-        const updateCost = () => {
-          const prompt = currentPrompt();
-          const count = Math.max(1, Number($("[data-image-count]")?.value || 1));
-          const cost = prompt ? prompt.cost * count : 0;
-          const costNode = $("[data-credit-cost]");
-          if (costNode) costNode.textContent = cost;
-          return cost;
-        };
-
-        const updateCreditUI = () => {
-          $("[data-login-state]").textContent = state.loggedIn ? "已登录体验账号" : "未登录";
-          $("[data-credit-balance]").textContent = state.credits;
-          $("[data-login-toggle]").textContent = state.loggedIn ? "退出登录" : "模拟登录";
-        };
-
-        const renderTasks = () => {
-          const list = $("[data-task-list]");
-          if (!list) return;
-
-          $("[data-task-count]").textContent = `${state.tasks.length} 条`;
-          if (!state.tasks.length) {
-            list.innerHTML = `<p class="empty-task">暂无任务，提交后会展示状态和结果入口。</p>`;
-            return;
-          }
-
-          list.innerHTML = state.tasks.map((task) => `
-            <article class="task-item">
-              <div>
-                <strong>${task.title}</strong>
-                <span>${task.type === "generate" ? "图片生成" : "图片修改"} · ${task.size} · ${task.count} 张</span>
-              </div>
-              <em class="${task.statusClass}">${task.status}</em>
-              ${task.result ? `<a href="${task.result}" download>下载结果</a>` : ""}
-            </article>
-          `).join("");
-        };
-
-        const initAiStudio = () => {
-          updateCreditUI();
-          updateTaskTypeButtons();
-          renderPromptOptions();
-          renderTasks();
-
-          $("[data-login-toggle]")?.addEventListener("click", () => {
-            state.loggedIn = !state.loggedIn;
-            state.credits = state.loggedIn ? Math.max(state.credits, 20) : 0;
-            updateCreditUI();
-            setMessage($("[data-ai-message]"), state.loggedIn ? "已模拟登录，并发放 20 体验积分。" : "已退出登录。");
-          });
-
-          $("[data-task-type]")?.addEventListener("click", (event) => {
-            const button = event.target.closest("button");
-            if (!button) return;
-            state.taskType = button.dataset.type;
-            updateTaskTypeButtons();
-            renderPromptOptions();
-          });
-
-          $("[data-prompt-select]")?.addEventListener("change", updateCost);
-          $("[data-image-count]")?.addEventListener("input", updateCost);
-          $("[data-image-upload]")?.addEventListener("change", (event) => {
-            const file = event.target.files[0];
-            $("[data-upload-name]").textContent = file ? file.name : "修改图片时需要上传原图";
-          });
-
-          $("[data-submit-ai]")?.addEventListener("click", () => {
-            const message = $("[data-ai-message]");
-            const prompt = currentPrompt();
-            const cost = updateCost();
-            const upload = $("[data-image-upload]");
-
-            if (!state.loggedIn) {
-              setMessage(message, "请先模拟登录后再提交 AI 任务。");
-              return;
-            }
-            if (state.taskType === "edit" && !upload.files.length) {
-              setMessage(message, "修改图片需要先上传原图。");
-              return;
-            }
-            if (state.credits < cost) {
-              setMessage(message, "积分不足，请先开通会员或选择更少生成数量。");
-              $("#memberships")?.scrollIntoView({ behavior: "smooth", block: "start" });
-              return;
-            }
-
-            state.credits -= cost;
-            updateCreditUI();
-            const task = {
-              title: prompt.title,
-              type: state.taskType,
-              size: $("[data-size-select]").value,
-              count: Number($("[data-image-count]").value),
-              status: "排队中",
-              statusClass: "queued",
-              result: ""
-            };
-            state.tasks.unshift(task);
-            renderTasks();
-            setMessage(message, "任务已提交，正在模拟处理。");
-
-            window.setTimeout(() => {
-              task.status = "处理中";
-              task.statusClass = "processing";
-              renderTasks();
-            }, 700);
-            window.setTimeout(() => {
-              task.status = "已完成";
-              task.statusClass = "succeeded";
-              task.result = mockData.works[0].image;
-              renderTasks();
-              setMessage(message, "任务已完成，可在创作记录下载结果。");
-            }, 1800);
           });
         };
 
@@ -704,8 +451,6 @@
         initWorks();
         renderStyles();
         renderPackages();
-        renderMemberships();
-        initAiStudio();
         initReviews();
         initBooking();
       })();
