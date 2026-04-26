@@ -93,7 +93,7 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 34px;
+  gap: 18px;
   color: #747b76;
   font: 12px/1 "Microsoft YaHei", Arial, sans-serif;
   letter-spacing: 0;
@@ -303,72 +303,98 @@ img {
   margin-top: 0;
 }
 
-.gallery-grid img {
+.gallery-grid figure {
   position: absolute;
+  margin: 0;
+  overflow: hidden;
+}
+
+.gallery-grid img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
-.gallery-grid img:nth-child(1) {
+.gallery-grid figure:nth-child(1) {
   left: 0;
   top: 0;
   width: 410px;
   height: 148px;
 }
 
-.gallery-grid img:nth-child(2) {
+.gallery-grid figure:nth-child(2) {
   left: 418px;
   top: 0;
   width: 144px;
   height: 130px;
 }
 
-.gallery-grid img:nth-child(3) {
+.gallery-grid figure:nth-child(3) {
   left: 572px;
   top: 0;
   width: 145px;
   height: 130px;
 }
 
-.gallery-grid img:nth-child(4) {
+.gallery-grid figure:nth-child(4) {
   left: 727px;
   top: 0;
   width: 176px;
   height: 130px;
 }
 
-.gallery-grid img:nth-child(5) {
+.gallery-grid figure:nth-child(5) {
   left: 0;
   top: 154px;
   width: 152px;
   height: 99px;
 }
 
-.gallery-grid img:nth-child(6) {
+.gallery-grid figure:nth-child(6) {
   left: 161px;
   top: 154px;
   width: 151px;
   height: 99px;
 }
 
-.gallery-grid img:nth-child(7) {
+.gallery-grid figure:nth-child(7) {
   left: 321px;
   top: 154px;
   width: 241px;
   height: 99px;
 }
 
-.gallery-grid img:nth-child(8) {
+.gallery-grid figure:nth-child(8) {
   left: 572px;
   top: 144px;
   width: 328px;
   height: 109px;
 }
 
-.gallery-grid img,
+.gallery-grid figure,
 .style-card,
 .creator-card,
-.price-card {
+.price-card,
+.membership-card,
+.ai-panel {
   box-shadow: 0 8px 22px rgba(21, 31, 26, 0.08);
+}
+
+.gallery-grid figcaption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 18px 10px 8px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.62) 100%);
+  color: #fff;
+  font: 11px/1.2 "Microsoft YaHei", Arial, sans-serif;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.gallery-grid figure:hover figcaption {
+  opacity: 1;
 }
 
 .outline-btn {
@@ -399,8 +425,11 @@ img {
 .style-card {
   position: relative;
   height: 134px;
+  padding: 0;
+  border: 0;
   overflow: hidden;
   color: #fff;
+  text-align: left;
 }
 
 .style-card img {
@@ -410,7 +439,10 @@ img {
 }
 
 .style-card::after {
-  display: none;
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.04) 0%, rgba(0, 0, 0, 0.58) 100%);
 }
 
 .style-card div {
@@ -418,7 +450,6 @@ img {
   z-index: 1;
   left: 14px;
   bottom: 17px;
-  display: none;
 }
 
 .style-card h3 {
@@ -448,7 +479,18 @@ img {
   border-radius: 50%;
   color: rgba(255, 255, 255, 0.82);
   font-size: 14px;
-  display: none;
+}
+
+.style-card.active {
+  outline: 3px solid rgba(16, 59, 44, 0.48);
+  outline-offset: -3px;
+}
+
+.style-note {
+  min-height: 16px;
+  margin: 8px 0 0;
+  color: #6f7772;
+  font: 11px/1.35 "Microsoft YaHei", Arial, sans-serif;
 }
 
 .pricing-section {
@@ -485,11 +527,19 @@ img {
 
 .price-card {
   position: relative;
-  height: 182px;
-  padding: 13px 18px 36px;
+  height: 214px;
+  padding: 13px 18px 42px;
   border: 1px solid #d2d6d3;
   background: #fff;
   border-radius: 2px;
+}
+
+.card-version {
+  position: absolute;
+  top: 13px;
+  right: 14px;
+  color: #8a928d;
+  font: 10px/1 "Microsoft YaHei", Arial, sans-serif;
 }
 
 .price-card h3 {
@@ -543,7 +593,11 @@ img {
   color: var(--green);
 }
 
-.price-card a {
+.price-card button,
+.membership-card button,
+.submit-ai,
+.login-toggle,
+.booking-form button {
   position: absolute;
   left: 18px;
   right: 18px;
@@ -556,6 +610,256 @@ img {
   background: var(--green);
   color: #fff;
   font: 11px/1 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.membership-section {
+  padding: 13px 0 0;
+}
+
+.membership-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 279px);
+  gap: 21px;
+  margin-top: 10px;
+}
+
+.membership-card {
+  position: relative;
+  min-height: 160px;
+  padding: 16px 18px 42px;
+  border: 1px solid #d2d6d3;
+  background: #fdfefd;
+}
+
+.membership-card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.membership-card strong {
+  display: block;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.membership-card strong span,
+.membership-card strong em {
+  color: #626762;
+  font: 11px/1 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.membership-card p,
+.membership-card li {
+  color: #626b65;
+  font: 11px/1.35 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.membership-card ul {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.membership-card li::before {
+  content: "\2713";
+  margin-right: 8px;
+  color: var(--green);
+}
+
+.membership-card button {
+  background: #fff;
+  color: var(--green);
+  border: 1px solid var(--green);
+}
+
+.ai-section {
+  padding: 14px 0 0;
+}
+
+.login-toggle {
+  position: static;
+  width: 86px;
+  height: 25px;
+  border-radius: 4px;
+  background: var(--green);
+}
+
+.ai-panel {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 18px;
+  margin-top: 10px;
+  padding: 16px;
+  border: 1px solid #d2d6d3;
+  background: #fff;
+}
+
+.ai-form {
+  display: grid;
+  gap: 9px;
+}
+
+.credit-bar,
+.task-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.credit-bar {
+  padding: 9px 11px;
+  background: #f5f7f5;
+  color: #64706a;
+  font: 12px/1 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.credit-bar strong {
+  color: var(--green);
+  font-size: 14px;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border: 1px solid #ccd5d0;
+}
+
+.segmented button {
+  height: 30px;
+  background: #fff;
+  color: #6d756f;
+  font: 12px/1 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.segmented button.active {
+  background: var(--green);
+  color: #fff;
+}
+
+.ai-form label {
+  display: grid;
+  gap: 5px;
+  color: #626b65;
+  font: 11px/1.2 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.ai-form input,
+.ai-form select,
+.ai-form textarea,
+.booking-form input,
+.booking-form select {
+  width: 100%;
+  border: 1px solid #cfd6d2;
+  background: #fff;
+  color: #333;
+  font: 12px/1.2 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.ai-form input,
+.ai-form select,
+.booking-form input,
+.booking-form select {
+  height: 31px;
+  padding: 0 9px;
+}
+
+.ai-form textarea {
+  resize: vertical;
+  min-height: 58px;
+  padding: 8px 9px;
+}
+
+.upload-field {
+  display: none;
+}
+
+.upload-field.is-visible {
+  display: grid;
+}
+
+.upload-field span {
+  color: #89918c;
+}
+
+.cost-line,
+.form-message,
+.booking-message,
+.empty-task {
+  margin: 0;
+  color: #68716b;
+  font: 11px/1.35 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.cost-line strong {
+  color: var(--green);
+}
+
+.submit-ai {
+  position: static;
+  width: 100%;
+  height: 31px;
+}
+
+.task-board {
+  min-width: 0;
+}
+
+.task-head {
+  margin-bottom: 9px;
+}
+
+.task-head h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.task-head span {
+  color: #808882;
+  font: 11px/1 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.task-list {
+  display: grid;
+  gap: 8px;
+}
+
+.task-item {
+  display: grid;
+  grid-template-columns: 1fr 62px 60px;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px;
+  border: 1px solid #e1e5e2;
+  background: #fafbf9;
+}
+
+.task-item strong {
+  display: block;
+  font-size: 13px;
+}
+
+.task-item span,
+.task-item a {
+  color: #6f7772;
+  font: 11px/1.25 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.task-item em {
+  font-style: normal;
+  font: 11px/1 "Microsoft YaHei", Arial, sans-serif;
+}
+
+.task-item .queued {
+  color: #88630b;
+}
+
+.task-item .processing {
+  color: #1c5f86;
+}
+
+.task-item .succeeded {
+  color: var(--green);
 }
 
 .creator-section {
@@ -616,7 +920,7 @@ img {
 .reviews {
   position: relative;
   width: 1055px;
-  height: 108px;
+  height: 126px;
   margin: 0 auto;
   background: #15191a;
   color: #fff;
@@ -714,14 +1018,18 @@ blockquote em {
 
 .booking {
   width: 1055px;
-  height: 88px;
+  height: 124px;
   margin: 0 auto;
-  background: url("./assets/cta-clean.jpg") center top / 1055px 88px no-repeat;
+  background: url("./assets/cta-clean.jpg") center center / cover no-repeat;
   color: #fff;
 }
 
 .booking-inner {
-  padding: 14px 0 0 10px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 330px 1fr;
+  gap: 18px;
+  padding: 17px 0 0 10px;
 }
 
 .booking h2 {
@@ -738,16 +1046,28 @@ blockquote em {
   font: 12px/1 "Noto Sans CJK SC", "Microsoft YaHei", Arial, sans-serif;
 }
 
-.booking a {
-  width: 99px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 11px;
+.booking-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 94px;
+  gap: 8px;
+  align-items: start;
+  padding-top: 9px;
+}
+
+.booking-form button {
+  position: static;
+  width: 94px;
+  height: 31px;
   background: #fff;
   color: #1b2722;
   font: 11px/1 "Noto Sans CJK SC", "Microsoft YaHei", Arial, sans-serif;
+}
+
+.booking-message {
+  position: absolute;
+  left: 358px;
+  bottom: 22px;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .site-footer {
@@ -822,4 +1142,202 @@ blockquote em {
   text-align: center;
   color: #8f9693;
   font: 9px/1 "Noto Sans CJK SC", "Microsoft YaHei", Arial, sans-serif;
+}
+
+@media (max-width: 760px) {
+  body {
+    min-width: 0;
+  }
+
+  .shell,
+  .site-header,
+  .hero,
+  .section,
+  .reviews,
+  .booking,
+  .site-footer {
+    width: 100%;
+  }
+
+  .shell {
+    padding: 0 16px;
+  }
+
+  .site-header {
+    height: auto;
+  }
+
+  .header-inner {
+    height: auto;
+    display: grid;
+    grid-template-columns: 1fr 76px;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+
+  .brand {
+    width: auto;
+    gap: 10px;
+  }
+
+  .brand-line {
+    display: none;
+  }
+
+  .nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    justify-content: flex-start;
+    gap: 16px;
+    overflow-x: auto;
+  }
+
+  .nav a {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 10px 0;
+  }
+
+  .header-cta {
+    grid-column: 2;
+    grid-row: 1;
+    width: 76px;
+    margin-left: auto;
+  }
+
+  .hero {
+    height: 360px;
+  }
+
+  .hero-content {
+    padding: 92px 16px 0;
+  }
+
+  .hero h1 {
+    font-size: 32px;
+  }
+
+  .hero-arrow {
+    display: none;
+  }
+
+  .section-head,
+  .section-title,
+  .booking-inner {
+    display: block;
+    height: auto;
+  }
+
+  .tabs {
+    margin-top: 12px;
+    overflow-x: auto;
+  }
+
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    height: auto;
+  }
+
+  .gallery-grid figure,
+  .gallery-grid figure:nth-child(n) {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: auto;
+    height: 132px;
+  }
+
+  .style-grid,
+  .pricing-grid,
+  .membership-grid,
+  .creator-grid,
+  .ai-panel,
+  .footer-inner,
+  .booking-form {
+    grid-template-columns: 1fr;
+  }
+
+  .style-card,
+  .price-card,
+  .membership-card,
+  .creator-card {
+    width: 100%;
+  }
+
+  .price-card,
+  .membership-card {
+    height: auto;
+    min-height: 0;
+  }
+
+  .price-card button,
+  .membership-card button {
+    position: static;
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  .ai-panel {
+    padding: 12px;
+  }
+
+  .task-item {
+    grid-template-columns: 1fr;
+  }
+
+  .reviews {
+    height: auto;
+    padding: 20px 0;
+  }
+
+  .reviews .shell {
+    height: auto;
+  }
+
+  .review-grid {
+    position: static;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .review-arrow {
+    display: none;
+  }
+
+  .booking {
+    height: auto;
+    background-size: cover;
+  }
+
+  .booking-inner {
+    padding: 20px 16px 46px;
+  }
+
+  .booking-form {
+    margin-top: 14px;
+  }
+
+  .booking-form button {
+    width: 100%;
+  }
+
+  .booking-message {
+    left: 16px;
+    right: 16px;
+    bottom: 18px;
+  }
+
+  .site-footer {
+    height: auto;
+  }
+
+  .footer-inner {
+    height: auto;
+    gap: 12px;
+    padding: 20px 16px;
+  }
 }

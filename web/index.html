@@ -6,17 +6,19 @@
     <title>光影AI - AI摄影</title>
     <link rel="stylesheet" href="./styles.css?v=20260426-carousel2" />
   </head>
-  <body>
+  <body id="top">
     <header class="site-header">
       <div class="shell header-inner">
-        <a class="brand" href="#" aria-label="光影AI 首页">
+        <a class="brand" href="#top" aria-label="光影AI 首页">
           <span class="brand-name">光影AI</span>
           <span class="brand-line">AI摄影 · 创作 · 美学</span>
         </a>
         <nav class="nav" aria-label="主导航">
-          <a class="active" href="#">首页</a>
+          <a class="active" href="#top">首页</a>
           <a href="#works">作品集</a>
           <a href="#service">AI服务</a>
+          <a href="#memberships">会员方案</a>
+          <a href="#ai-studio">AI创作</a>
           <a href="#styles">风格专辑</a>
           <a href="#creators">创作者</a>
           <a href="#about">关于我们</a>
@@ -54,27 +56,18 @@
               <h2>精选作品</h2>
               <p>用镜头记录美好，AI呈现更璀璨的可能</p>
             </div>
-            <div class="tabs" aria-label="作品分类">
-              <button class="active">全部</button>
-              <button>人像</button>
-              <button>风光</button>
-              <button>静物</button>
-              <button>纪实</button>
-              <button>婚礼</button>
-              <button>旅行</button>
+            <div class="tabs" aria-label="作品分类" data-work-tabs>
+              <button class="active" type="button" data-category="全部">全部</button>
+              <button type="button" data-category="人像">人像</button>
+              <button type="button" data-category="风光">风光</button>
+              <button type="button" data-category="静物">静物</button>
+              <button type="button" data-category="纪实">纪实</button>
+              <button type="button" data-category="婚礼">婚礼</button>
+              <button type="button" data-category="旅行">旅行</button>
             </div>
           </div>
-          <div class="gallery-grid">
-            <img class="wide" src="./assets/work-landscape.jpg" alt="湖泊与雪山" />
-            <img src="./assets/work-portrait.jpg" alt="花前少女人像" />
-            <img src="./assets/work-arch.jpg" alt="拱廊中的人" />
-            <img src="./assets/work-sunset.jpg" alt="海边日落建筑" />
-            <img src="./assets/work-bw.jpg" alt="黑白人像" />
-            <img src="./assets/work-still.jpg" alt="静物花瓶" />
-            <img src="./assets/work-tram.jpg" alt="街道电车" />
-            <img class="long" src="./assets/work-girl.jpg" alt="针织衫人像" />
-          </div>
-          <a class="outline-btn" href="#works">查看全部作品 <span>→</span></a>
+          <div class="gallery-grid" data-gallery aria-live="polite"></div>
+          <button class="outline-btn" type="button" data-show-all>查看全部作品 <span>→</span></button>
         </div>
       </section>
 
@@ -84,48 +77,8 @@
             <h2>摄影风格专题</h2>
             <p>多种美学风格，AI赋能镜头表达</p>
           </div>
-          <div class="style-grid">
-            <article class="style-card">
-              <img src="./assets/style-minimal.jpg" alt="极简风格" />
-              <div>
-                <h3>极简</h3>
-                <p>LESS IS MORE</p>
-              </div>
-              <span>›</span>
-            </article>
-            <article class="style-card">
-              <img src="./assets/style-cinematic.jpg" alt="电影感风格" />
-              <div>
-                <h3>电影感</h3>
-                <p>CINEMATIC</p>
-              </div>
-              <span>›</span>
-            </article>
-            <article class="style-card">
-              <img src="./assets/style-french.jpg" alt="法式风格" />
-              <div>
-                <h3>法式</h3>
-                <p>FRENCH</p>
-              </div>
-              <span>›</span>
-            </article>
-            <article class="style-card">
-              <img src="./assets/style-korean.jpg" alt="韩系风格" />
-              <div>
-                <h3>韩系</h3>
-                <p>KOREAN</p>
-              </div>
-              <span>›</span>
-            </article>
-            <article class="style-card">
-              <img src="./assets/style-vintage.jpg" alt="复古风格" />
-              <div>
-                <h3>复古</h3>
-                <p>VINTAGE</p>
-              </div>
-              <span>›</span>
-            </article>
-          </div>
+          <div class="style-grid" data-style-list></div>
+          <p class="style-note" data-style-note>选择风格后，可在 AI 创作中自动带入对应提示词标题。</p>
         </div>
       </section>
 
@@ -138,51 +91,77 @@
             </div>
             <div class="mini-controls" aria-hidden="true"><span>‹</span><span>›</span></div>
           </div>
-          <div class="pricing-grid">
-            <article class="price-card">
-              <h3>基础版</h3>
-              <strong><span>¥</span>299<em>/套</em></strong>
-              <p>适合个人基础拍摄需求</p>
-              <ul>
-                <li>10张精修</li>
-                <li>基础调色</li>
-                <li>3个工作日交付</li>
-              </ul>
-              <a href="#booking">立即咨询</a>
-            </article>
-            <article class="price-card">
-              <h3>标准版</h3>
-              <strong><span>¥</span>699<em>/套</em></strong>
-              <p>适合商品及日常写真</p>
-              <ul>
-                <li>30张精修</li>
-                <li>风格化处理</li>
-                <li>5个工作日交付</li>
-              </ul>
-              <a href="#booking">立即咨询</a>
-            </article>
-            <article class="price-card">
-              <h3>高级版</h3>
-              <strong><span>¥</span>1299<em>/套</em></strong>
-              <p>适合品牌与创作拍摄</p>
-              <ul>
-                <li>50张精修</li>
-                <li>高级精修</li>
-                <li>7个工作日交付</li>
-              </ul>
-              <a href="#booking">立即咨询</a>
-            </article>
-            <article class="price-card">
-              <h3>定制版</h3>
-              <strong><span>¥</span>2999<em>起</em></strong>
-              <p>适合商业项目与专题定制</p>
-              <ul>
-                <li>专属方案</li>
-                <li>多场景创作</li>
-                <li>优先交付</li>
-              </ul>
-              <a href="#booking">联系我们</a>
-            </article>
+          <div class="pricing-grid" data-pricing-list></div>
+        </div>
+      </section>
+
+      <section id="memberships" class="section membership-section">
+        <div class="shell">
+          <div class="section-title">
+            <div>
+              <h2>会员订阅</h2>
+              <p>获取积分、有效期和创作权益，后续可由后台维护</p>
+            </div>
+          </div>
+          <div class="membership-grid" data-membership-list></div>
+        </div>
+      </section>
+
+      <section id="ai-studio" class="section ai-section">
+        <div class="shell">
+          <div class="section-title">
+            <div>
+              <h2>AI 图片生成 / 修改</h2>
+              <p>模拟登录、积分扣减、任务状态和结果记录</p>
+            </div>
+            <button class="login-toggle" type="button" data-login-toggle>模拟登录</button>
+          </div>
+          <div class="ai-panel">
+            <div class="ai-form">
+              <div class="credit-bar">
+                <span data-login-state>未登录</span>
+                <strong><b data-credit-balance>0</b> 积分</strong>
+              </div>
+              <div class="segmented" data-task-type>
+                <button class="active" type="button" data-type="generate">生成图片</button>
+                <button type="button" data-type="edit">修改图片</button>
+              </div>
+              <label>
+                提示词标题
+                <select data-prompt-select></select>
+              </label>
+              <label>
+                图片尺寸
+                <select data-size-select>
+                  <option value="1:1">1:1 方图</option>
+                  <option value="3:4">3:4 人像</option>
+                  <option value="16:9">16:9 横图</option>
+                </select>
+              </label>
+              <label>
+                数量
+                <input type="number" min="1" max="4" value="1" data-image-count />
+              </label>
+              <label class="upload-field" data-upload-field>
+                上传原图
+                <input type="file" accept="image/*" data-image-upload />
+                <span data-upload-name>修改图片时需要上传原图</span>
+              </label>
+              <label>
+                补充说明
+                <textarea rows="3" placeholder="例如：想要更明亮的肤色、保留自然纹理" data-user-instruction></textarea>
+              </label>
+              <p class="cost-line">预计消耗 <strong data-credit-cost>0</strong> 积分</p>
+              <button class="submit-ai" type="button" data-submit-ai>提交 AI 任务</button>
+              <p class="form-message" data-ai-message role="status"></p>
+            </div>
+            <div class="task-board">
+              <div class="task-head">
+                <h3>创作记录</h3>
+                <span data-task-count>0 条</span>
+              </div>
+              <div class="task-list" data-task-list></div>
+            </div>
           </div>
         </div>
       </section>
@@ -199,19 +178,19 @@
           <div class="creator-grid">
             <article class="creator-card">
               <img src="./assets/creator-chen.jpg" alt="陈璟摄影师" />
-              <div><h3>陈璟：光影导演</h3><p>人像 / 视觉叙事</p><a href="#">查看作品 →</a></div>
+              <div><h3>陈璟：光影导演</h3><p>人像 / 视觉叙事</p><a href="#works">查看作品 →</a></div>
             </article>
             <article class="creator-card">
               <img src="./assets/creator-lin.jpg" alt="林熙摄影师" />
-              <div><h3>林熙：摄影师</h3><p>情绪 / 质感美学</p><a href="#">查看作品 →</a></div>
+              <div><h3>林熙：摄影师</h3><p>情绪 / 质感美学</p><a href="#works">查看作品 →</a></div>
             </article>
             <article class="creator-card">
               <img src="./assets/creator-kris.jpg" alt="Kris 视觉艺术家" />
-              <div><h3>Kris：视觉艺术家</h3><p>风光 / 色彩肌理</p><a href="#">查看作品 →</a></div>
+              <div><h3>Kris：视觉艺术家</h3><p>风光 / 色彩肌理</p><a href="#works">查看作品 →</a></div>
             </article>
             <article class="creator-card">
               <img src="./assets/creator-yuki.jpg" alt="Yuki 创意摄影师" />
-              <div><h3>Yuki：创意摄影师</h3><p>纪实 / 故事感</p><a href="#">查看作品 →</a></div>
+              <div><h3>Yuki：创意摄影师</h3><p>纪实 / 故事感</p><a href="#works">查看作品 →</a></div>
             </article>
           </div>
         </div>
@@ -222,20 +201,7 @@
         <div class="shell">
           <h2>客户评价</h2>
           <p class="reviews-sub">来自真实客户的声音</p>
-          <div class="review-grid">
-            <blockquote>
-              <p>非常满意这次拍摄体验，AI修图让照片质感提升了不止一个档次。本校效率高，审美也在线。</p>
-              <footer><img src="./assets/avatar-wang.jpg" alt="" /> <span>王小雅<br /><em>时尚博主</em></span></footer>
-            </blockquote>
-            <blockquote>
-              <p>从沟通到成片都很专业，摄影师很会引导，AI优化后的细节也超出预期，拍摄合作！</p>
-              <footer><img src="./assets/avatar-li.jpg" alt="" /> <span>李先生<br /><em>企业家</em></span></footer>
-            </blockquote>
-            <blockquote>
-              <p>我们团队的形象照和宣传片都在这里完成，效果超出预期，服务也非常贴心。</p>
-              <footer><img src="./assets/avatar-zhang.jpg" alt="" /> <span>张女士<br /><em>市场总监</em></span></footer>
-            </blockquote>
-          </div>
+          <div class="review-grid" data-review-list></div>
         </div>
         <button class="review-arrow review-next" aria-label="下一条">›</button>
       </section>
@@ -244,9 +210,19 @@
 
     <section id="booking" class="booking">
       <div class="shell booking-inner">
-        <h2>预约咨询，开启你的专属摄影体验</h2>
-        <p>让光影AI为你定制独一无二的影像作品</p>
-        <a href="#">立即预约 <span>→</span></a>
+        <div>
+          <h2>预约咨询，开启你的专属摄影体验</h2>
+          <p>让光影AI为你定制独一无二的影像作品</p>
+        </div>
+        <form class="booking-form" data-booking-form>
+          <input name="name" type="text" placeholder="姓名" required />
+          <input name="phone" type="tel" placeholder="手机号" required />
+          <select name="package">
+            <option value="">意向套餐</option>
+          </select>
+          <button type="submit">提交预约</button>
+        </form>
+        <p class="booking-message" data-booking-message role="status"></p>
       </div>
     </section>
 
@@ -258,7 +234,7 @@
         </div>
         <div class="footer-col">
           <h3>导航</h3>
-          <a href="#">首页</a>
+          <a href="#top">首页</a>
           <a href="#works">作品集</a>
           <a href="#service">AI服务</a>
         </div>
@@ -276,9 +252,9 @@
         </div>
         <div class="footer-col">
           <h3>帮助中心</h3>
-          <a href="#">常见问题</a>
-          <a href="#">服务流程</a>
-          <a href="#">隐私政策</a>
+          <a href="#service">常见问题</a>
+          <a href="#ai-studio">服务流程</a>
+          <a href="#about">隐私政策</a>
         </div>
         <div class="footer-contact">
           <h3>联系我们</h3>
@@ -293,55 +269,445 @@
     </footer>
     <script>
       (() => {
-        const hero = document.querySelector("[data-hero-carousel]");
-        if (!hero) return;
-
-        const slides = (hero.dataset.slides || "").split("|").filter(Boolean);
-        const dots = Array.from(hero.querySelectorAll(".hero-dots button"));
-        const prev = hero.querySelector(".hero-prev");
-        const next = hero.querySelector(".hero-next");
-        let current = 0;
-        let timer = null;
-
-        const showSlide = (index) => {
-          current = (index + slides.length) % slides.length;
-          hero.style.setProperty("--hero-image", `url("${slides[current]}")`);
-          dots.forEach((dot, dotIndex) => {
-            const active = dotIndex === current;
-            dot.classList.toggle("active", active);
-            dot.setAttribute("aria-current", active ? "true" : "false");
-          });
+        const mockData = {
+          works: [
+            { title: "湖泊与雪山", category: "风光", image: "./assets/work-landscape.jpg" },
+            { title: "花前少女人像", category: "人像", image: "./assets/work-portrait.jpg" },
+            { title: "拱廊纪实", category: "纪实", image: "./assets/work-arch.jpg" },
+            { title: "海边日落建筑", category: "旅行", image: "./assets/work-sunset.jpg" },
+            { title: "黑白人像", category: "人像", image: "./assets/work-bw.jpg" },
+            { title: "静物花瓶", category: "静物", image: "./assets/work-still.jpg" },
+            { title: "街道电车", category: "旅行", image: "./assets/work-tram.jpg" },
+            { title: "针织衫写真", category: "婚礼", image: "./assets/work-girl.jpg" }
+          ],
+          styles: [
+            { name: "极简", nameEn: "LESS IS MORE", scene: "干净背景、人像证件风", image: "./assets/style-minimal.jpg" },
+            { name: "电影感", nameEn: "CINEMATIC", scene: "故事感、旅拍、品牌片", image: "./assets/style-cinematic.jpg" },
+            { name: "法式", nameEn: "FRENCH", scene: "轻复古、生活方式写真", image: "./assets/style-french.jpg" },
+            { name: "韩系", nameEn: "KOREAN", scene: "柔光、通透肤色", image: "./assets/style-korean.jpg" },
+            { name: "复古", nameEn: "VINTAGE", scene: "胶片色、杂志质感", image: "./assets/style-vintage.jpg" }
+          ],
+          packages: [
+            {
+              code: "free",
+              name: "免费方案",
+              version: "v2026.04",
+              price: "0",
+              suffix: "元",
+              credits: 20,
+              quota: 4,
+              description: "适合新用户体验 AI 生图",
+              features: ["赠送 20 积分", "可生成 4 张图片", "基础提示词模板"]
+            },
+            {
+              code: "standard",
+              name: "标准版",
+              version: "v2026.04",
+              price: "9.9",
+              suffix: "元",
+              credits: 80,
+              quota: 16,
+              description: "适合轻量写真和社媒配图",
+              features: ["赠送 80 积分", "可生成 16 张图片", "支持生成和改图"]
+            },
+            {
+              code: "premium",
+              name: "高级版",
+              version: "v2026.04",
+              price: "19.9",
+              suffix: "元",
+              credits: 180,
+              quota: 36,
+              description: "适合高频创作和商品精修",
+              features: ["赠送 180 积分", "可生成 36 张图片", "优先任务队列"]
+            },
+            {
+              code: "custom",
+              name: "定制版",
+              version: "v2026.04",
+              price: "99",
+              suffix: "元起",
+              credits: "按项目配置",
+              quota: "按项目配置",
+              description: "适合商业项目和品牌视觉",
+              features: ["专属方案", "定制积分和额度", "人工与 AI 协同"]
+            }
+          ],
+          memberships: [
+            { name: "体验会员", price: "0", duration: "7 天", credits: 20, features: ["免费体验积分", "创作记录保存 7 天"] },
+            { name: "月度会员", price: "29.9", duration: "30 天", credits: 300, features: ["每月 300 积分", "结果图下载", "任务失败自动退回"] },
+            { name: "创作会员", price: "59.9", duration: "30 天", credits: 760, features: ["每月 760 积分", "优先生成", "适合商家日常出图"] }
+          ],
+          prompts: [
+            { id: "portrait-soft", title: "柔光人像精修", type: "edit", scene: "人像", cost: 8 },
+            { id: "product-clean", title: "商品白底优化", type: "edit", scene: "商品", cost: 10 },
+            { id: "cinematic", title: "电影感写真生成", type: "generate", scene: "写真", cost: 5 },
+            { id: "travel-poster", title: "旅行海报生成", type: "generate", scene: "旅行", cost: 6 },
+            { id: "vintage-magazine", title: "复古杂志封面", type: "generate", scene: "品牌", cost: 7 }
+          ],
+          reviews: [
+            { text: "非常满意这次拍摄体验，AI 修图让照片质感提升了不止一个档次，效率高，审美也在线。", name: "王小雅", title: "时尚博主", avatar: "./assets/avatar-wang.jpg" },
+            { text: "从沟通到成片都很专业，摄影师很会引导，AI 优化后的细节也超出预期。", name: "李先生", title: "企业主", avatar: "./assets/avatar-li.jpg" },
+            { text: "团队形象照和宣传图都在这里完成，结果稳定，交付也很清楚。", name: "张女士", title: "市场总监", avatar: "./assets/avatar-zhang.jpg" }
+          ]
         };
 
-        const start = () => {
-          window.clearInterval(timer);
-          timer = window.setInterval(() => showSlide(current + 1), 5000);
+        const state = {
+          loggedIn: false,
+          credits: 0,
+          taskType: "generate",
+          tasks: []
         };
 
-        const move = (step) => {
-          showSlide(current + step);
+        const $ = (selector, root = document) => root.querySelector(selector);
+        const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+        const setMessage = (node, text) => {
+          if (node) node.textContent = text;
+        };
+
+        const initHero = () => {
+          const hero = $("[data-hero-carousel]");
+          if (!hero) return;
+
+          const slides = (hero.dataset.slides || "").split("|").filter(Boolean);
+          const dots = $$(".hero-dots button", hero);
+          const prev = $(".hero-prev", hero);
+          const next = $(".hero-next", hero);
+          let current = 0;
+          let timer = null;
+
+          const showSlide = (index) => {
+            current = (index + slides.length) % slides.length;
+            hero.style.setProperty("--hero-image", `url("${slides[current]}")`);
+            dots.forEach((dot, dotIndex) => {
+              const active = dotIndex === current;
+              dot.classList.toggle("active", active);
+              dot.setAttribute("aria-current", active ? "true" : "false");
+            });
+          };
+
+          const start = () => {
+            window.clearInterval(timer);
+            timer = window.setInterval(() => showSlide(current + 1), 5000);
+          };
+
+          const move = (step) => {
+            showSlide(current + step);
+            start();
+          };
+
+          prev.addEventListener("click", () => move(-1));
+          next.addEventListener("click", () => move(1));
+          dots.forEach((dot, index) => dot.addEventListener("click", () => {
+            showSlide(index);
+            start();
+          }));
+          hero.addEventListener("mouseenter", () => window.clearInterval(timer));
+          hero.addEventListener("mouseleave", start);
+          showSlide(0);
           start();
         };
 
-        prev.addEventListener("click", () => move(-1));
-        next.addEventListener("click", () => move(1));
-        dots.forEach((dot, index) => {
-          dot.addEventListener("click", () => {
-            showSlide(index);
-            start();
-          });
-        });
-        hero.addEventListener("keydown", (event) => {
-          if (event.key === "ArrowLeft") move(-1);
-          if (event.key === "ArrowRight") move(1);
-        });
-        hero.addEventListener("mouseenter", () => window.clearInterval(timer));
-        hero.addEventListener("mouseleave", start);
-        hero.addEventListener("focusin", () => window.clearInterval(timer));
-        hero.addEventListener("focusout", start);
+        const renderWorks = (category = "全部") => {
+          const gallery = $("[data-gallery]");
+          if (!gallery) return;
 
-        showSlide(0);
-        start();
+          const works = category === "全部" ? mockData.works : mockData.works.filter((work) => work.category === category);
+          gallery.innerHTML = works.map((work) => `
+            <figure>
+              <img src="${work.image}" alt="${work.title}" loading="lazy" />
+              <figcaption>${work.category} · ${work.title}</figcaption>
+            </figure>
+          `).join("");
+        };
+
+        const initWorks = () => {
+          const tabs = $("[data-work-tabs]");
+          if (!tabs) return;
+
+          tabs.addEventListener("click", (event) => {
+            const button = event.target.closest("button");
+            if (!button) return;
+            $$("button", tabs).forEach((item) => item.classList.toggle("active", item === button));
+            renderWorks(button.dataset.category);
+          });
+          $("[data-show-all]")?.addEventListener("click", () => {
+            $$("button", tabs).forEach((item) => item.classList.toggle("active", item.dataset.category === "全部"));
+            renderWorks("全部");
+          });
+          renderWorks();
+        };
+
+        const renderStyles = () => {
+          const list = $("[data-style-list]");
+          if (!list) return;
+
+          list.innerHTML = mockData.styles.map((style) => `
+            <button class="style-card" type="button" data-style="${style.name}">
+              <img src="${style.image}" alt="${style.name}风格" loading="lazy" />
+              <div>
+                <h3>${style.name}</h3>
+                <p>${style.nameEn}</p>
+              </div>
+              <span>›</span>
+            </button>
+          `).join("");
+
+          list.addEventListener("click", (event) => {
+            const card = event.target.closest(".style-card");
+            if (!card) return;
+            $$(".style-card", list).forEach((item) => item.classList.toggle("active", item === card));
+            const selected = mockData.styles.find((style) => style.name === card.dataset.style);
+            setMessage($("[data-style-note]"), `${selected.name}：${selected.scene}。已为 AI 创作推荐相关提示词标题。`);
+            const prompt = mockData.prompts.find((item) => item.title.includes(selected.name) || item.scene === selected.name);
+            if (prompt) {
+              state.taskType = prompt.type;
+              updateTaskTypeButtons();
+              renderPromptOptions(prompt.id);
+            }
+            $("#ai-studio")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        };
+
+        const renderPackages = () => {
+          const list = $("[data-pricing-list]");
+          const bookingSelect = $("[data-booking-form] select[name='package']");
+          if (!list || !bookingSelect) return;
+
+          list.innerHTML = mockData.packages.map((item) => `
+            <article class="price-card">
+              <div class="card-version">${item.version}</div>
+              <h3>${item.name}</h3>
+              <strong><span>¥</span>${item.price}<em>${item.suffix}</em></strong>
+              <p>${item.description}</p>
+              <ul>${item.features.map((feature) => `<li>${feature}</li>`).join("")}</ul>
+              <button type="button" data-package="${item.code}">${item.code === "custom" ? "联系我们" : "立即咨询"}</button>
+            </article>
+          `).join("");
+
+          bookingSelect.innerHTML = `<option value="">意向套餐</option>${mockData.packages.map((item) => `<option value="${item.name}">${item.name}</option>`).join("")}`;
+          list.addEventListener("click", (event) => {
+            const button = event.target.closest("button[data-package]");
+            if (!button) return;
+            const selected = mockData.packages.find((item) => item.code === button.dataset.package);
+            bookingSelect.value = selected.name;
+            $("#booking")?.scrollIntoView({ behavior: "smooth", block: "center" });
+            setMessage($("[data-booking-message]"), `已选择 ${selected.name}，请留下联系方式。`);
+          });
+        };
+
+        const renderMemberships = () => {
+          const list = $("[data-membership-list]");
+          if (!list) return;
+
+          list.innerHTML = mockData.memberships.map((item) => `
+            <article class="membership-card">
+              <h3>${item.name}</h3>
+              <strong><span>¥</span>${item.price}<em>/${item.duration}</em></strong>
+              <p>开通发放 ${item.credits} 积分</p>
+              <ul>${item.features.map((feature) => `<li>${feature}</li>`).join("")}</ul>
+              <button type="button" data-open-membership="${item.credits}">开通会员</button>
+            </article>
+          `).join("");
+
+          list.addEventListener("click", (event) => {
+            const button = event.target.closest("button[data-open-membership]");
+            if (!button) return;
+            state.loggedIn = true;
+            state.credits += Number(button.dataset.openMembership);
+            updateCreditUI();
+            $("#ai-studio")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        };
+
+        const updateTaskTypeButtons = () => {
+          $$("[data-task-type] button").forEach((button) => button.classList.toggle("active", button.dataset.type === state.taskType));
+          const uploadField = $("[data-upload-field]");
+          if (uploadField) uploadField.classList.toggle("is-visible", state.taskType === "edit");
+        };
+
+        const renderPromptOptions = (selectedId) => {
+          const select = $("[data-prompt-select]");
+          if (!select) return;
+
+          const prompts = mockData.prompts.filter((prompt) => prompt.type === state.taskType);
+          select.innerHTML = prompts.map((prompt) => `<option value="${prompt.id}">${prompt.title} · ${prompt.scene}</option>`).join("");
+          if (selectedId && prompts.some((prompt) => prompt.id === selectedId)) {
+            select.value = selectedId;
+          }
+          updateCost();
+        };
+
+        const currentPrompt = () => mockData.prompts.find((prompt) => prompt.id === $("[data-prompt-select]")?.value);
+
+        const updateCost = () => {
+          const prompt = currentPrompt();
+          const count = Math.max(1, Number($("[data-image-count]")?.value || 1));
+          const cost = prompt ? prompt.cost * count : 0;
+          const costNode = $("[data-credit-cost]");
+          if (costNode) costNode.textContent = cost;
+          return cost;
+        };
+
+        const updateCreditUI = () => {
+          $("[data-login-state]").textContent = state.loggedIn ? "已登录体验账号" : "未登录";
+          $("[data-credit-balance]").textContent = state.credits;
+          $("[data-login-toggle]").textContent = state.loggedIn ? "退出登录" : "模拟登录";
+        };
+
+        const renderTasks = () => {
+          const list = $("[data-task-list]");
+          if (!list) return;
+
+          $("[data-task-count]").textContent = `${state.tasks.length} 条`;
+          if (!state.tasks.length) {
+            list.innerHTML = `<p class="empty-task">暂无任务，提交后会展示状态和结果入口。</p>`;
+            return;
+          }
+
+          list.innerHTML = state.tasks.map((task) => `
+            <article class="task-item">
+              <div>
+                <strong>${task.title}</strong>
+                <span>${task.type === "generate" ? "图片生成" : "图片修改"} · ${task.size} · ${task.count} 张</span>
+              </div>
+              <em class="${task.statusClass}">${task.status}</em>
+              ${task.result ? `<a href="${task.result}" download>下载结果</a>` : ""}
+            </article>
+          `).join("");
+        };
+
+        const initAiStudio = () => {
+          updateCreditUI();
+          updateTaskTypeButtons();
+          renderPromptOptions();
+          renderTasks();
+
+          $("[data-login-toggle]")?.addEventListener("click", () => {
+            state.loggedIn = !state.loggedIn;
+            state.credits = state.loggedIn ? Math.max(state.credits, 20) : 0;
+            updateCreditUI();
+            setMessage($("[data-ai-message]"), state.loggedIn ? "已模拟登录，并发放 20 体验积分。" : "已退出登录。");
+          });
+
+          $("[data-task-type]")?.addEventListener("click", (event) => {
+            const button = event.target.closest("button");
+            if (!button) return;
+            state.taskType = button.dataset.type;
+            updateTaskTypeButtons();
+            renderPromptOptions();
+          });
+
+          $("[data-prompt-select]")?.addEventListener("change", updateCost);
+          $("[data-image-count]")?.addEventListener("input", updateCost);
+          $("[data-image-upload]")?.addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            $("[data-upload-name]").textContent = file ? file.name : "修改图片时需要上传原图";
+          });
+
+          $("[data-submit-ai]")?.addEventListener("click", () => {
+            const message = $("[data-ai-message]");
+            const prompt = currentPrompt();
+            const cost = updateCost();
+            const upload = $("[data-image-upload]");
+
+            if (!state.loggedIn) {
+              setMessage(message, "请先模拟登录后再提交 AI 任务。");
+              return;
+            }
+            if (state.taskType === "edit" && !upload.files.length) {
+              setMessage(message, "修改图片需要先上传原图。");
+              return;
+            }
+            if (state.credits < cost) {
+              setMessage(message, "积分不足，请先开通会员或选择更少生成数量。");
+              $("#memberships")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              return;
+            }
+
+            state.credits -= cost;
+            updateCreditUI();
+            const task = {
+              title: prompt.title,
+              type: state.taskType,
+              size: $("[data-size-select]").value,
+              count: Number($("[data-image-count]").value),
+              status: "排队中",
+              statusClass: "queued",
+              result: ""
+            };
+            state.tasks.unshift(task);
+            renderTasks();
+            setMessage(message, "任务已提交，正在模拟处理。");
+
+            window.setTimeout(() => {
+              task.status = "处理中";
+              task.statusClass = "processing";
+              renderTasks();
+            }, 700);
+            window.setTimeout(() => {
+              task.status = "已完成";
+              task.statusClass = "succeeded";
+              task.result = mockData.works[0].image;
+              renderTasks();
+              setMessage(message, "任务已完成，可在创作记录下载结果。");
+            }, 1800);
+          });
+        };
+
+        const initReviews = () => {
+          const list = $("[data-review-list]");
+          if (!list) return;
+
+          let start = 0;
+          const render = () => {
+            const visible = [0, 1, 2].map((offset) => mockData.reviews[(start + offset) % mockData.reviews.length]);
+            list.innerHTML = visible.map((review) => `
+              <blockquote>
+                <p>${review.text}</p>
+                <footer><img src="${review.avatar}" alt="" loading="lazy" /> <span>${review.name}<br /><em>${review.title}</em></span></footer>
+              </blockquote>
+            `).join("");
+          };
+
+          $(".review-prev")?.addEventListener("click", () => {
+            start = (start - 1 + mockData.reviews.length) % mockData.reviews.length;
+            render();
+          });
+          $(".review-next")?.addEventListener("click", () => {
+            start = (start + 1) % mockData.reviews.length;
+            render();
+          });
+          render();
+        };
+
+        const initBooking = () => {
+          const form = $("[data-booking-form]");
+          if (!form) return;
+
+          form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const data = new FormData(form);
+            const name = String(data.get("name") || "").trim();
+            const phone = String(data.get("phone") || "").trim();
+            if (!name || !phone) {
+              setMessage($("[data-booking-message]"), "请填写姓名和手机号。");
+              return;
+            }
+            setMessage($("[data-booking-message]"), `已生成 mock 预约线索：${name}，运营将跟进 ${data.get("package") || "未选择套餐"}。`);
+            form.reset();
+          });
+        };
+
+        initHero();
+        initWorks();
+        renderStyles();
+        renderPackages();
+        renderMemberships();
+        initAiStudio();
+        initReviews();
+        initBooking();
       })();
     </script>
   </body>
