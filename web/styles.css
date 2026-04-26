@@ -134,7 +134,7 @@ img {
   width: 1055px;
   height: 281px;
   margin: 0 auto;
-  background: var(--hero-image, url("./assets/hero-clean.jpg")) center top / cover no-repeat;
+  background: var(--hero-image, url("./assets/hero-slide-1.png")) center top / cover no-repeat;
   overflow: hidden;
 }
 
@@ -485,7 +485,7 @@ img {
 
 .price-card {
   position: relative;
-  height: 153px;
+  height: 182px;
   padding: 13px 18px 36px;
   border: 1px solid #d2d6d3;
   background: #fff;
