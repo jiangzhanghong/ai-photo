@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js"
+  },
+  "dependencies": {
+    "mysql2": "^3.22.2"
+  }
+}

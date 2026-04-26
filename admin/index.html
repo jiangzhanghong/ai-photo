@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>光影AI 管理后台</title>
+    <style>
+      :root {
+        --green: #23483a;
+        --line: #d9dfdb;
+        --muted: #66716b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #f6f8f6;
+        color: #243029;
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+      }
+
+      header {
+        height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      main {
+        width: min(1180px, calc(100vw - 32px));
+        margin: 18px auto 36px;
+        display: grid;
+        gap: 16px;
+      }
+
+      section {
+        padding: 16px;
+        background: #fff;
+        border: 1px solid var(--line);
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        font-size: 16px;
+      }
+
+      .toolbar,
+      .model-form {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+        align-items: end;
+      }
+
+      label {
+        display: grid;
+        gap: 5px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      input,
+      select,
+      button {
+        height: 34px;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        background: #fff;
+        color: #243029;
+        font: 13px/1 "Microsoft YaHei", Arial, sans-serif;
+      }
+
+      input,
+      select {
+        padding: 0 9px;
+      }
+
+      button {
+        cursor: pointer;
+        background: var(--green);
+        color: #fff;
+        border-color: var(--green);
+      }
+
+      table {
+        width: 100%;
+        margin-top: 12px;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+
+      th,
+      td {
+        padding: 9px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-weight: 400;
+      }
+
+      .table-actions {
+        display: flex;
+        gap: 6px;
+      }
+
+      .table-actions button {
+        width: 70px;
+        height: 28px;
+      }
+
+      .message {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      @media (max-width: 800px) {
+        .toolbar,
+        .model-form {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>光影AI 管理后台</h1>
+      <a href="/member.html">返回会员页</a>
+    </header>
+
+    <main>
+      <section>
+        <h2>管理员令牌</h2>
+        <div class="toolbar">
+          <label>
+            X-Admin-Token
+            <input value="dev-admin-token" data-admin-token />
+          </label>
+          <button type="button" data-save-token>保存令牌</button>
+        </div>
+        <p class="message">默认开发令牌为 dev-admin-token，可通过环境变量 admin_token 修改。</p>
+      </section>
+
+      <section>
+        <h2>生图模型</h2>
+        <div class="model-form">
+          <label>
+            名称
+            <input placeholder="豆包" data-model-name />
+          </label>
+          <label>
+            供应商
+            <input placeholder="volcengine" data-model-provider />
+          </label>
+          <label>
+            模型编码
+            <input placeholder="doubao-seedream-5-0-260128" data-model-code />
+          </label>
+          <label>
+            Base URL
+            <input placeholder="https://ark.cn-beijing.volces.com/api/v3" data-model-base-url />
+          </label>
+          <label>
+            API Key
+            <input placeholder="新增必填，编辑留空不变" data-model-api-key />
+          </label>
+          <label>
+            鉴权
+            <select data-model-auth-type>
+              <option value="bearer">Bearer</option>
+              <option value="header">Bearer + X-Api-Key</option>
+            </select>
+          </label>
+          <label>
+            支持类型
+            <select data-model-types>
+              <option value="generate,edit">生成 + 修改</option>
+              <option value="generate">仅生成</option>
+              <option value="edit">仅修改</option>
+            </select>
+          </label>
+          <label>
+            生成积分
+            <input type="number" min="0" value="5" data-generate-cost />
+          </label>
+          <label>
+            改图积分
+            <input type="number" min="0" value="8" data-edit-cost />
+          </label>
+          <button type="button" data-create-model>新增模型</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>供应商</th>
+              <th>编码</th>
+              <th>Base URL</th>
+              <th>密钥</th>
+              <th>支持类型</th>
+              <th>积分</th>
+              <th>测试</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody data-model-list></tbody>
+        </table>
+        <p class="message" data-model-message></p>
+      </section>
+
+      <section>
+        <h2>会员管理</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>用户</th>
+              <th>手机号</th>
+              <th>会员</th>
+              <th>积分</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody data-user-list></tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>AI 任务</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>任务号</th>
+              <th>提示词</th>
+              <th>模型</th>
+              <th>类型</th>
+              <th>状态</th>
+              <th>积分</th>
+              <th>时间</th>
+            </tr>
+          </thead>
+          <tbody data-task-list></tbody>
+        </table>
+      </section>
+    </main>
+
+    <script>
+      (() => {
+        const $ = (selector, root = document) => root.querySelector(selector);
+        const tokenKey = "ai_photo_admin_token";
+
+        const adminHeaders = () => ({
+          "Content-Type": "application/json",
+          "X-Admin-Token": localStorage.getItem(tokenKey) || $("[data-admin-token]").value
+        });
+
+        const api = async (path, options = {}) => {
+          const response = await fetch(path, {
+            ...options,
+            headers: {
+              ...adminHeaders(),
+              ...(options.headers || {})
+            }
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.message || "请求失败");
+          return data;
+        };
+
+        const setMessage = (text) => {
+          $("[data-model-message]").textContent = text || "";
+        };
+
+        const loadModels = async () => {
+          const data = await api("/api/admin/ai-models");
+          $("[data-model-list]").innerHTML = data.models.map((model) => `
+            <tr>
+              <td>${model.name}${model.isDefault ? " · 默认" : ""}</td>
+              <td>${model.provider}</td>
+              <td>${model.modelCode}</td>
+              <td>${model.baseUrl || ""}</td>
+              <td>${model.apiKeyMasked || ""}</td>
+              <td>${model.supportedTaskTypes.join(" / ")}</td>
+              <td>生成 ${model.creditCostConfig.generate || 0}，改图 ${model.creditCostConfig.edit || 0}</td>
+              <td>${model.lastTestStatus || "未测试"} ${model.lastTestMessage ? `· ${model.lastTestMessage}` : ""}</td>
+              <td>${model.isActive ? "上架" : "下架"}</td>
+              <td>
+                <div class="table-actions">
+                  <button type="button" data-default="${model.id}">默认</button>
+                  <button type="button" data-toggle="${model.id}" data-active="${model.isActive ? "0" : "1"}">${model.isActive ? "下架" : "上架"}</button>
+                  <button type="button" data-test="${model.id}">测试</button>
+                </div>
+              </td>
+            </tr>
+          `).join("");
+        };
+
+        const loadUsers = async () => {
+          const data = await api("/api/admin/users");
+          $("[data-user-list]").innerHTML = data.users.map((user) => `
+            <tr>
+              <td>${user.nickname || ""}</td>
+              <td>${user.phone || ""}</td>
+              <td>${user.membership ? user.membership.planName : "未开通"}</td>
+              <td>${user.credits}</td>
+              <td><button type="button" data-grant-credit="${user.id}">赠送20积分</button></td>
+            </tr>
+          `).join("");
+        };
+
+        const loadTasks = async () => {
+          const data = await api("/api/admin/ai-image-tasks");
+          $("[data-task-list]").innerHTML = data.tasks.map((task) => `
+            <tr>
+              <td>${task.taskNo}</td>
+              <td>${task.promptTitle}</td>
+              <td>${task.aiModelName}</td>
+              <td>${task.taskType}</td>
+              <td>${task.status}</td>
+              <td>${task.creditCost}</td>
+              <td>${task.createdAt}</td>
+            </tr>
+          `).join("");
+        };
+
+        const init = async () => {
+          $("[data-admin-token]").value = localStorage.getItem(tokenKey) || "dev-admin-token";
+          $("[data-save-token]").addEventListener("click", async () => {
+            localStorage.setItem(tokenKey, $("[data-admin-token]").value);
+            await Promise.all([loadModels(), loadTasks(), loadUsers()]);
+            setMessage("令牌已保存。");
+          });
+
+          $("[data-create-model]").addEventListener("click", async () => {
+            try {
+              await api("/api/admin/ai-models", {
+                method: "POST",
+                body: JSON.stringify({
+                  name: $("[data-model-name]").value,
+                  provider: $("[data-model-provider]").value,
+                  modelCode: $("[data-model-code]").value,
+                  baseUrl: $("[data-model-base-url]").value,
+                  apiKey: $("[data-model-api-key]").value,
+                  authType: $("[data-model-auth-type]").value,
+                  supportedTaskTypes: $("[data-model-types]").value.split(","),
+                  creditCostConfig: {
+                    generate: Number($("[data-generate-cost]").value || 0),
+                    edit: Number($("[data-edit-cost]").value || 0)
+                  }
+                })
+              });
+              setMessage("模型已新增。");
+              await loadModels();
+            } catch (error) {
+              setMessage(error.message);
+            }
+          });
+
+          $("[data-model-list]").addEventListener("click", async (event) => {
+            const defaultButton = event.target.closest("[data-default]");
+            const toggleButton = event.target.closest("[data-toggle]");
+            const testButton = event.target.closest("[data-test]");
+            try {
+              if (defaultButton) {
+                await api(`/api/admin/ai-models/${defaultButton.dataset.default}/set-default`, { method: "POST" });
+                setMessage("默认模型已更新。");
+              }
+              if (toggleButton) {
+                await api(`/api/admin/ai-models/${toggleButton.dataset.toggle}/status`, {
+                  method: "PATCH",
+                  body: JSON.stringify({ isActive: toggleButton.dataset.active === "1" })
+                });
+                setMessage("模型状态已更新。");
+              }
+              if (testButton) {
+                const data = await api(`/api/admin/ai-models/${testButton.dataset.test}/test`, {
+                  method: "POST",
+                  body: JSON.stringify({ taskType: "generate", prompt: "一张柔光人像测试图", size: "1024x1024", count: 1 })
+                });
+                setMessage(data.message || "模型测试完成。");
+              }
+              await loadModels();
+            } catch (error) {
+              setMessage(error.message);
+            }
+          });
+
+          $("[data-user-list]").addEventListener("click", async (event) => {
+            const button = event.target.closest("[data-grant-credit]");
+            if (!button) return;
+            try {
+              await api(`/api/admin/users/${button.dataset.grantCredit}/credits`, {
+                method: "POST",
+                body: JSON.stringify({ amount: 20, remark: "后台赠送积分" })
+              });
+              await loadUsers();
+              setMessage("积分已赠送。");
+            } catch (error) {
+              setMessage(error.message);
+            }
+          });
+
+          try {
+            await Promise.all([loadModels(), loadTasks(), loadUsers()]);
+          } catch (error) {
+            setMessage(error.message);
+          }
+        };
+
+        init();
+      })();
+    </script>
+  </body>
+</html>

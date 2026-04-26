@@ -18,7 +18,8 @@
 - 登录态固定采用 JWT access token + refresh token + Redis。
 - Redis 连接信息从环境变量 `redis_addr`、`redis_password` 读取。
 - 用户前台可选择生图模型；没有历史选择时默认豆包；选择成功后记住用户最近一次选择。
-- 模型密钥、完整参数、供应商内部配置不返回给前台。
+- 后台模型配置必须包含供应商请求地址 `base_url` 和调用凭证 `api_key`，否则 Worker 无法调用真实模型服务。
+- 模型密钥、完整参数、供应商内部配置不返回给前台；后台列表只展示脱敏密钥。
 
 ## 3. 总体架构
 
@@ -30,6 +31,47 @@
 - Worker：异步消费 AI 任务，调用模型供应商，保存结果并回写任务状态。
 
 AI 任务提交必须经过后端。前台提交提示词 ID、任务类型、模型 ID、尺寸、数量、输入图和用户补充说明；后端负责校验模型可用性、计算积分、组合核心 prompt 和模型参数。
+
+## 3.1 管理后台信息架构
+
+管理后台参考当前仪表盘设计，采用左侧主导航、顶部工具栏、主体数据区的结构。
+
+左侧主导航：
+
+- 仪表盘
+- 作品管理
+- 风格管理
+- 套餐管理
+- 会员管理
+- 积分流水
+- AI 任务
+- 核心提示词
+- 预约线索
+- 订单管理
+- 创作者
+- 评价管理
+- 素材管理
+- 系统设置
+
+顶部工具栏：
+
+- 全局搜索，支持搜索功能、订单号、用户邮箱、手机号、任务号和提示词标题。
+- 通知入口，展示待处理数量。
+- 当前管理员头像、姓名和退出入口。
+- 日期筛选器，默认当天，可切换今日、近 7 日、近 30 日或自定义日期范围。
+
+仪表盘主体：
+
+- 指标卡：今日预约、待跟进线索、进行中订单、待交付订单、新增会员、积分消耗、AI 任务成功率、热门提示词。
+- 趋势图：近 7 日预约数量和 AI 任务数量。
+- 订单状态分布：待付款、进行中、待交付、已完成、已取消。
+- 待处理事项：线索待跟进、AI 任务失败待退款、提示词待审核、评价待审核。
+- 最新 AI 任务：用户、任务类型、提示词标题、模型、消耗积分、状态、时间。
+- 热门套餐和风格排行。
+- 核心提示词使用排行。
+- 会员订阅概览。
+
+后台页面只负责运营配置和业务处理，不直接暴露供应商密钥明文。所有敏感配置的读取、测试和调用都经过后端。
 
 ## 4. 注册登录方案
 
@@ -263,14 +305,33 @@ auth:refresh:{token_hash} -> {
 - 模型供应商。
 - 模型名称。
 - 供应商模型编码。
+- 供应商请求地址 `base_url`。
+- 供应商调用密钥 `api_key`，后台写入时可输入或更新，读取时只返回脱敏结果。
 - 支持任务类型：图片生成、图片修改。
+- 鉴权方式，例如 Bearer Token、Header API Key 或自定义请求头。
 - 默认尺寸。
 - 默认参数 JSON。
 - 积分消耗配置 JSON。
 - 成本配置 JSON。
+- 请求超时时间、重试次数和并发限制。
 - 模型版本。
 - 上下架状态。
 - 是否默认模型，默认模型为豆包。
+- 连通性测试和试生成测试。
+
+模型配置表单必须至少包含：
+
+- `provider`：供应商，例如 `volcengine`、`openai-compatible`、`replicate`、`custom`。
+- `name`：后台展示名称。
+- `model_code`：供应商模型编码。
+- `base_url`：供应商 API 基础地址，例如 `https://api.example.com/v1`。
+- `api_key`：供应商密钥，新增时必填；编辑时留空表示不变。
+- `auth_type`：鉴权方式。
+- `supported_task_types`：支持的任务类型。
+- `default_params`：请求默认参数 JSON。
+- `credit_cost_config`：前台扣积分配置。
+- `cost_config`：真实成本估算配置。
+- `test_payload`：用于后台测试的默认请求样例。
 
 ### 5.2 前台能力
 
@@ -292,7 +353,61 @@ GET    /api/admin/ai-models/:id
 PATCH  /api/admin/ai-models/:id
 PATCH  /api/admin/ai-models/:id/status
 POST   /api/admin/ai-models/:id/set-default
+POST   /api/admin/ai-models/:id/test
 ```
+
+后台模型详情响应可以返回 `baseUrl`、脱敏后的 `apiKeyMasked`、鉴权方式、默认参数和成本配置，但不得返回 `apiKey` 明文：
+
+```json
+{
+  "id": "doubao_model_id",
+  "provider": "volcengine",
+  "name": "豆包",
+  "modelCode": "doubao-image",
+  "baseUrl": "https://ark.cn-beijing.volces.com/api/v3",
+  "apiKeyMasked": "sk-****abcd",
+  "authType": "bearer",
+  "supportedTaskTypes": ["generate", "edit"],
+  "defaultParams": {
+    "quality": "standard"
+  },
+  "creditCostConfig": {
+    "generate": 5,
+    "edit": 8
+  },
+  "timeoutSeconds": 60,
+  "retryLimit": 1,
+  "isActive": true,
+  "isDefault": true
+}
+```
+
+后台测试模型请求：
+
+```json
+{
+  "taskType": "generate",
+  "prompt": "一张柔光人像测试图",
+  "size": "1:1",
+  "count": 1,
+  "inputImageUrl": null,
+  "overrideParams": {}
+}
+```
+
+后台测试模型响应：
+
+```json
+{
+  "success": true,
+  "latencyMs": 1280,
+  "requestId": "provider_request_id",
+  "resultImageUrls": ["https://cdn.example.com/test-result.jpg"],
+  "message": "模型连通性测试通过"
+}
+```
+
+测试失败时必须返回可处理的错误信息，例如鉴权失败、baseUrl 不可达、模型编码不存在、请求参数错误或供应商超时。测试接口只允许后台权限调用，测试任务不扣用户积分，但需要记录测试日志。
 
 前台 AI 接口：
 
@@ -367,11 +482,37 @@ GET  /api/ai-image-tasks/:id
 3. 后端计算积分消耗。
 4. 后端在事务内扣减积分、写积分流水、创建 `queued` 任务。
 5. Worker 拉取任务并更新为 `processing`。
-6. Worker 读取模型配置和核心 prompt，组装供应商请求。
+6. Worker 读取模型配置、`base_url`、密钥、默认参数和核心 prompt，组装供应商请求。
 7. 调用成功后保存结果图，更新任务为 `succeeded`。
 8. 调用失败后更新任务为 `failed`，按规则退回积分并记录退款流水。
 
-### 5.6 数据表
+### 5.6 模型调用适配
+
+Worker 调用模型时使用统一适配层，避免业务流程直接依赖某个供应商 SDK。
+
+适配层输入：
+
+- `modelConfig`：模型供应商、`base_url`、模型编码、鉴权方式、密钥、默认参数、超时和重试配置。
+- `task`：任务类型、尺寸、数量、输入图、用户补充说明。
+- `prompt`：后台核心 prompt、反向 prompt 和版本。
+
+适配层输出：
+
+- `providerRequestId`：供应商请求 ID。
+- `resultImageUrls`：生成或修改后的图片地址。
+- `rawUsage`：供应商返回的用量信息，脱敏后保存。
+- `errorCode`、`errorMessage`：失败时的归一化错误。
+
+调用规则：
+
+1. `base_url` 必须是 `https://` 地址；本地开发可通过白名单允许 `http://127.0.0.1`。
+2. `api_key` 从加密字段或密钥管理服务读取，只在内存中参与请求，不写入业务日志。
+3. 请求日志只记录模型 ID、任务 ID、供应商请求 ID、状态码、耗时和错误类型。
+4. 供应商返回的原始响应需要脱敏后保存，避免泄露 prompt、密钥或用户隐私。
+5. 超时、限流和 5xx 错误可按 `retry_limit` 重试；鉴权失败和参数错误不重试。
+6. 后台测试功能复用同一适配层，但测试结果写入测试日志，不进入用户任务队列，不扣积分。
+
+### 5.7 数据表
 
 `ai_models`：
 
@@ -379,11 +520,22 @@ GET  /api/ai-image-tasks/:id
 - `provider`
 - `name`
 - `model_code`
+- `base_url`
+- `api_key_ciphertext` 或 `api_key_secret_ref`
+- `api_key_masked`
+- `auth_type`
 - `supported_task_types`
 - `default_size`
 - `default_params`
 - `credit_cost_config`
 - `cost_config`
+- `test_payload`
+- `timeout_seconds`
+- `retry_limit`
+- `concurrency_limit`
+- `last_test_status`
+- `last_test_message`
+- `last_test_at`
 - `version`
 - `is_default`
 - `is_active`
@@ -401,10 +553,29 @@ GET  /api/ai-image-tasks/:id
 
 - `ai_model_id`
 - `ai_model_version`
+- `provider_request_id`
+- `provider_status_code`
+- `provider_latency_ms`
+- `provider_error_code`
 
 `users` 增加：
 
 - `preferred_ai_model_id`
+
+新增 `ai_model_test_logs`：
+
+- `id`
+- `model_id`
+- `admin_id`
+- `task_type`
+- `request_payload_snapshot`
+- `success`
+- `latency_ms`
+- `provider_request_id`
+- `result_image_urls`
+- `error_code`
+- `error_message`
+- `created_at`
 
 建议索引：
 
@@ -412,6 +583,7 @@ GET  /api/ai-image-tasks/:id
 - `ai_models.is_active + is_default` 普通索引。
 - `ai_image_tasks.user_id + created_at` 普通索引。
 - `ai_image_tasks.status + created_at` 普通索引，用于 Worker 拉取任务。
+- `ai_model_test_logs.model_id + created_at` 普通索引。
 
 ## 6. 安全与风控
 
@@ -423,7 +595,8 @@ GET  /api/ai-image-tasks/:id
 - access token 短有效期；refresh token 失效状态保存在 Redis。
 - 忘记密码重设成功后，需要清理用户旧 refresh token。
 - 管理后台接口必须鉴权并做角色权限校验。
-- 模型密钥不存放在 `ai_models` 表中，建议使用环境变量或密钥管理服务。
+- 模型密钥不得明文存储；可使用 `api_key_ciphertext` 加密存储，或使用 `api_key_secret_ref` 指向密钥管理服务。
+- 后台读取模型详情时只返回 `api_key_masked`，编辑时留空表示沿用旧密钥，填入新密钥表示轮换。
 - 核心 prompt、反向 prompt、模型完整参数不得返回给前台。
 - AI 任务扣积分和退积分必须幂等，避免重复扣费或重复退款。
 
@@ -444,6 +617,8 @@ GET  /api/ai-image-tasks/:id
 
 - AI 模型后台 CRUD。
 - 豆包默认模型配置。
+- 模型 `base_url`、`api_key`、鉴权方式和默认请求参数配置。
+- 模型连通性测试和试生成测试。
 - 不同模型积分消耗配置。
 - 前台模型列表和模型选择。
 - AI 任务创建时按用户选择模型扣减积分。
