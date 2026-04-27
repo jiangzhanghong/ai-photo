@@ -21,7 +21,8 @@ PORT=8000
 redis_addr=127.0.0.1:6379
 redis_password=your_password
 jwt_secret=change_me
-admin_token=dev-admin-token
+admin_account=13342860028
+admin_password='Sk8er&boi'
 ```
 
 如果没有配置 `redis_addr`，后端会使用内存 refresh token 存储，仅适合本地开发。

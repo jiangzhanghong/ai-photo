@@ -49,6 +49,53 @@
         grid-template-columns: 216px 1fr;
       }
 
+      body:not(.admin-authenticated) .admin-shell {
+        display: none;
+      }
+
+      body.admin-authenticated .admin-login {
+        display: none;
+      }
+
+      .admin-login {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      .login-card {
+        width: min(100%, 380px);
+        display: grid;
+        gap: 18px;
+        padding: 28px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+
+      .login-card h1 {
+        margin: 0;
+        font-size: 22px;
+      }
+
+      .login-card label {
+        display: grid;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .login-card input {
+        width: 100%;
+        height: 42px;
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--text);
+      }
+
       .sidebar {
         position: sticky;
         top: 0;
@@ -154,12 +201,10 @@
         background: #fff;
       }
 
-      .token {
-        width: 160px;
-        height: 34px;
-        padding: 0 10px;
-        border: 1px solid var(--line);
-        border-radius: 6px;
+      .top-account {
+        color: var(--muted);
+        font-size: 13px;
+        white-space: nowrap;
       }
 
       .content {
@@ -515,14 +560,29 @@
           padding: 12px;
         }
 
-        .search,
-        .token {
+        .search {
           width: 100%;
         }
       }
     </style>
   </head>
   <body>
+    <div class="admin-login">
+      <form class="login-card" data-login-form>
+        <h1>管理后台登录</h1>
+        <label>
+          <span>账号</span>
+          <input autocomplete="username" data-login-account />
+        </label>
+        <label>
+          <span>密码</span>
+          <input type="password" autocomplete="current-password" data-login-password />
+        </label>
+        <button class="btn" type="submit">登录</button>
+        <p class="message" data-login-message></p>
+      </form>
+    </div>
+
     <div class="admin-shell">
       <aside class="sidebar">
         <div class="brand">
@@ -547,8 +607,8 @@
           <h1 data-page-title>管理后台首页</h1>
           <div class="top-actions">
             <input class="search" type="search" placeholder="搜索用户、任务号、提示词" data-search />
-            <input class="token" value="dev-admin-token" data-admin-token />
-            <button class="btn secondary" type="button" data-save-token>保存令牌</button>
+            <span class="top-account" data-admin-account></span>
+            <button class="btn secondary" type="button" data-logout>退出</button>
             <a class="btn secondary" href="/member.html">会员页</a>
           </div>
         </header>
@@ -712,7 +772,7 @@
             <section class="panel">
               <div class="panel-head"><h2>系统设置</h2></div>
               <div class="panel-body">
-                <p class="message">当前后台使用静态 `X-Admin-Token`。生产环境建议改为管理员账号登录、角色权限和操作审计。</p>
+                <p class="message">当前后台需要管理员账号登录后访问。</p>
               </div>
             </section>
           </section>
@@ -741,7 +801,8 @@
       (() => {
         const $ = (selector, root = document) => root.querySelector(selector);
         const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
-        const tokenKey = "ai_photo_admin_token";
+        const tokenKey = "ai_photo_admin_access_token";
+        const accountKey = "ai_photo_admin_account";
         const titles = { dashboard: "管理后台首页", tasks: "AI 任务", users: "会员管理", credits: "积分流水", prompts: "核心提示词", models: "生图模型", plans: "套餐管理", settings: "系统设置" };
         const statusText = { queued: "排队中", processing: "生成中", succeeded: "成功", failed: "失败", active: "启用", disabled: "禁用" };
         const taskTypeText = { generate: "生成图片", image_to_image: "以图生图", edit: "修改图片" };
@@ -754,19 +815,31 @@
 
         const adminHeaders = () => ({
           "Content-Type": "application/json",
-          "X-Admin-Token": localStorage.getItem(tokenKey) || $("[data-admin-token]").value
+          "Authorization": `Bearer ${localStorage.getItem(tokenKey) || ""}`
         });
 
         const api = async (path, options = {}) => {
           const response = await fetch(path, { ...options, headers: { ...adminHeaders(), ...(options.headers || {}) } });
           const data = await response.json().catch(() => ({}));
+          if (response.status === 401) showLogin();
           if (!response.ok) throw new Error(data.message || "请求失败");
           return data;
         };
 
         const setText = (selector, text) => { const el = $(selector); if (el) el.textContent = text ?? ""; };
         const setModelMessage = (text) => setText("[data-model-message]", text);
+        const setLoginMessage = (text) => setText("[data-login-message]", text);
         const field = (name) => $(`[data-edit-field="${name}"]`);
+        const showLogin = () => {
+          localStorage.removeItem(tokenKey);
+          localStorage.removeItem(accountKey);
+          document.body.classList.remove("admin-authenticated");
+          setText("[data-admin-account]", "");
+        };
+        const showAdmin = (account) => {
+          document.body.classList.add("admin-authenticated");
+          setText("[data-admin-account]", account);
+        };
         const downloadJson = (filename, data) => {
           const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
           const url = URL.createObjectURL(blob);
@@ -1067,12 +1140,27 @@
         };
 
         const initEvents = () => {
-          $$("[data-nav]").forEach((btn) => btn.addEventListener("click", () => switchView(btn.dataset.nav).catch((error) => setModelMessage(error.message))));
-          $("[data-save-token]").addEventListener("click", async () => {
-            localStorage.setItem(tokenKey, $("[data-admin-token]").value);
-            await loadView($("[data-nav].active").dataset.nav);
-            setModelMessage("令牌已保存。");
+          $("[data-login-form]").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            setLoginMessage("");
+            try {
+              const data = await api("/api/admin/login", {
+                method: "POST",
+                body: JSON.stringify({
+                  account: $("[data-login-account]").value,
+                  password: $("[data-login-password]").value
+                })
+              });
+              localStorage.setItem(tokenKey, data.accessToken);
+              localStorage.setItem(accountKey, data.admin.account);
+              showAdmin(data.admin.account);
+              await loadStats();
+            } catch (error) {
+              setLoginMessage(error.message);
+            }
           });
+          $("[data-logout]").addEventListener("click", showLogin);
+          $$("[data-nav]").forEach((btn) => btn.addEventListener("click", () => switchView(btn.dataset.nav).catch((error) => setModelMessage(error.message))));
           $("[data-refresh]").addEventListener("click", loadStats);
           $("[data-open-tasks]").addEventListener("click", () => switchView("tasks"));
           $("[data-task-status]").addEventListener("change", loadTasks);
@@ -1226,12 +1314,21 @@
         };
 
         const init = async () => {
-          $("[data-admin-token]").value = localStorage.getItem(tokenKey) || "dev-admin-token";
           initEvents();
+          const token = localStorage.getItem(tokenKey);
+          if (!token) {
+            showLogin();
+            return;
+          }
+          const data = await api("/api/admin/me");
+          showAdmin(data.admin.account || localStorage.getItem(accountKey) || "");
           await loadStats();
         };
 
-        init().catch((error) => setModelMessage(error.message));
+        init().catch((error) => {
+          showLogin();
+          setLoginMessage(error.message);
+        });
       })();
     </script>
   </body>

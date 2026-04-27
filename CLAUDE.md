@@ -18,7 +18,7 @@ No automated test suite exists; testing is manual via browser or curl.
 Required for full functionality:
 - `mysql_host`, `mysql_user`, `mysql_password`, `mysql_database` — MySQL connection
 - `jwt_secret` — JWT signing key
-- `admin_token` — Bearer token for all `/api/admin/*` endpoints
+- `admin_account`, `admin_password` — admin login credentials; defaults are for local development only
 
 Optional:
 - `PORT` — defaults to 8000
@@ -31,13 +31,13 @@ This is a single-process Node.js app with no framework — `backend/server.js` m
 
 **Request flow:** HTTP request → static file check → API route dispatch → MySQL query → JSON response
 
-**Auth flow:** Phone verification code → auto-register/login → JWT access token (short-lived) + refresh token (stored in Redis or in-memory Map) → `Authorization: Bearer <token>` on protected routes. The current development code is `8888`; SMS gateway integration is still pending.
+**Auth flow:** Phone verification code → auto-register/login → JWT access token (short-lived) + refresh token (stored in Redis or in-memory Map) → `Authorization: Bearer <token>` on protected routes. The current development code is `867530`; SMS gateway integration is still pending.
 
 **Static file serving:** The server maps URL paths to the filesystem. `/` → `web/index.html`, `/member.html` → `web/member.html`, `/admin` → `admin/index.html`, everything else under `/` tries `web/<path>`.
 
 **Frontend:** Pure HTML/CSS/JS with no build tooling. All JS is inline in the HTML files. `web/styles.css` covers both `index.html` and `member.html`.
 
-**Admin auth:** All `/api/admin/*` routes require `X-Admin-Token: <admin_token>` (static token, not JWT).
+**Admin auth:** Admins log in through `/api/admin/login`, then all `/api/admin/*` routes require `Authorization: Bearer <admin access token>`.
 
 **Model credentials:** Stored encrypted in MySQL using AES-256-GCM via `model_secret_key`. The `encrypt` / `decrypt` functions in `server.js` handle this.
 

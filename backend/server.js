@@ -11,6 +11,8 @@ const UPLOAD_DIR = path.join(ROOT, "web", "uploads");
 const PORT = Number(process.env.PORT || 8000);
 const ACCESS_EXPIRES_SECONDS = 60 * 60 * 2;
 const REFRESH_EXPIRES_SECONDS = 60 * 60 * 24 * 30;
+const VERIFICATION_CODE_EXPIRES_MS = 10 * 60 * 1000;
+const ADMIN_ACCESS_EXPIRES_SECONDS = 60 * 60 * 8;
 
 const loadEnvFile = (file) => {
   if (!fs.existsSync(file)) return;
@@ -29,10 +31,13 @@ const loadEnvFile = (file) => {
 loadEnvFile("/etc/ai-photo.env");
 
 const JWT_SECRET = process.env.jwt_secret || "dev-jwt-secret";
-const ADMIN_TOKEN = process.env.admin_token || "dev-admin-token";
+const ADMIN_ACCOUNT = process.env.admin_account || "13342860028";
+const ADMIN_PASSWORD = process.env.admin_password || "Sk8er&boi";
 const MODEL_SECRET = crypto.createHash("sha256").update(process.env.model_secret_key || JWT_SECRET).digest();
 
 const nowIso = () => new Date().toISOString();
+const mysqlDateTime = (date = new Date()) => date.toISOString().slice(0, 19).replace("T", " ");
+const mysqlDateTimeMs = (value) => value instanceof Date ? value.getTime() : new Date(`${String(value).replace(" ", "T")}Z`).getTime();
 const uid = (prefix) => `${prefix}_${crypto.randomBytes(8).toString("hex")}`;
 const sha256 = (value) => crypto.createHash("sha256").update(String(value)).digest("hex");
 const jsonParse = (value, fallback) => {
@@ -283,11 +288,17 @@ const validatePassword = (phone, password) => {
   return "";
 };
 
+const constantTimeEqual = (left, right) => {
+  const leftBuffer = Buffer.from(String(left));
+  const rightBuffer = Buffer.from(String(right));
+  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
+};
+
 const json = (res, status, body) => {
   res.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-Token",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS"
   });
   res.end(JSON.stringify(body));
@@ -329,7 +340,12 @@ const saveUploadedImage = async (req, imageData) => {
   return publicUrl(req, `/uploads/${fileName}`);
 };
 
-const requireAdmin = (req) => req.headers["x-admin-token"] === ADMIN_TOKEN;
+const requireAdmin = (req) => {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  const payload = token ? verifyJwt(token) : null;
+  return payload?.type === "admin" && payload?.sub === ADMIN_ACCOUNT ? payload : null;
+};
 const requireUser = async (req) => {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
@@ -380,13 +396,14 @@ const consumeCode = async (target, scene, code) => {
   const rows = await db.query("SELECT * FROM verification_codes WHERE target = ? AND scene = ? AND used_at IS NULL ORDER BY created_at DESC LIMIT 1", [target, scene]);
   const item = rows[0];
   if (!item) return "验证码不存在。";
-  if (new Date(item.expires_at).getTime() < Date.now()) return "验证码已过期。";
+  const expiresAt = mysqlDateTimeMs(item.expires_at);
+  if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) return "验证码已过期。";
   if (item.failed_attempts >= 5) return "验证码错误次数过多。";
   if (item.code_hash !== sha256(String(code))) {
     await db.exec("UPDATE verification_codes SET failed_attempts = failed_attempts + 1 WHERE id = ?", [item.id]);
     return "验证码错误。";
   }
-  await db.exec("UPDATE verification_codes SET used_at = NOW() WHERE id = ?", [item.id]);
+  await db.exec("UPDATE verification_codes SET used_at = ? WHERE id = ?", [mysqlDateTime(), item.id]);
   return "";
 };
 
@@ -839,11 +856,12 @@ const routeApi = async (req, res, url) => {
     const scene = String(body.scene || "");
     if (targetType !== "phone" || !validatePhone(target)) return json(res, 400, { message: "请输入有效手机号。" });
     if (!["login", "reset_password"].includes(scene)) return json(res, 400, { message: "验证码场景无效。" });
-    const code = process.env.NODE_ENV === "production" ? String(crypto.randomInt(1000, 9999)) : "8888";
-    await db.exec("INSERT INTO verification_codes (id, target_type, target, scene, code_hash, expires_at, ip, user_agent, created_at) VALUES (?, 'phone', ?, ?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE), ?, ?, NOW())", [
-      uid("code"), target, scene, sha256(code), req.socket.remoteAddress, req.headers["user-agent"] || ""
+    const code = process.env.NODE_ENV === "production" ? String(crypto.randomInt(100000, 1000000)) : "867530";
+    const now = new Date();
+    await db.exec("INSERT INTO verification_codes (id, target_type, target, scene, code_hash, expires_at, ip, user_agent, created_at) VALUES (?, 'phone', ?, ?, ?, ?, ?, ?, ?)", [
+      uid("code"), target, scene, sha256(code), mysqlDateTime(new Date(now.getTime() + VERIFICATION_CODE_EXPIRES_MS)), req.socket.remoteAddress, req.headers["user-agent"] || "", mysqlDateTime(now)
     ]);
-    return json(res, 200, { message: "验证码已发送。", devCode: process.env.NODE_ENV === "production" ? undefined : code });
+    return json(res, 200, { message: "验证码已发送。" });
   }
 
   if (req.method === "POST" && url.pathname === "/api/auth/login/phone-code") {
@@ -1024,8 +1042,26 @@ const routeApi = async (req, res, url) => {
     return json(res, 200, { tasks: rows.map(taskDto) });
   }
 
+  if (req.method === "POST" && url.pathname === "/api/admin/login") {
+    const account = String(body.account || "").trim();
+    const password = String(body.password || "");
+    if (!constantTimeEqual(account, ADMIN_ACCOUNT) || !constantTimeEqual(password, ADMIN_PASSWORD)) {
+      return json(res, 401, { message: "管理员账号或密码错误。" });
+    }
+    return json(res, 200, {
+      admin: { account: ADMIN_ACCOUNT },
+      accessToken: signJwt({ sub: ADMIN_ACCOUNT, type: "admin" }, ADMIN_ACCESS_EXPIRES_SECONDS),
+      expiresIn: ADMIN_ACCESS_EXPIRES_SECONDS
+    });
+  }
+
   if (url.pathname.startsWith("/api/admin/")) {
-    if (!requireAdmin(req)) return json(res, 401, { message: "管理员令牌无效。" });
+    const admin = requireAdmin(req);
+    if (!admin) return json(res, 401, { message: "请先登录管理后台。" });
+
+    if (req.method === "GET" && url.pathname === "/api/admin/me") {
+      return json(res, 200, { admin: { account: admin.sub } });
+    }
 
     if (req.method === "GET" && url.pathname === "/api/admin/users") {
       const rows = await db.query("SELECT * FROM users ORDER BY created_at DESC LIMIT 100");
