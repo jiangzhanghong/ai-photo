@@ -51,9 +51,34 @@ const maskSecret = (value) => {
   if (value.length <= 8) return "****";
   return `${value.slice(0, 4)}****${value.slice(-4)}`;
 };
-const normalizeImageSize = (size) => {
+const isGptImageModel = (model) => {
+  const provider = String(model?.provider || "").trim().toLowerCase();
+  const code = String(model?.model_code || model?.modelCode || "").trim().toLowerCase();
+  const baseUrl = String(model?.base_url || model?.baseUrl || "").trim().toLowerCase();
+  return provider === "openai"
+    || baseUrl.includes("api.openai.com")
+    || code.includes("gpt-image")
+    || code.includes("chatgpt-image");
+};
+const normalizeImageSize = (size, model) => {
+  if (isGptImageModel(model)) {
+    const map = {
+      "1:1": "1024x1024",
+      "3:4": "1024x1536",
+      "16:9": "1536x1024",
+      "2048x2048": "1024x1024",
+      "1728x2304": "1024x1536",
+      "2560x1440": "1536x1024"
+    };
+    return map[size] || size || "1024x1024";
+  }
   const map = { "1:1": "2048x2048", "3:4": "1728x2304", "16:9": "2560x1440" };
   return map[size] || size || "2048x2048";
+};
+const sanitizeImageParams = (model, params) => {
+  const sanitized = { ...(params || {}) };
+  if (isGptImageModel(model)) delete sanitized.response_format;
+  return sanitized;
 };
 
 const encrypt = (value) => {
@@ -474,15 +499,16 @@ const callImageModel = async ({ model, taskType, prompt, inputImageUrl, size, co
   if (!/^https:\/\//.test(baseUrl) && !/^http:\/\/127\.0\.0\.1/.test(baseUrl)) throw new Error("模型 baseUrl 必须是 https 地址。");
   const apiKey = decrypt(model.api_key_ciphertext);
   if (!apiKey) throw new Error("模型 apiKey 未配置。");
-  const defaultParams = jsonParse(model.default_params_json, {});
+  const defaultParams = sanitizeImageParams(model, jsonParse(model.default_params_json, {}));
   const body = {
     model: model.model_code,
     prompt,
-    size: normalizeImageSize(size || model.default_size),
+    size: normalizeImageSize(size || model.default_size, model),
     n: Math.max(1, Math.min(4, Number(count || 1))),
     ...defaultParams,
-    ...overrideParams
+    ...sanitizeImageParams(model, overrideParams)
   };
+  if (isGptImageModel(model)) delete body.response_format;
   if (["edit", "image_to_image"].includes(taskType) && inputImageUrl) body.image = inputImageUrl;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), Number(model.timeout_seconds || 60) * 1000);
@@ -1028,13 +1054,15 @@ const routeApi = async (req, res, url) => {
     if (req.method === "POST" && url.pathname === "/api/admin/ai-models") {
       const id = uid("model");
       const apiKey = String(body.apiKey || "");
+      const inputModel = { provider: body.provider || "custom", model_code: body.modelCode || "custom-model" };
+      const defaultParams = sanitizeImageParams(inputModel, { response_format: "url", ...(body.defaultParams || {}) });
       await db.exec(`INSERT INTO ai_models
         (id, provider, name, model_code, base_url, api_key_ciphertext, api_key_masked, auth_type, supported_task_types_json, default_size, default_params_json, credit_cost_config_json, cost_config_json, test_payload_json, timeout_seconds, retry_limit, concurrency_limit, version, is_default, is_active, remark, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, ?, NOW(), NOW())`,
         [
           id, body.provider || "custom", body.name || "未命名模型", body.modelCode || "custom-model", body.baseUrl || "",
           encrypt(apiKey), maskSecret(apiKey), body.authType || "bearer", jsonText(body.supportedTaskTypes || ["generate"]),
-          body.defaultSize || "1024x1024", jsonText(body.defaultParams || { response_format: "url" }), jsonText(body.creditCostConfig || { generate: 5, edit: 8 }),
+          body.defaultSize || "1024x1024", jsonText(defaultParams), jsonText(body.creditCostConfig || { generate: 5, edit: 8 }),
           jsonText(body.costConfig || {}), jsonText(body.testPayload || {}), Number(body.timeoutSeconds || 60), Number(body.retryLimit || 0), Number(body.concurrencyLimit || 4), body.version || "2026.04", body.remark || ""
         ]
       );
@@ -1046,11 +1074,12 @@ const routeApi = async (req, res, url) => {
       if (!model) return json(res, 404, { message: "模型不存在。" });
       if (req.method === "PATCH" && !modelMatch[2]) {
         const apiKey = body.apiKey ? String(body.apiKey) : "";
+        const nextModel = { provider: body.provider ?? model.provider, model_code: body.modelCode ?? model.model_code };
         await db.exec(`UPDATE ai_models SET provider = ?, name = ?, model_code = ?, base_url = ?, api_key_ciphertext = IF(? = '', api_key_ciphertext, ?), api_key_masked = IF(? = '', api_key_masked, ?), auth_type = ?, supported_task_types_json = ?, default_size = ?, default_params_json = ?, credit_cost_config_json = ?, cost_config_json = ?, test_payload_json = ?, timeout_seconds = ?, retry_limit = ?, concurrency_limit = ?, version = ?, remark = ?, updated_at = NOW() WHERE id = ?`, [
           body.provider ?? model.provider, body.name ?? model.name, body.modelCode ?? model.model_code, body.baseUrl ?? model.base_url,
           apiKey, encrypt(apiKey), apiKey, maskSecret(apiKey), body.authType ?? model.auth_type,
           jsonText(body.supportedTaskTypes || jsonParse(model.supported_task_types_json, [])), body.defaultSize ?? model.default_size,
-          jsonText(body.defaultParams || jsonParse(model.default_params_json, {})), jsonText(body.creditCostConfig || jsonParse(model.credit_cost_config_json, {})),
+          jsonText(sanitizeImageParams(nextModel, body.defaultParams || jsonParse(model.default_params_json, {}))), jsonText(body.creditCostConfig || jsonParse(model.credit_cost_config_json, {})),
           jsonText(body.costConfig || jsonParse(model.cost_config_json, {})), jsonText(body.testPayload || jsonParse(model.test_payload_json, {})),
           Number(body.timeoutSeconds || model.timeout_seconds), Number(body.retryLimit || model.retry_limit), Number(body.concurrencyLimit || model.concurrency_limit),
           body.version ?? model.version, body.remark ?? model.remark, model.id

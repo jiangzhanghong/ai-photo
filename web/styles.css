@@ -134,7 +134,7 @@ img {
   width: 1055px;
   height: 281px;
   margin: 0 auto;
-  background: var(--hero-image, url("./assets/hero-slide-1.png")) center top / cover no-repeat;
+  background: var(--hero-image, url("./assets/hero-slide-1.webp")) center top / cover no-repeat;
   overflow: hidden;
 }
 
@@ -931,7 +931,7 @@ blockquote em {
 .member-hero {
   background:
     linear-gradient(105deg, rgba(7, 26, 19, 0.92) 0%, rgba(7, 26, 19, 0.72) 50%, rgba(7, 26, 19, 0.22) 100%),
-    url("./assets/hero-slide-2.png") center center / cover no-repeat;
+    url("./assets/hero-slide-2.webp") center center / cover no-repeat;
   color: #fff;
 }
 
