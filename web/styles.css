@@ -1478,6 +1478,49 @@ blockquote em {
   line-height: 1.5;
 }
 
+.prompt-plan {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 10px;
+  min-height: 72px;
+  padding: 9px;
+  border: 1px solid #dce6e0;
+  border-radius: 7px;
+  background: #f8fbf9;
+}
+
+.prompt-plan:empty {
+  display: none;
+}
+
+.prompt-plan img {
+  width: 72px;
+  height: 72px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #eef3f0;
+}
+
+.prompt-plan div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  align-content: center;
+}
+
+.prompt-plan strong {
+  color: #26342e;
+  font-size: 13px;
+}
+
+.prompt-plan p,
+.prompt-plan span {
+  margin: 0;
+  color: #66746d;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .ai-form .mc-label input:focus,
 .ai-form .mc-label select:focus,
 .ai-form .mc-label textarea:focus {
@@ -1552,15 +1595,42 @@ blockquote em {
   pointer-events: none;
 }
 
-/* Preview image fills the zone */
-.upload-preview {
-  display: none;
-  position: absolute;
-  inset: 0;
+.upload-preview-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+}
+
+.upload-preview-item {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #e9efec;
+}
+
+.upload-preview-item img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  background: #f0f3f1;
+  object-fit: cover;
+}
+
+.upload-preview-item button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
 }
 
 /* Clear button — top-right corner, only visible when has-preview */
@@ -1677,13 +1747,32 @@ blockquote em {
   box-shadow: 0 3px 12px rgba(16, 59, 44, 0.09);
 }
 
-.result-card img {
+.result-thumbs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  width: 100px;
+  height: 90px;
+  background: #edf2ef;
+}
+
+.result-thumbs img {
   width: 100px;
   height: 90px;
   object-fit: cover;
 }
 
-.result-card div {
+.result-thumbs img:nth-child(n+2) {
+  width: 49px;
+  height: 44px;
+}
+
+.result-thumbs img:first-child:nth-last-child(n+2) {
+  width: 49px;
+  height: 44px;
+}
+
+.result-meta {
   min-width: 0;
   padding: 10px 12px;
 }
@@ -1882,6 +1971,15 @@ blockquote em {
 
   .auth-tabs {
     grid-template-columns: repeat(3, 1fr);
+  }
+
+  .prompt-plan {
+    grid-template-columns: 64px 1fr;
+  }
+
+  .prompt-plan img {
+    width: 64px;
+    height: 64px;
   }
 
   .form-row-2 {

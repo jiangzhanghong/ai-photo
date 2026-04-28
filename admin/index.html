@@ -694,7 +694,12 @@
                   <label><span>积分</span><input type="number" min="0" value="8" data-prompt-cost /></label>
                   <label><span>排序</span><input type="number" min="0" value="10" data-prompt-sort /></label>
                   <button class="btn" type="button" data-create-prompt>新增提示词</button>
+                  <label class="wide"><span>用户可见描述</span><input placeholder="说明适合什么场景" data-prompt-description /></label>
+                  <label class="wide"><span>分类标签，逗号分隔</span><input placeholder="毕业季,校园,写真" data-prompt-tags /></label>
+                  <label class="wide"><span>示例图 URL</span><input placeholder="./assets/work-portrait.jpg" data-prompt-example /></label>
+                  <label class="wide"><span>变量，每行一个</span><textarea placeholder="style&#10;background&#10;lighting" data-prompt-variables></textarea></label>
                   <label class="full"><span>核心 prompt</span><textarea data-prompt-content></textarea></label>
+                  <label class="full"><span>反向 prompt</span><textarea data-prompt-negative></textarea></label>
                 </div>
               </div>
             </section>
@@ -719,7 +724,7 @@
                   <input type="file" accept="application/json,.json" hidden data-prompt-import-file />
                 </div>
               </div>
-              <div class="table-wrap"><table><thead><tr><th>标题</th><th>类型</th><th>场景</th><th>积分</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody data-prompt-list></tbody></table></div>
+              <div class="table-wrap"><table><thead><tr><th>标题</th><th>类型</th><th>场景</th><th>标签</th><th>版本</th><th>积分</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody data-prompt-list></tbody></table></div>
             </section>
           </section>
 
@@ -853,17 +858,23 @@
           if (value === undefined || value === null || value === "") return fallback;
           return value === true || value === 1 || value === "1" || value === "true";
         };
+        const splitList = (value) => Array.isArray(value) ? value : String(value || "").split(/[\n,，]/).map((item) => item.trim()).filter(Boolean);
+        const variableNames = (value) => splitList(value).map((item) => typeof item === "string" ? item : item.name).filter(Boolean);
         const promptPayload = (prompt) => ({
           title: prompt.title || "新提示词",
           taskType: prompt.taskType || "generate",
           scene: prompt.scene || "",
+          userDescription: prompt.userDescription || "",
+          categoryTags: splitList(prompt.categoryTags || prompt.tags || ""),
+          variables: variableNames(prompt.variables || ""),
           promptContent: prompt.promptContent || "",
           negativePrompt: prompt.negativePrompt || "",
+          defaultParams: prompt.defaultParams || {},
           creditCost: Number(prompt.creditCost || 0),
-          resultImageUrl: prompt.resultImageUrl || "",
+          exampleImageUrl: prompt.exampleImageUrl || prompt.resultImageUrl || "",
           sortOrder: Number(prompt.sortOrder || 0),
           isActive: boolValue(prompt.isActive, true),
-          version: prompt.version || "2026.04"
+          version: prompt.version || "v1"
         });
         const normalizePromptImport = (data) => {
           const items = Array.isArray(data) ? data : Array.isArray(data.prompts) ? data.prompts : [];
@@ -873,10 +884,14 @@
               title: item.title,
               taskType: item.taskType || item.task_type,
               scene: item.scene,
+              userDescription: item.userDescription || item.user_description,
+              categoryTags: item.categoryTags || item.category_tags,
+              variables: item.variables,
               promptContent: item.promptContent || item.prompt_content,
               negativePrompt: item.negativePrompt || item.negative_prompt,
+              defaultParams: item.defaultParams || item.default_params,
               creditCost: item.creditCost ?? item.credit_cost,
-              resultImageUrl: item.resultImageUrl || item.result_image_url,
+              exampleImageUrl: item.exampleImageUrl || item.resultImageUrl || item.result_image_url,
               sortOrder: item.sortOrder ?? item.sort_order,
               isActive: boolValue(item.isActive ?? item.is_active, true),
               version: item.version
@@ -903,6 +918,11 @@
               <label><span>积分</span><input type="number" min="0" data-edit-field="creditCost" value="${item.creditCost}" /></label>
               <label><span>排序</span><input type="number" min="0" data-edit-field="sortOrder" value="${item.sortOrder}" /></label>
               <label><span>状态</span><select data-edit-field="isActive"><option value="1">上架</option><option value="0">下架</option></select></label>
+              <label class="wide"><span>版本</span><input value="${esc(item.version)}" disabled /></label>
+              <label class="wide"><span>示例图 URL</span><input data-edit-field="exampleImageUrl" value="${esc(item.exampleImageUrl || item.resultImageUrl || "")}" /></label>
+              <label class="full"><span>用户可见描述</span><textarea data-edit-field="userDescription">${esc(item.userDescription || "")}</textarea></label>
+              <label class="wide"><span>分类标签，逗号分隔</span><textarea data-edit-field="categoryTags">${esc((item.categoryTags || []).join(", "))}</textarea></label>
+              <label class="wide"><span>变量，每行一个</span><textarea data-edit-field="variables">${esc((item.variables || []).map((v) => v.name || v).join("\n"))}</textarea></label>
               <label class="full"><span>核心 prompt</span><textarea data-edit-field="promptContent">${esc(item.promptContent)}</textarea></label>
               <label class="full"><span>反向 prompt</span><textarea data-edit-field="negativePrompt">${esc(item.negativePrompt || "")}</textarea></label>
             `;
@@ -960,9 +980,13 @@
                   title: field("title").value,
                   taskType: field("taskType").value,
                   scene: field("scene").value,
+                  userDescription: field("userDescription").value,
+                  categoryTags: splitList(field("categoryTags").value),
+                  variables: variableNames(field("variables").value),
                   creditCost: Number(field("creditCost").value || 0),
                   sortOrder: Number(field("sortOrder").value || 0),
                   isActive: field("isActive").value === "1",
+                  exampleImageUrl: field("exampleImageUrl").value,
                   promptContent: field("promptContent").value,
                   negativePrompt: field("negativePrompt").value
                 })
@@ -1100,7 +1124,7 @@
           const taskType = $("[data-prompt-filter-type]")?.value || "";
           const status = $("[data-prompt-filter-status]")?.value || "";
           return cache.prompts.filter((prompt) => {
-            const text = [prompt.title, prompt.scene, prompt.promptContent, prompt.negativePrompt].join(" ").toLowerCase();
+            const text = [prompt.title, prompt.scene, prompt.userDescription, (prompt.categoryTags || []).join(" "), prompt.promptContent, prompt.negativePrompt].join(" ").toLowerCase();
             const matchesKeyword = !keyword || text.includes(keyword);
             const matchesType = !taskType || prompt.taskType === taskType;
             const matchesStatus = !status || String(prompt.isActive ? 1 : 0) === status;
@@ -1111,8 +1135,18 @@
         const renderPrompts = () => {
           const prompts = filteredPrompts();
           $("[data-prompt-list]").innerHTML = prompts.map((prompt) => `
-            <tr><td>${esc(prompt.title)}</td><td>${badge(taskTypeText[prompt.taskType] || prompt.taskType, "blue")}</td><td>${esc(prompt.scene)}</td><td>${prompt.creditCost}</td><td>${prompt.isActive ? badge("上架") : badge("下架", "red")}</td><td>${fmtTime(prompt.updatedAt)}</td><td><div class="table-actions"><button class="btn secondary" type="button" data-edit-prompt="${prompt.id}">编辑</button><button class="btn danger" type="button" data-delete-prompt="${prompt.id}">删除</button></div></td></tr>
-          `).join("") || `<tr><td colspan="7">暂无数据</td></tr>`;
+            <tr>
+              <td>${esc(prompt.title)}<br><small>${esc(prompt.userDescription || "")}</small></td>
+              <td>${badge(taskTypeText[prompt.taskType] || prompt.taskType, "blue")}</td>
+              <td>${esc(prompt.scene)}</td>
+              <td>${(prompt.categoryTags || []).map((tag) => badge(tag)).join(" ")}</td>
+              <td>${esc(prompt.version || "")}</td>
+              <td>${prompt.creditCost}</td>
+              <td>${prompt.isActive ? badge("上架") : badge("下架", "red")}</td>
+              <td>${fmtTime(prompt.updatedAt)}</td>
+              <td><div class="table-actions"><button class="btn secondary" type="button" data-edit-prompt="${prompt.id}">编辑</button><button class="btn secondary" type="button" data-test-prompt="${prompt.id}">测试</button><button class="btn danger" type="button" data-delete-prompt="${prompt.id}">删除</button></div></td>
+            </tr>
+          `).join("") || `<tr><td colspan="9">暂无数据</td></tr>`;
         };
 
         const loadPrompts = async () => {
@@ -1231,7 +1265,22 @@
 
           $("[data-create-prompt]").addEventListener("click", async () => {
             try {
-              await api("/api/admin/prompt-templates", { method: "POST", body: JSON.stringify({ title: $("[data-prompt-title]").value, taskType: $("[data-prompt-type]").value, scene: $("[data-prompt-scene]").value, creditCost: Number($("[data-prompt-cost]").value || 0), sortOrder: Number($("[data-prompt-sort]").value || 0), promptContent: $("[data-prompt-content]").value }) });
+              await api("/api/admin/prompt-templates", {
+                method: "POST",
+                body: JSON.stringify({
+                  title: $("[data-prompt-title]").value,
+                  taskType: $("[data-prompt-type]").value,
+                  scene: $("[data-prompt-scene]").value,
+                  userDescription: $("[data-prompt-description]").value,
+                  categoryTags: splitList($("[data-prompt-tags]").value),
+                  variables: variableNames($("[data-prompt-variables]").value),
+                  creditCost: Number($("[data-prompt-cost]").value || 0),
+                  sortOrder: Number($("[data-prompt-sort]").value || 0),
+                  exampleImageUrl: $("[data-prompt-example]").value,
+                  promptContent: $("[data-prompt-content]").value,
+                  negativePrompt: $("[data-prompt-negative]").value
+                })
+              });
               setText("[data-prompt-message]", "提示词已新增。");
               await loadPrompts();
             } catch (error) {
@@ -1280,11 +1329,34 @@
 
           $("[data-prompt-list]").addEventListener("click", async (event) => {
             const editButton = event.target.closest("[data-edit-prompt]");
+            const testButton = event.target.closest("[data-test-prompt]");
             const deleteButton = event.target.closest("[data-delete-prompt]");
             try {
               if (editButton) {
                 const prompt = cache.prompts.find((item) => item.id === editButton.dataset.editPrompt);
                 if (prompt) openEdit("prompt", prompt);
+              }
+              if (testButton) {
+                const prompt = cache.prompts.find((item) => item.id === testButton.dataset.testPrompt);
+                if (!prompt) return;
+                const variables = {};
+                for (const variable of prompt.variables || []) {
+                  const name = variable.name || variable;
+                  const value = window.prompt(`变量 ${name}`, "");
+                  if (value !== null && value !== "") variables[name] = value;
+                }
+                const inputImageUrl = prompt.taskType === "generate" ? "" : (window.prompt("测试参考图 URL（以图生图/改图必填）", "") || "");
+                const result = await api(`/api/admin/prompt-templates/${prompt.id}/test`, {
+                  method: "POST",
+                  body: JSON.stringify({ variables, inputImageUrl, count: 1 })
+                });
+                let message = `测试已保存，耗时 ${result.latencyMs || 0}ms。`;
+                if (result.resultImageUrls?.[0] && window.confirm(`${message}\n是否把第一张结果设为示例图？`)) {
+                  await api(`/api/admin/prompt-test-results/${result.testId}/set-example`, { method: "POST" });
+                  message = "测试已保存，并已设为示例图。";
+                  await loadPrompts();
+                }
+                setText("[data-prompt-message]", message);
               }
               if (deleteButton && window.confirm("确认删除这个提示词？")) {
                 await api(`/api/admin/prompt-templates/${deleteButton.dataset.deletePrompt}`, { method: "DELETE" });

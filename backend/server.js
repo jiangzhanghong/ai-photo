@@ -65,6 +65,10 @@ const isGptImageModel = (model) => {
     || code.includes("gpt-image")
     || code.includes("chatgpt-image");
 };
+const isSeedreamModel = (model) => {
+  const code = String(model?.model_code || model?.modelCode || "").trim().toLowerCase();
+  return code.includes("seedream");
+};
 const normalizeImageSize = (size, model) => {
   if (isGptImageModel(model)) {
     const map = {
@@ -340,6 +344,15 @@ const saveUploadedImage = async (req, imageData) => {
   return publicUrl(req, `/uploads/${fileName}`);
 };
 
+const normalizeReferenceImageUrls = (body) => {
+  const urls = Array.isArray(body.inputImageUrls) ? body.inputImageUrls : [];
+  const normalized = urls
+    .concat(body.inputImageUrl ? [body.inputImageUrl] : [])
+    .map((item) => String(item || "").trim())
+    .filter(Boolean);
+  return Array.from(new Set(normalized)).slice(0, 5);
+};
+
 const requireAdmin = (req) => {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
@@ -462,6 +475,11 @@ const modelDto = (model, includeSensitive = false) => {
   return dto;
 };
 
+const taskReferenceUrls = (task) => {
+  const urls = jsonParse(task.input_image_urls_json, []);
+  return Array.isArray(urls) && urls.length ? urls : (task.input_image_url ? [task.input_image_url] : []);
+};
+
 const taskDto = (task) => ({
   id: task.id,
   taskNo: task.task_no,
@@ -477,6 +495,7 @@ const taskDto = (task) => ({
   size: task.size,
   count: Number(task.count || 1),
   inputImageUrl: task.input_image_url || "",
+  inputImageUrls: taskReferenceUrls(task),
   userInstruction: task.user_instruction || "",
   resultImageUrls: jsonParse(task.result_image_urls_json, []),
   failureReason: task.failure_reason || "",
@@ -486,6 +505,80 @@ const taskDto = (task) => ({
   createdAt: toIso(task.created_at),
   updatedAt: toIso(task.updated_at)
 });
+
+const promptDto = (p, includeSensitive = false) => {
+  const dto = {
+    id: p.id,
+    title: p.title,
+    taskType: p.task_type,
+    scene: p.scene || "",
+    userDescription: p.user_description || "",
+    categoryTags: jsonParse(p.category_tags_json, []),
+    variables: jsonParse(p.variables_json, []),
+    creditCost: Number(p.credit_cost),
+    exampleImageUrl: p.result_image_url || "",
+    resultImageUrl: p.result_image_url || "",
+    sortOrder: Number(p.sort_order),
+    isActive: Boolean(p.is_active),
+    version: p.version,
+    createdAt: toIso(p.created_at),
+    updatedAt: toIso(p.updated_at)
+  };
+  if (includeSensitive) {
+    dto.promptContent = p.prompt_content;
+    dto.negativePrompt = p.negative_prompt || "";
+    dto.defaultParams = jsonParse(p.default_params_json, {});
+  }
+  return dto;
+};
+
+const normalizeVariables = (value) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") return value.split(/[\n,，]/).map((item) => item.trim()).filter(Boolean).map((name) => ({ name }));
+  return [];
+};
+
+const renderPromptText = ({ promptContent, variables = {}, userInstruction = "", negativePrompt = "" }) => {
+  let text = String(promptContent || "");
+  for (const [key, value] of Object.entries(variables || {})) {
+    text = text.replaceAll(`{${key}}`, String(value ?? ""));
+  }
+  return [
+    text,
+    negativePrompt ? `反向提示词：${negativePrompt}` : "",
+    userInstruction
+  ].filter(Boolean).join("\n");
+};
+
+const insertPromptVersion = async (prompt) => {
+  await db.exec(
+    `INSERT INTO prompt_versions
+    (id, prompt_template_id, version, title, task_type, scene, user_description, category_tags_json, variables_json, prompt_content, negative_prompt, default_params_json, credit_cost, result_image_url, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+    [
+      uid("pver"),
+      prompt.id,
+      prompt.version,
+      prompt.title,
+      prompt.task_type,
+      prompt.scene || "",
+      prompt.user_description || "",
+      prompt.category_tags_json || "[]",
+      prompt.variables_json || "[]",
+      prompt.prompt_content || "",
+      prompt.negative_prompt || "",
+      prompt.default_params_json || "{}",
+      Number(prompt.credit_cost || 0),
+      prompt.result_image_url || ""
+    ]
+  );
+};
+
+const nextPromptVersion = async (promptId) => {
+  const [[row]] = await pool.query("SELECT COUNT(*) AS n FROM prompt_versions WHERE prompt_template_id = ?", [promptId]);
+  const count = Number(row.n || 0);
+  return `v${count ? count + 1 : 2}`;
+};
 
 const activeModels = async (taskType) => {
   const rows = await db.query("SELECT * FROM ai_models WHERE is_active = 1 ORDER BY is_default DESC, created_at ASC");
@@ -511,7 +604,12 @@ const modelAuthHeaders = (model, apiKey) => {
   return { "Authorization": `Bearer ${apiKey}` };
 };
 
-const callImageModel = async ({ model, taskType, prompt, inputImageUrl, size, count, overrideParams = {} }) => {
+const promptWithImageCount = (prompt, count) => {
+  const imageCount = Math.max(1, Math.min(4, Number(count || 1)));
+  return imageCount > 1 ? `${prompt}\n请生成 ${imageCount} 张不同结果。` : prompt;
+};
+
+const callImageModel = async ({ model, taskType, prompt, inputImageUrl, inputImageUrls = [], size, count, overrideParams = {} }) => {
   const baseUrl = String(model.base_url || "").replace(/\/+$/, "");
   if (!/^https:\/\//.test(baseUrl) && !/^http:\/\/127\.0\.0\.1/.test(baseUrl)) throw new Error("模型 baseUrl 必须是 https 地址。");
   const apiKey = decrypt(model.api_key_ciphertext);
@@ -526,7 +624,20 @@ const callImageModel = async ({ model, taskType, prompt, inputImageUrl, size, co
     ...sanitizeImageParams(model, overrideParams)
   };
   if (isGptImageModel(model)) delete body.response_format;
-  if (["edit", "image_to_image"].includes(taskType) && inputImageUrl) body.image = inputImageUrl;
+  if (isSeedreamModel(model)) {
+    const imageCount = Math.max(1, Math.min(4, Number(count || 1)));
+    delete body.n;
+    body.sequential_image_generation = imageCount > 1 ? "auto" : "disabled";
+    body.sequential_image_generation_options = { max_images: imageCount };
+  }
+  const referenceImages = (Array.isArray(inputImageUrls) ? inputImageUrls : [])
+    .concat(inputImageUrl ? [inputImageUrl] : [])
+    .map((item) => String(item || "").trim())
+    .filter(Boolean);
+  const uniqueReferenceImages = Array.from(new Set(referenceImages)).slice(0, 5);
+  if (["edit", "image_to_image"].includes(taskType) && uniqueReferenceImages.length) {
+    body.image = uniqueReferenceImages.length === 1 ? uniqueReferenceImages[0] : uniqueReferenceImages;
+  }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), Number(model.timeout_seconds || 60) * 1000);
   const started = Date.now();
@@ -572,20 +683,44 @@ const processTask = async (taskId) => {
   if (!task || task.status !== "queued") return;
   await db.exec("UPDATE ai_image_tasks SET status = 'processing', updated_at = NOW() WHERE id = ?", [taskId]);
   const [model] = await db.query("SELECT * FROM ai_models WHERE id = ? LIMIT 1", [task.ai_model_id]);
-  const [prompt] = await db.query("SELECT * FROM prompt_templates WHERE id = ? LIMIT 1", [task.prompt_template_id]);
   try {
-    const text = [prompt.prompt_content, task.user_instruction].filter(Boolean).join("\n");
-    const result = await callImageModel({
+    const snapshot = jsonParse(task.prompt_snapshot_json, {});
+    let text = snapshot.renderedPrompt || "";
+    if (!text && task.prompt_template_id !== "custom") {
+      const [prompt] = await db.query("SELECT * FROM prompt_templates WHERE id = ? LIMIT 1", [task.prompt_template_id]);
+      text = [prompt?.prompt_content, task.user_instruction].filter(Boolean).join("\n");
+    }
+    if (!text) text = task.user_instruction || "";
+    const expectedCount = Math.max(1, Math.min(4, Number(task.count || 1)));
+    const requestBase = {
       model,
       taskType: task.task_type,
-      prompt: text,
       inputImageUrl: task.input_image_url,
+      inputImageUrls: jsonParse(task.input_image_urls_json, []),
       size: task.size,
-      count: task.count
+      overrideParams: snapshot.defaultParams || {}
+    };
+    const result = await callImageModel({
+      ...requestBase,
+      prompt: promptWithImageCount(text, expectedCount),
+      count: expectedCount
     });
+    const requestIds = [result.providerRequestId].filter(Boolean);
+    while (result.resultImageUrls.length < expectedCount) {
+      const retry = await callImageModel({
+        ...requestBase,
+        prompt: promptWithImageCount(text, 1),
+        count: 1
+      });
+      if (retry.providerRequestId) requestIds.push(retry.providerRequestId);
+      result.latencyMs += retry.latencyMs || 0;
+      result.resultImageUrls.push(...retry.resultImageUrls);
+      if (!retry.resultImageUrls.length) break;
+    }
+    result.resultImageUrls = result.resultImageUrls.slice(0, expectedCount);
     await db.exec(
       "UPDATE ai_image_tasks SET status = 'succeeded', result_image_urls_json = ?, provider_request_id = ?, provider_status_code = ?, provider_latency_ms = ?, updated_at = NOW() WHERE id = ?",
-      [jsonText(result.resultImageUrls), result.providerRequestId, result.providerStatusCode, result.latencyMs, taskId]
+      [jsonText(result.resultImageUrls), requestIds.join(","), result.providerStatusCode, result.latencyMs, taskId]
     );
   } catch (error) {
     const conn = await pool.getConnection();
@@ -692,8 +827,12 @@ const ensureSchema = async () => {
       title VARCHAR(160) NOT NULL,
       task_type VARCHAR(40) NOT NULL,
       scene VARCHAR(80),
+      user_description VARCHAR(500),
+      category_tags_json TEXT,
+      variables_json TEXT,
       prompt_content TEXT NOT NULL,
       negative_prompt TEXT,
+      default_params_json TEXT,
       credit_cost INT NOT NULL DEFAULT 0,
       result_image_url VARCHAR(500),
       default_model_id VARCHAR(40),
@@ -703,6 +842,24 @@ const ensureSchema = async () => {
       created_at DATETIME NOT NULL,
       updated_at DATETIME NOT NULL,
       INDEX idx_task_active (task_type, is_active)
+    )`,
+    `CREATE TABLE IF NOT EXISTS prompt_versions (
+      id VARCHAR(40) PRIMARY KEY,
+      prompt_template_id VARCHAR(80) NOT NULL,
+      version VARCHAR(40) NOT NULL,
+      title VARCHAR(160) NOT NULL,
+      task_type VARCHAR(40) NOT NULL,
+      scene VARCHAR(80),
+      user_description VARCHAR(500),
+      category_tags_json TEXT,
+      variables_json TEXT,
+      prompt_content TEXT NOT NULL,
+      negative_prompt TEXT,
+      default_params_json TEXT,
+      credit_cost INT NOT NULL DEFAULT 0,
+      result_image_url VARCHAR(500),
+      created_at DATETIME NOT NULL,
+      INDEX idx_prompt_created (prompt_template_id, created_at)
     )`,
     `CREATE TABLE IF NOT EXISTS ai_models (
       id VARCHAR(40) PRIMARY KEY,
@@ -749,7 +906,9 @@ const ensureSchema = async () => {
       size VARCHAR(40),
       count INT NOT NULL DEFAULT 1,
       input_image_url VARCHAR(500),
+      input_image_urls_json TEXT,
       user_instruction TEXT,
+      prompt_snapshot_json TEXT,
       result_image_urls_json TEXT,
       failure_reason VARCHAR(1000),
       provider_request_id VARCHAR(191),
@@ -760,6 +919,26 @@ const ensureSchema = async () => {
       updated_at DATETIME NOT NULL,
       INDEX idx_user_created (user_id, created_at),
       INDEX idx_status_created (status, created_at)
+    )`,
+    `CREATE TABLE IF NOT EXISTS prompt_test_results (
+      id VARCHAR(40) PRIMARY KEY,
+      prompt_template_id VARCHAR(80) NOT NULL,
+      prompt_version VARCHAR(40),
+      model_id VARCHAR(40) NOT NULL,
+      model_name VARCHAR(160),
+      task_type VARCHAR(40),
+      variables_json TEXT,
+      prompt_snapshot_json TEXT,
+      input_image_url VARCHAR(500),
+      size VARCHAR(40),
+      count INT NOT NULL DEFAULT 1,
+      success TINYINT(1) NOT NULL DEFAULT 0,
+      latency_ms INT,
+      provider_request_id VARCHAR(191),
+      result_image_urls_json TEXT,
+      error_message VARCHAR(1000),
+      created_at DATETIME NOT NULL,
+      INDEX idx_prompt_created (prompt_template_id, created_at)
     )`,
     `CREATE TABLE IF NOT EXISTS ai_model_test_logs (
       id VARCHAR(40) PRIMARY KEY,
@@ -778,6 +957,20 @@ const ensureSchema = async () => {
     )`
   ];
   for (const statement of statements) await db.exec(statement);
+
+  const addColumnIfMissing = async (table, column, definition) => {
+    const rows = await db.query(
+      "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?",
+      [table, column]
+    );
+    if (!rows.length) await db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  };
+  await addColumnIfMissing("prompt_templates", "user_description", "VARCHAR(500)");
+  await addColumnIfMissing("prompt_templates", "category_tags_json", "TEXT");
+  await addColumnIfMissing("prompt_templates", "variables_json", "TEXT");
+  await addColumnIfMissing("prompt_templates", "default_params_json", "TEXT");
+  await addColumnIfMissing("ai_image_tasks", "prompt_snapshot_json", "TEXT");
+  await addColumnIfMissing("ai_image_tasks", "input_image_urls_json", "TEXT");
 };
 
 const seedData = async () => {
@@ -797,31 +990,42 @@ const seedData = async () => {
   }
 
   const prompts = [
-    ["generate-cinematic-portrait", "电影感写真生成", "generate", "写真", "生成电影感人像写真，柔和布光，高级色彩，真实摄影质感，主体清晰，背景有浅景深。", 5, "./assets/style-cinematic.jpg", 1],
-    ["generate-product-poster", "商品商业海报", "generate", "商品", "生成高端商品商业海报，干净背景，柔和棚拍光，突出产品材质和品牌质感，适合电商主图。", 6, "./assets/work-still.jpg", 2],
-    ["generate-travel-poster", "旅行目的地海报", "generate", "旅行", "生成旅行目的地海报，明亮自然光，开阔构图，真实摄影质感，适合社媒宣传。", 6, "./assets/work-sunset.jpg", 3],
-    ["generate-vintage-magazine", "复古杂志封面", "generate", "品牌", "生成复古杂志封面风格图片，胶片色彩，精致排版感，商业摄影质感，画面高级。", 7, "./assets/style-vintage.jpg", 4],
-    ["generate-minimal-lifestyle", "极简生活方式图", "generate", "生活方式", "生成极简生活方式摄影，留白充足，色彩克制，柔和自然光，适合品牌内容配图。", 5, "./assets/style-minimal.jpg", 5],
-    ["generate-chinese-new-year", "节日营销主视觉", "generate", "营销", "生成节日营销主视觉，氛围热烈但不过度堆砌，主体突出，适合活动海报和社媒封面。", 7, "./assets/cta-clean.jpg", 6],
-    ["edit-portrait-retouch", "人像自然精修", "edit", "人像", "基于上传人像做自然精修，保留身份特征，优化肤色、光线、皮肤瑕疵和背景质感，不要过度磨皮。", 8, "./assets/work-portrait.jpg", 1],
-    ["edit-product-clean", "商品白底优化", "edit", "商品", "基于上传商品图优化为干净商业白底效果，增强主体清晰度、边缘质感和真实材质。", 10, "./assets/work-still.jpg", 2],
-    ["edit-background-replace", "背景替换优化", "edit", "通用", "保持主体不变，将背景替换为干净、有层次的商业摄影背景，光影方向与主体一致。", 9, "./assets/work-girl.jpg", 3],
-    ["edit-color-grade", "高级调色增强", "edit", "调色", "保持原图内容和构图，进行高级调色，提升通透感、对比度和质感，避免过饱和。", 7, "./assets/work-bw.jpg", 4],
-    ["edit-remove-clutter", "杂物清理修图", "edit", "修图", "清理画面中影响观感的杂物、污点和多余元素，保持原始场景自然真实。", 8, "./assets/work-landscape.jpg", 5],
-    ["edit-social-cover", "社媒封面优化", "edit", "社媒", "基于上传图片优化为适合小红书、公众号或朋友圈封面的视觉效果，主体突出，文字区域留白充足。", 8, "./assets/work-tram.jpg", 6],
-    ["img2img-style-transfer", "参考图风格迁移", "image_to_image", "风格迁移", "参考上传图片的主体和构图，生成同主题的新图片，保持核心元素，整体转为高级商业摄影风格。", 8, "./assets/style-french.jpg", 1],
-    ["img2img-outfit-variant", "服装造型变化", "image_to_image", "人像", "参考上传人像的姿态和气质，生成不同服装造型版本，保持人物身份特征和自然摄影质感。", 9, "./assets/style-korean.jpg", 2],
-    ["img2img-scene-variant", "场景氛围变化", "image_to_image", "场景", "参考上传图片主体，生成不同场景氛围版本，例如咖啡馆、街头、自然户外或高级室内。", 9, "./assets/work-arch.jpg", 3],
-    ["img2img-product-variant", "商品场景扩展", "image_to_image", "商品", "参考上传商品图，生成多个真实使用场景，保持产品外观准确，增强商业广告质感。", 10, "./assets/work-still.jpg", 4],
-    ["img2img-ip-character", "角色形象延展", "image_to_image", "角色", "参考上传角色或头像，生成同一角色的不同动作、表情和场景版本，保持角色一致性。", 9, "./assets/creator-yuki.jpg", 5],
-    ["img2img-poster-remix", "海报视觉重构", "image_to_image", "海报", "参考上传图片的主体信息，重新生成更有设计感的海报视觉，构图更清晰，层次更丰富。", 10, "./assets/cta-bg.jpg", 6]
+    ["generate-cinematic-portrait", "电影感写真生成", "generate", "写真", "适合个人头像、社媒写真和宣传照。", "生成电影感人像写真，柔和布光，高级色彩，真实摄影质感，主体清晰，背景有浅景深。", "", ["subject", "style", "background"], ["写真", "人像"], {}, 5, "./assets/style-cinematic.jpg", 1],
+    ["generate-product-poster", "商品商业海报", "generate", "商品", "适合电商主图、详情页和品牌内容配图。", "生成高端商品商业海报，干净背景，柔和棚拍光，突出产品材质和品牌质感，适合电商主图。", "", ["subject", "background", "lighting"], ["商品", "商业"], {}, 6, "./assets/work-still.jpg", 2],
+    ["generate-travel-poster", "旅行目的地海报", "generate", "旅行", "适合目的地推广、社媒封面和活动视觉。", "生成旅行目的地海报，明亮自然光，开阔构图，真实摄影质感，适合社媒宣传。", "", ["place", "season", "composition"], ["旅行", "海报"], {}, 6, "./assets/work-sunset.jpg", 3],
+    ["generate-vintage-magazine", "复古杂志封面", "generate", "品牌", "适合品牌杂志感视觉和活动封面。", "生成复古杂志封面风格图片，胶片色彩，精致排版感，商业摄影质感，画面高级。", "", ["subject", "style", "color"], ["复古", "杂志"], {}, 7, "./assets/style-vintage.jpg", 4],
+    ["generate-minimal-lifestyle", "极简生活方式图", "generate", "生活方式", "适合干净克制的品牌配图。", "生成极简生活方式摄影，留白充足，色彩克制，柔和自然光，适合品牌内容配图。", "", ["subject", "background", "ratio"], ["极简", "生活方式"], {}, 5, "./assets/style-minimal.jpg", 5],
+    ["generate-chinese-new-year", "节日营销主视觉", "generate", "营销", "适合节日活动海报和社媒宣传。", "生成节日营销主视觉，氛围热烈但不过度堆砌，主体突出，适合活动海报和社媒封面。", "", ["festival", "subject", "color"], ["节日", "营销"], {}, 7, "./assets/cta-clean.jpg", 6],
+    ["edit-portrait-retouch", "人像自然精修", "edit", "人像", "适合证件照、头像和写真原片精修。", "基于上传人像做自然精修，保留身份特征，优化肤色、光线、皮肤瑕疵和背景质感，不要过度磨皮。", "过度磨皮，五官变形，塑料肤质", ["retouch_level", "background"], ["修图", "人像"], {}, 8, "./assets/work-portrait.jpg", 1],
+    ["edit-product-clean", "商品白底优化", "edit", "商品", "适合商品图清洁、白底化和商业质感增强。", "基于上传商品图优化为干净商业白底效果，增强主体清晰度、边缘质感和真实材质。", "产品外观改变，文字变形，错误商标", ["background", "lighting"], ["商品", "修图"], {}, 10, "./assets/work-still.jpg", 2],
+    ["edit-background-replace", "背景替换优化", "edit", "通用", "适合保留主体并替换为更干净的背景。", "保持主体不变，将背景替换为干净、有层次的商业摄影背景，光影方向与主体一致。", "主体变形，边缘破损，光影不一致", ["background", "lighting"], ["换背景", "修图"], {}, 9, "./assets/work-girl.jpg", 3],
+    ["edit-color-grade", "高级调色增强", "edit", "调色", "适合提升通透感、对比度和整体影调。", "保持原图内容和构图，进行高级调色，提升通透感、对比度和质感，避免过饱和。", "过饱和，肤色偏色，失真", ["color_style", "contrast"], ["调色", "修图"], {}, 7, "./assets/work-bw.jpg", 4],
+    ["edit-remove-clutter", "杂物清理修图", "edit", "修图", "适合清理干扰物和画面污点。", "清理画面中影响观感的杂物、污点和多余元素，保持原始场景自然真实。", "场景结构改变，主体缺失，明显涂抹痕迹", ["cleanup_target"], ["清理", "修图"], {}, 8, "./assets/work-landscape.jpg", 5],
+    ["edit-social-cover", "社媒封面优化", "edit", "社媒", "适合小红书、公众号和朋友圈封面。", "基于上传图片优化为适合小红书、公众号或朋友圈封面的视觉效果，主体突出，文字区域留白充足。", "文字乱码，主体被裁切，过度锐化", ["platform", "layout"], ["社媒", "封面"], {}, 8, "./assets/work-tram.jpg", 6],
+    ["img2img-campus-comic", "校园漫画毕业季", "image_to_image", "校园漫画风", "把参考图转成清爽校园漫画感，适合毕业纪念头像和班级海报。", "参考上传图片的人物身份、姿态和主要构图，生成校园毕业季主题漫画插画：阳光教学楼、飘动学士服、干净线条、明亮色彩、青春感强，画面像高质量青春校园漫画封面，保留人物主要特征。", "低清晰度，五官崩坏，过度夸张，文字乱码，手指畸形", ["campus_scene", "style_strength", "ratio"], ["毕业季", "漫画", "校园"], { styleStrength: 0.65 }, 8, "./assets/style-korean.jpg", 1],
+    ["img2img-campus-romance", "校园恋爱毕业照", "image_to_image", "校园恋爱风", "适合双人毕业照、情侣头像和青春感社媒图。", "参考上传图片的人物关系、姿态和面部特征，生成校园毕业季恋爱写真：操场跑道或林荫道，傍晚金色逆光，轻微胶片颗粒，互动自然含蓄，氛围温柔但不夸张，真实摄影质感。", "脸部变形，过度亲密，低俗，过曝，背景杂乱", ["campus_scene", "lighting", "mood"], ["毕业季", "恋爱", "写真"], { styleStrength: 0.55 }, 8, "./assets/work-sunset.jpg", 2],
+    ["img2img-campus-portrait", "校园毕业写真", "image_to_image", "校园写真", "适合单人毕业季写真、头像和纪念相册。", "参考上传人像的五官、发型、姿态和服装轮廓，生成高级校园毕业写真：教学楼长廊、自然柔光、浅景深、皮肤真实通透、构图干净，加入毕业季氛围但不过度堆砌。", "过度磨皮，五官改变，服装异常，背景失真", ["campus_scene", "clothing", "camera"], ["毕业季", "写真", "人像"], { styleStrength: 0.5 }, 8, "./assets/work-portrait.jpg", 3],
+    ["img2img-campus-id", "青春证件毕业风", "image_to_image", "证件照", "适合毕业证件风头像、简历头像和清爽形象照。", "参考上传人像生成清爽校园毕业证件风照片：正面自然微笑，干净浅色背景，可保留白衬衫或学士服元素，光线均匀，面部真实清晰，适合毕业资料和社交头像。", "证件不规范，脸部变形，浓妆，背景脏乱", ["background", "clothing", "ratio"], ["毕业季", "证件照", "头像"], { styleStrength: 0.45 }, 8, "./assets/style-minimal.jpg", 4],
+    ["img2img-campus-group", "班级合照电影感", "image_to_image", "毕业合照", "适合多人合照增强、毕业纪念海报和班级宣传图。", "参考上传合照的人物数量和站位，生成电影感校园毕业合照：校门或主教学楼前，统一但自然的毕业季氛围，人物清晰，光线柔和，色彩高级，画面有纪念册封面感。", "人物缺失，脸部替换，站位混乱，文字乱码", ["campus_scene", "lighting", "composition"], ["毕业季", "合照", "电影感"], { styleStrength: 0.5 }, 9, "./assets/cta-bg.jpg", 5],
+    ["img2img-campus-film", "胶片校园回忆", "image_to_image", "胶片风", "适合怀旧毕业纪念、相册封面和社媒长图。", "参考上传图片主体生成胶片校园回忆风：老教学楼、树影、操场、暖色胶片颗粒、轻微漏光、自然抓拍感，像毕业多年后翻出的珍贵照片，保留人物身份特征。", "噪点过重，脸部模糊，颜色脏，年代感过度", ["campus_scene", "film_tone", "mood"], ["毕业季", "胶片", "怀旧"], { styleStrength: 0.6 }, 8, "./assets/style-vintage.jpg", 6],
+    ["img2img-campus-uniform", "校服青春大片", "image_to_image", "校服风", "适合校服主题写真、青春感头像和毕业纪念图。", "参考上传人像生成校服青春大片：干净校服或白衬衫造型，校园楼梯、走廊或操场背景，阳光自然，表情松弛，画面真实有青春电影剧照感。", "服装错乱，过度成熟，姿态僵硬，脸部失真", ["clothing", "campus_scene", "lighting"], ["毕业季", "校服", "青春"], { styleStrength: 0.5 }, 8, "./assets/work-girl.jpg", 7],
+    ["img2img-campus-night", "毕业晚会氛围照", "image_to_image", "晚会氛围", "适合毕业晚会、社团活动和舞台纪念照。", "参考上传图片主体生成毕业晚会氛围照：校园礼堂或露天舞台，暖色灯串、轻微舞台光、真实摄影质感，人物突出，背景有庆祝毕业的氛围但不过度拥挤。", "灯光脏乱，脸部过暗，文字乱码，低清晰度", ["event_scene", "lighting", "mood"], ["毕业季", "晚会", "活动"], { styleStrength: 0.55 }, 8, "./assets/style-cinematic.jpg", 8],
+    ["img2img-campus-polaroid", "拍立得毕业纪念", "image_to_image", "拍立得", "适合社媒九宫格、毕业纪念卡和头像合集。", "参考上传图片主体生成拍立得毕业纪念照：白色相纸边框感、校园背景、自然抓拍、色彩清新，保留人物主要特征，画面像毕业留言册里的精致照片。", "边框文字乱码，人脸模糊，过曝，低质滤镜", ["campus_scene", "color_tone", "ratio"], ["毕业季", "拍立得", "纪念"], { styleStrength: 0.6 }, 8, "./assets/work-tram.jpg", 9],
+    ["img2img-campus-future", "毕业启程商务风", "image_to_image", "商务毕业照", "适合求职头像、毕业形象照和个人主页封面。", "参考上传人像生成毕业启程商务风照片：校园与城市天际线自然融合，穿搭干净得体，光线明亮，姿态自信，表达从校园走向职场的感觉，真实摄影质感。", "过度商务，年龄失真，背景拼贴感，五官改变", ["background", "clothing", "mood"], ["毕业季", "商务", "头像"], { styleStrength: 0.5 }, 8, "./assets/creator-chen.jpg", 10]
   ];
+  const campusImagePromptIds = prompts.filter((prompt) => prompt[2] === "image_to_image").map((prompt) => prompt[0]);
+  if (campusImagePromptIds.length) {
+    await db.exec(
+      `UPDATE prompt_templates SET is_active = 0, updated_at = NOW() WHERE task_type = 'image_to_image' AND id NOT IN (${campusImagePromptIds.map(() => "?").join(",")})`,
+      campusImagePromptIds
+    );
+  }
   for (const prompt of prompts) {
     await db.exec(`INSERT INTO prompt_templates
-      (id, title, task_type, scene, prompt_content, credit_cost, result_image_url, sort_order, is_active, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
-      ON DUPLICATE KEY UPDATE title = VALUES(title), task_type = VALUES(task_type), scene = VALUES(scene), prompt_content = VALUES(prompt_content), credit_cost = VALUES(credit_cost), result_image_url = VALUES(result_image_url), sort_order = VALUES(sort_order), updated_at = NOW()`,
-      prompt
+      (id, title, task_type, scene, user_description, prompt_content, negative_prompt, variables_json, category_tags_json, default_params_json, credit_cost, result_image_url, sort_order, is_active, version, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'v1', NOW(), NOW())
+      ON DUPLICATE KEY UPDATE title = VALUES(title), task_type = VALUES(task_type), scene = VALUES(scene), user_description = VALUES(user_description), prompt_content = VALUES(prompt_content), negative_prompt = VALUES(negative_prompt), variables_json = VALUES(variables_json), category_tags_json = VALUES(category_tags_json), default_params_json = VALUES(default_params_json), credit_cost = VALUES(credit_cost), result_image_url = VALUES(result_image_url), sort_order = VALUES(sort_order), is_active = 1, updated_at = NOW()`,
+      [prompt[0], prompt[1], prompt[2], prompt[3], prompt[4], prompt[5], prompt[6], jsonText(normalizeVariables(prompt[7])), jsonText(prompt[8] || []), jsonText(prompt[9] || {}), prompt[10], prompt[11], prompt[12]]
     );
   }
 
@@ -960,8 +1164,8 @@ const routeApi = async (req, res, url) => {
 
   if (req.method === "GET" && url.pathname === "/api/prompts") {
     const taskType = url.searchParams.get("taskType");
-    const rows = await db.query("SELECT id, title, task_type, scene, credit_cost FROM prompt_templates WHERE is_active = 1 AND (? = '' OR task_type = ?) ORDER BY sort_order ASC", [taskType || "", taskType || ""]);
-    return json(res, 200, { prompts: rows.map((item) => ({ id: item.id, title: item.title, taskType: item.task_type, scene: item.scene, creditCost: Number(item.credit_cost) })) });
+    const rows = await db.query("SELECT * FROM prompt_templates WHERE is_active = 1 AND (? = '' OR task_type = ?) ORDER BY sort_order ASC", [taskType || "", taskType || ""]);
+    return json(res, 200, { prompts: rows.map((item) => promptDto(item, false)) });
   }
 
   if (req.method === "GET" && url.pathname === "/api/ai-models") {
@@ -985,14 +1189,43 @@ const routeApi = async (req, res, url) => {
     const membership = (await db.query("SELECT * FROM user_memberships WHERE user_id = ? AND status = 'active' LIMIT 1", [user.id]))[0];
     if (!membership) return json(res, 403, { message: "请先开通会员方案。" });
     const taskType = ["generate", "edit", "image_to_image"].includes(body.taskType) ? body.taskType : "generate";
-    const prompt = (await db.query("SELECT * FROM prompt_templates WHERE id = ? AND task_type = ? AND is_active = 1 LIMIT 1", [body.promptTemplateId, taskType]))[0];
-    if (!prompt) return json(res, 404, { message: "提示词不存在。" });
-    if (["edit", "image_to_image"].includes(taskType) && !body.inputImageUrl) return json(res, 400, { message: "该任务类型需要上传参考图。" });
+    const customPrompt = String(body.customPrompt || "").trim();
+    const prompt = body.promptTemplateId
+      ? (await db.query("SELECT * FROM prompt_templates WHERE id = ? AND task_type = ? AND is_active = 1 LIMIT 1", [body.promptTemplateId, taskType]))[0]
+      : null;
+    if (!prompt && !customPrompt) return json(res, 404, { message: "请选择提示词或输入完整自定义提示词。" });
+    if (body.promptTemplateId && !prompt && !customPrompt) return json(res, 404, { message: "提示词不存在。" });
+    const inputImageUrls = normalizeReferenceImageUrls(body);
+    if (["edit", "image_to_image"].includes(taskType) && !inputImageUrls.length) return json(res, 400, { message: "该任务类型需要上传参考图。" });
     const model = await resolveModel(user, taskType, body.aiModelId);
     if (!model) return json(res, 400, { message: "没有可用模型。" });
     const count = Math.max(1, Math.min(4, Number(body.count || 1)));
     const creditCost = modelCost(model, taskType, count);
     if (Number(user.credits || 0) < creditCost) return json(res, 400, { message: "积分不足，请选择更少数量或开通更高方案。" });
+    const promptVariables = body.promptVariables && typeof body.promptVariables === "object" ? body.promptVariables : {};
+    const promptContent = customPrompt || prompt.prompt_content;
+    const negativePrompt = customPrompt ? "" : (prompt.negative_prompt || "");
+    const defaultParams = customPrompt ? {} : jsonParse(prompt.default_params_json, {});
+    const renderedPrompt = renderPromptText({
+      promptContent,
+      variables: promptVariables,
+      userInstruction: body.userInstruction || "",
+      negativePrompt
+    });
+    const promptSnapshot = {
+      promptTemplateId: prompt?.id || "custom",
+      promptTitle: prompt?.title || "自定义提示词",
+      promptVersion: prompt?.version || "custom",
+      taskType,
+      promptContent,
+      negativePrompt,
+      variables: promptVariables,
+      userInstruction: body.userInstruction || "",
+      renderedPrompt,
+      defaultParams,
+      inputImageUrls,
+      isCustomPrompt: Boolean(customPrompt)
+    };
     const task = {
       id: uid("task"),
       taskNo: `AI${Date.now()}`,
@@ -1014,13 +1247,13 @@ const routeApi = async (req, res, url) => {
       }
       await conn.execute(
         `INSERT INTO ai_image_tasks
-        (id, task_no, user_id, prompt_template_id, prompt_title, ai_model_id, ai_model_name, ai_model_version, task_type, status, credit_cost, size, count, input_image_url, user_instruction, result_image_urls_json, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?, '[]', NOW(), NOW())`,
-        [task.id, task.taskNo, user.id, prompt.id, prompt.title, model.id, model.name, model.version, taskType, creditCost, body.size || model.default_size, count, body.inputImageUrl || "", body.userInstruction || ""]
+        (id, task_no, user_id, prompt_template_id, prompt_title, ai_model_id, ai_model_name, ai_model_version, task_type, status, credit_cost, size, count, input_image_url, input_image_urls_json, user_instruction, prompt_snapshot_json, result_image_urls_json, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, '[]', NOW(), NOW())`,
+        [task.id, task.taskNo, user.id, promptSnapshot.promptTemplateId, promptSnapshot.promptTitle, model.id, model.name, model.version, taskType, creditCost, body.size || model.default_size, count, inputImageUrls[0] || "", jsonText(inputImageUrls), body.userInstruction || "", jsonText(promptSnapshot)]
       );
       await conn.execute(
         "INSERT INTO credit_transactions (id, user_id, amount, transaction_type, related_type, related_id, remark, created_at) VALUES (?, ?, ?, 'task_spend', 'ai_task', ?, ?, NOW())",
-        [uid("credit"), user.id, -creditCost, task.id, `${prompt.title} · ${model.name}`]
+        [uid("credit"), user.id, -creditCost, task.id, `${promptSnapshot.promptTitle} · ${model.name}`]
       );
       await conn.commit();
     } catch (error) {
@@ -1249,47 +1482,124 @@ const routeApi = async (req, res, url) => {
 
     if (req.method === "GET" && url.pathname === "/api/admin/prompt-templates") {
       const rows = await db.query("SELECT * FROM prompt_templates ORDER BY task_type ASC, sort_order ASC");
-      return json(res, 200, {
-        prompts: rows.map((p) => ({
-          id: p.id,
-          title: p.title,
-          taskType: p.task_type,
-          scene: p.scene || "",
-          promptContent: p.prompt_content,
-          negativePrompt: p.negative_prompt || "",
-          creditCost: Number(p.credit_cost),
-          resultImageUrl: p.result_image_url || "",
-          sortOrder: Number(p.sort_order),
-          isActive: Boolean(p.is_active),
-          version: p.version,
-          createdAt: toIso(p.created_at),
-          updatedAt: toIso(p.updated_at)
-        }))
-      });
+      return json(res, 200, { prompts: rows.map((p) => promptDto(p, true)) });
     }
     if (req.method === "POST" && url.pathname === "/api/admin/prompt-templates") {
       const id = uid("prompt");
+      const version = body.version || "v1";
       await db.exec(
-        "INSERT INTO prompt_templates (id, title, task_type, scene, prompt_content, negative_prompt, credit_cost, result_image_url, sort_order, is_active, version, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())",
-        [id, body.title || "新提示词", body.taskType || "generate", body.scene || "", body.promptContent || "", body.negativePrompt || "", Number(body.creditCost || 0), body.resultImageUrl || "", Number(body.sortOrder || 0), body.version || "2026.04"]
+        "INSERT INTO prompt_templates (id, title, task_type, scene, user_description, category_tags_json, variables_json, prompt_content, negative_prompt, default_params_json, credit_cost, result_image_url, sort_order, is_active, version, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())",
+        [
+          id,
+          body.title || "新提示词",
+          body.taskType || "generate",
+          body.scene || "",
+          body.userDescription || "",
+          jsonText(body.categoryTags || []),
+          jsonText(normalizeVariables(body.variables || [])),
+          body.promptContent || "",
+          body.negativePrompt || "",
+          jsonText(body.defaultParams || {}),
+          Number(body.creditCost || 0),
+          body.exampleImageUrl || body.resultImageUrl || "",
+          Number(body.sortOrder || 0),
+          version
+        ]
       );
+      await insertPromptVersion((await db.query("SELECT * FROM prompt_templates WHERE id = ?", [id]))[0]);
       return json(res, 201, { message: "提示词已创建。", id });
     }
-    const promptMatch = url.pathname.match(/^\/api\/admin\/prompt-templates\/([^/]+)$/);
+    const promptMatch = url.pathname.match(/^\/api\/admin\/prompt-templates\/([^/]+)(?:\/(versions|test))?$/);
     if (promptMatch) {
       const prompt = (await db.query("SELECT * FROM prompt_templates WHERE id = ? LIMIT 1", [promptMatch[1]]))[0];
       if (!prompt) return json(res, 404, { message: "提示词不存在。" });
-      if (req.method === "PATCH") {
+      if (req.method === "GET" && promptMatch[2] === "versions") {
+        const rows = await db.query("SELECT * FROM prompt_versions WHERE prompt_template_id = ? ORDER BY created_at DESC LIMIT 50", [prompt.id]);
+        return json(res, 200, { versions: rows.map((row) => ({ ...promptDto(row, true), promptTemplateId: row.prompt_template_id })) });
+      }
+      if (req.method === "POST" && promptMatch[2] === "test") {
+        const model = body.aiModelId
+          ? (await db.query("SELECT * FROM ai_models WHERE id = ? AND is_active = 1 LIMIT 1", [body.aiModelId]))[0]
+          : (await activeModels(prompt.task_type))[0];
+        if (!model) return json(res, 400, { message: "没有可用于该提示词类型的模型。" });
+        const variables = body.variables && typeof body.variables === "object" ? body.variables : {};
+        const renderedPrompt = renderPromptText({
+          promptContent: prompt.prompt_content,
+          variables,
+          userInstruction: body.userInstruction || "",
+          negativePrompt: prompt.negative_prompt || ""
+        });
+        const snapshot = {
+          promptTemplateId: prompt.id,
+          promptTitle: prompt.title,
+          promptVersion: prompt.version,
+          variables,
+          userInstruction: body.userInstruction || "",
+          renderedPrompt,
+          defaultParams: jsonParse(prompt.default_params_json, {})
+        };
+        const testId = uid("ptest");
+        try {
+          const result = await callImageModel({
+            model,
+            taskType: prompt.task_type,
+            prompt: renderedPrompt,
+            inputImageUrl: body.inputImageUrl || "",
+            size: body.size || model.default_size,
+            count: body.count || 1,
+            overrideParams: snapshot.defaultParams
+          });
+          await db.exec(
+            "INSERT INTO prompt_test_results (id, prompt_template_id, prompt_version, model_id, model_name, task_type, variables_json, prompt_snapshot_json, input_image_url, size, count, success, latency_ms, provider_request_id, result_image_urls_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, NOW())",
+            [testId, prompt.id, prompt.version, model.id, model.name, prompt.task_type, jsonText(variables), jsonText(snapshot), body.inputImageUrl || "", body.size || model.default_size, Number(body.count || 1), result.latencyMs, result.providerRequestId, jsonText(result.resultImageUrls)]
+          );
+          return json(res, 200, { success: true, testId, latencyMs: result.latencyMs, requestId: result.providerRequestId, resultImageUrls: result.resultImageUrls, message: "提示词测试已保存。" });
+        } catch (error) {
+          await db.exec(
+            "INSERT INTO prompt_test_results (id, prompt_template_id, prompt_version, model_id, model_name, task_type, variables_json, prompt_snapshot_json, input_image_url, size, count, success, error_message, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, NOW())",
+            [testId, prompt.id, prompt.version, model.id, model.name, prompt.task_type, jsonText(variables), jsonText(snapshot), body.inputImageUrl || "", body.size || model.default_size, Number(body.count || 1), error.message]
+          );
+          return json(res, 400, { success: false, testId, message: error.message });
+        }
+      }
+      if (req.method === "PATCH" && !promptMatch[2]) {
+        const nextVersion = await nextPromptVersion(prompt.id);
         await db.exec(
-          "UPDATE prompt_templates SET title = ?, task_type = ?, scene = ?, prompt_content = ?, negative_prompt = ?, credit_cost = ?, result_image_url = ?, sort_order = ?, is_active = ?, version = ?, updated_at = NOW() WHERE id = ?",
-          [body.title ?? prompt.title, body.taskType ?? prompt.task_type, body.scene ?? prompt.scene, body.promptContent ?? prompt.prompt_content, body.negativePrompt ?? prompt.negative_prompt, Number(body.creditCost ?? prompt.credit_cost), body.resultImageUrl ?? prompt.result_image_url, Number(body.sortOrder ?? prompt.sort_order), body.isActive === false ? 0 : 1, body.version ?? prompt.version, prompt.id]
+          "UPDATE prompt_templates SET title = ?, task_type = ?, scene = ?, user_description = ?, category_tags_json = ?, variables_json = ?, prompt_content = ?, negative_prompt = ?, default_params_json = ?, credit_cost = ?, result_image_url = ?, sort_order = ?, is_active = ?, version = ?, updated_at = NOW() WHERE id = ?",
+          [
+            body.title ?? prompt.title,
+            body.taskType ?? prompt.task_type,
+            body.scene ?? prompt.scene,
+            body.userDescription ?? prompt.user_description ?? "",
+            jsonText(body.categoryTags || jsonParse(prompt.category_tags_json, [])),
+            jsonText(normalizeVariables(body.variables || jsonParse(prompt.variables_json, []))),
+            body.promptContent ?? prompt.prompt_content,
+            body.negativePrompt ?? prompt.negative_prompt,
+            jsonText(body.defaultParams || jsonParse(prompt.default_params_json, {})),
+            Number(body.creditCost ?? prompt.credit_cost),
+            body.exampleImageUrl ?? body.resultImageUrl ?? prompt.result_image_url,
+            Number(body.sortOrder ?? prompt.sort_order),
+            body.isActive === false ? 0 : 1,
+            nextVersion,
+            prompt.id
+          ]
         );
+        await insertPromptVersion((await db.query("SELECT * FROM prompt_templates WHERE id = ?", [prompt.id]))[0]);
         return json(res, 200, { message: "提示词已更新。" });
       }
-      if (req.method === "DELETE") {
+      if (req.method === "DELETE" && !promptMatch[2]) {
         await db.exec("DELETE FROM prompt_templates WHERE id = ?", [prompt.id]);
         return json(res, 200, { message: "提示词已删除。" });
       }
+    }
+    const promptTestMatch = url.pathname.match(/^\/api\/admin\/prompt-test-results\/([^/]+)\/set-example$/);
+    if (req.method === "POST" && promptTestMatch) {
+      const test = (await db.query("SELECT * FROM prompt_test_results WHERE id = ? LIMIT 1", [promptTestMatch[1]]))[0];
+      if (!test) return json(res, 404, { message: "测试结果不存在。" });
+      const imageUrl = jsonParse(test.result_image_urls_json, [])[0] || "";
+      if (!imageUrl) return json(res, 400, { message: "测试结果没有图片。" });
+      await db.exec("UPDATE prompt_templates SET result_image_url = ?, updated_at = NOW() WHERE id = ?", [imageUrl, test.prompt_template_id]);
+      return json(res, 200, { message: "已设为示例图。", exampleImageUrl: imageUrl });
     }
   }
 

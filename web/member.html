@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>会员中心 - 光影AI</title>
-    <link rel="stylesheet" href="./styles.css?v=20260426-member5" />
+    <link rel="stylesheet" href="./styles.css?v=20260427-prompts" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -103,7 +103,7 @@
         <div class="shell">
           <div class="mc-section-header">
             <h2>AI 创作工作台</h2>
-            <p>选择风格提示词，提交生成任务</p>
+            <p>选择创作方案或输入完整提示词，提交生成任务</p>
           </div>
           <div class="member-workbench">
 
@@ -113,14 +113,15 @@
                 <strong><b data-form-credit>0</b> 积分</strong>
               </div>
               <div class="segmented" data-task-type>
-                <button class="active" type="button" data-type="generate">生成图片</button>
-                <button type="button" data-type="image_to_image">以图生图</button>
+                <button class="active" type="button" data-type="image_to_image">以图生图</button>
+                <button type="button" data-type="generate">生成图片</button>
                 <button type="button" data-type="edit">修改图片</button>
               </div>
               <label class="mc-label">
-                <span>提示词标题</span>
+                <span>创作方案</span>
                 <select data-prompt-select></select>
               </label>
+              <div class="prompt-plan" data-prompt-plan></div>
               <label class="mc-label">
                 <span>生图模型</span>
                 <select data-model-select></select>
@@ -140,17 +141,21 @@
                 </label>
               </div>
               <div class="upload-field" data-upload-field>
-                <span class="upload-title">上传参考图 <em class="upload-size-hint">（自动压缩至 1MB 以内）</em></span>
+                <span class="upload-title">上传参考图 <em class="upload-size-hint">（最多 5 张，超过 5MB 自动压缩至 5MB 以内）</em></span>
                 <label class="upload-zone" for="image-upload-input" data-upload-zone>
-                  <span class="upload-zone-placeholder" data-upload-placeholder>点击或拖拽上传图片</span>
-                  <img class="upload-preview" data-upload-preview src="" alt="参考图预览" />
-                  <button class="upload-clear" type="button" data-upload-clear aria-label="移除图片">✕</button>
+                  <span class="upload-zone-placeholder" data-upload-placeholder>点击或拖拽上传图片，最多 5 张</span>
+                  <div class="upload-preview-list" data-upload-preview-list></div>
+                  <button class="upload-clear" type="button" data-upload-clear aria-label="移除全部图片">✕</button>
                 </label>
-                <input id="image-upload-input" type="file" accept="image/*" data-image-upload />
+                <input id="image-upload-input" type="file" accept="image/*" multiple data-image-upload />
               </div>
               <label class="mc-label">
                 <span>补充说明</span>
                 <textarea rows="3" placeholder="例如：保留自然肤色，背景更干净" data-user-instruction></textarea>
+              </label>
+              <label class="mc-label">
+                <span>完整自定义提示词</span>
+                <textarea rows="4" placeholder="填写后将直接使用这段提示词，不再限定后台方案内容" data-custom-prompt></textarea>
               </label>
               <div class="cost-line">预计消耗 <strong data-credit-cost>0</strong> 积分</div>
               <button class="mc-btn mc-btn-primary submit-ai" type="button" data-submit-ai>提交 AI 任务</button>
@@ -192,13 +197,15 @@
           plans: [],
           prompts: [],
           models: [],
-          taskType: "generate",
+          taskType: "image_to_image",
           authMode: "phone-login",
-          tasks: []
+          tasks: [],
+          uploadedImages: []
         };
 
         const $ = (selector, root = document) => root.querySelector(selector);
         const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+        const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (s) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[s]);
 
         const authHeaders = () => {
           const token = localStorage.getItem(tokenKey);
@@ -316,79 +323,126 @@
         };
 
         // ── Image compress + preview ──────────────────────────────
-        const MAX_BYTES = 1 * 1024 * 1024; // 1 MB
-        const MAX_PX = 1200;
+        const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+        const MAX_REFERENCE_IMAGES = 5;
+        const MAX_COMPRESS_PX = 4096;
 
-        const compressImage = (file) => new Promise((resolve, reject) => {
-          const img = new Image();
-          const url = URL.createObjectURL(file);
-          img.onload = () => {
-            URL.revokeObjectURL(url);
-            let { width, height } = img;
-            if (width > MAX_PX || height > MAX_PX) {
-              const ratio = Math.min(MAX_PX / width, MAX_PX / height);
-              width = Math.round(width * ratio);
-              height = Math.round(height * ratio);
-            }
-            const canvas = document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
-            canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-            // Try quality 0.85 first, drop to 0.7 if still too large
-            let dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-            if (dataUrl.length * 0.75 > MAX_BYTES) {
-              dataUrl = canvas.toDataURL("image/jpeg", 0.7);
-            }
-            resolve(dataUrl);
-          };
-          img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("图片读取失败，请重新选择。")); };
-          img.src = url;
+        const dataUrlBytes = (dataUrl) => {
+          const base64 = String(dataUrl).split(",")[1] || "";
+          return Math.floor(base64.length * 0.75);
+        };
+
+        const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error("图片读取失败，请重新选择。"));
+          reader.readAsDataURL(file);
         });
 
-        const setUploadPreview = (dataUrl) => {
+        const canvasDataUrl = (img, scale, quality) => {
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+          canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+          return canvas.toDataURL("image/jpeg", quality);
+        };
+
+        const compressImage = async (file) => {
+          if (file.size <= MAX_BYTES) return readFileAsDataUrl(file);
+          return new Promise((resolve, reject) => {
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+              URL.revokeObjectURL(url);
+              const maxSide = Math.max(img.naturalWidth, img.naturalHeight);
+              let scale = Math.min(1, MAX_COMPRESS_PX / maxSide);
+              let best = "";
+              while (scale >= 0.2) {
+                let low = 0.45;
+                let high = 0.92;
+                for (let i = 0; i < 8; i++) {
+                  const quality = (low + high) / 2;
+                  const dataUrl = canvasDataUrl(img, scale, quality);
+                  if (dataUrlBytes(dataUrl) <= MAX_BYTES) {
+                    best = dataUrl;
+                    low = quality;
+                  } else {
+                    high = quality;
+                  }
+                }
+                if (best) {
+                  resolve(best);
+                  return;
+                }
+                scale *= 0.85;
+              }
+              reject(new Error("图片过大，无法压缩到 5MB 以内。"));
+            };
+            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("图片读取失败，请重新选择。")); };
+            img.src = url;
+          });
+        };
+
+        const renderUploadPreviews = () => {
           const zone = $("[data-upload-zone]");
-          const preview = $("[data-upload-preview]");
+          const list = $("[data-upload-preview-list]");
           const placeholder = $("[data-upload-placeholder]");
-          preview.src = dataUrl;
-          preview.style.display = "block";
-          placeholder.style.display = "none";
-          zone.classList.add("has-preview");
-          state.uploadedDataUrl = dataUrl;
-          state.uploadedImageUrl = "";
+          list.innerHTML = state.uploadedImages.map((item, index) => `
+            <span class="upload-preview-item">
+              <img src="${item.dataUrl}" alt="${esc(item.name || `参考图 ${index + 1}`)}" />
+              <button type="button" data-remove-upload="${item.id}" aria-label="移除参考图">✕</button>
+            </span>
+          `).join("");
+          const hasImages = state.uploadedImages.length > 0;
+          placeholder.style.display = hasImages ? "none" : "";
+          zone.classList.toggle("has-preview", hasImages);
+        };
+
+        const addUploadPreviews = (items) => {
+          state.uploadedImages.push(...items);
+          renderUploadPreviews();
         };
 
         const clearUpload = () => {
-          const zone = $("[data-upload-zone]");
-          const preview = $("[data-upload-preview]");
-          const placeholder = $("[data-upload-placeholder]");
           $("[data-image-upload]").value = "";
-          preview.src = "";
-          preview.style.display = "none";
-          placeholder.style.display = "";
-          zone.classList.remove("has-preview");
-          state.uploadedDataUrl = null;
-          state.uploadedImageUrl = "";
+          state.uploadedImages = [];
+          renderUploadPreviews();
         };
 
-        const uploadReferenceImage = async () => {
-          if (!state.uploadedDataUrl) return "";
-          if (state.uploadedImageUrl) return state.uploadedImageUrl;
-          const data = await api("/api/uploads/images", {
-            method: "POST",
-            body: JSON.stringify({ imageData: state.uploadedDataUrl })
-          });
-          state.uploadedImageUrl = data.url;
-          return data.url;
+        const uploadReferenceImages = async () => {
+          if (!state.uploadedImages.length) return [];
+          const urls = await Promise.all(state.uploadedImages.map(async (item) => {
+            if (item.uploadedUrl) return item.uploadedUrl;
+            const data = await api("/api/uploads/images", {
+              method: "POST",
+              body: JSON.stringify({ imageData: item.dataUrl })
+            });
+            item.uploadedUrl = data.url;
+            return data.url;
+          }));
+          return urls;
         };
 
-        const handleImageFile = async (file) => {
-          if (!file || !file.type.startsWith("image/")) {
+        const handleImageFiles = async (fileList) => {
+          const files = Array.from(fileList || []).filter((file) => file.type.startsWith("image/"));
+          if (!files.length) {
             setMessage("请选择图片文件。");
             return;
           }
+          const remaining = MAX_REFERENCE_IMAGES - state.uploadedImages.length;
+          if (remaining <= 0) {
+            setMessage(`最多上传 ${MAX_REFERENCE_IMAGES} 张参考图。`);
+            return;
+          }
+          const selected = files.slice(0, remaining);
           try {
-            const dataUrl = await compressImage(file);
-            setUploadPreview(dataUrl);
+            const items = [];
+            for (const file of selected) {
+              const dataUrl = await compressImage(file);
+              items.push({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, name: file.name, dataUrl, uploadedUrl: "" });
+            }
+            addUploadPreviews(items);
+            setMessage(files.length > remaining ? `最多上传 ${MAX_REFERENCE_IMAGES} 张参考图，已添加前 ${remaining} 张。` : "");
           } catch (e) {
             setMessage(e.message);
           }
@@ -397,8 +451,28 @@
         const renderPromptOptions = async () => {
           const data = await api(`/api/prompts?taskType=${state.taskType}`);
           state.prompts = data.prompts;
-          $("[data-prompt-select]").innerHTML = state.prompts.map((p) => `<option value="${p.id}">${p.title} · ${p.scene}</option>`).join("");
+          $("[data-prompt-select]").innerHTML = state.prompts.map((p) => `<option value="${p.id}">${esc(p.title)} · ${esc(p.scene)}</option>`).join("");
+          renderPromptPlan();
           updateCost();
+        };
+
+        const currentPrompt = () => state.prompts.find((p) => p.id === $("[data-prompt-select]").value);
+
+        const renderPromptPlan = () => {
+          const prompt = currentPrompt();
+          const box = $("[data-prompt-plan]");
+          if (!prompt) {
+            box.innerHTML = `<p>没有可用方案，也可以直接填写完整自定义提示词。</p>`;
+            return;
+          }
+          box.innerHTML = `
+            ${prompt.exampleImageUrl ? `<img src="${esc(prompt.exampleImageUrl)}" alt="${esc(prompt.title)}示例图" />` : ""}
+            <div>
+              <strong>${esc(prompt.title)}</strong>
+              <p>${esc(prompt.userDescription || "适合按当前方案快速生成稳定效果。")}</p>
+              <span>${esc(prompt.scene || "通用")} · ${prompt.creditCost || 0} 积分/张 · ${(prompt.categoryTags || []).map(esc).join(" / ")}</span>
+            </div>
+          `;
         };
 
         const renderModels = async () => {
@@ -412,7 +486,9 @@
         const currentModel = () => state.models.find((m) => m.id === $("[data-model-select]").value);
 
         const updateCost = () => {
-          const count = Math.max(1, Number($("[data-image-count]").value || 1));
+          const countInput = $("[data-image-count]");
+          const count = Math.max(1, Math.min(4, Number(countInput.value || 1)));
+          countInput.value = count;
           const model = currentModel();
           const cost = model ? Number(model.creditCost?.[state.taskType] || 0) * count : 0;
           $("[data-credit-cost]").textContent = cost;
@@ -428,17 +504,24 @@
             list.innerHTML = `<p class="empty-task">暂无生成记录。</p>`;
             return;
           }
-          list.innerHTML = state.tasks.map((task) => `
+          list.innerHTML = state.tasks.map((task) => {
+            const resultImages = task.resultImageUrls || [];
+            return `
             <article class="result-card">
-              <img src="${task.resultImageUrls?.[0] || "./assets/work-portrait.jpg"}" alt="${task.promptTitle}" />
-              <div>
-                <strong>${task.promptTitle}</strong>
-                <span>${statusText(task.status)} · ${task.aiModelName} · ${task.count} 张 · ${task.creditCost} 积分</span>
-                ${task.failureReason ? `<span>${task.failureReason}</span>` : ""}
-                ${task.resultImageUrls?.[0] ? `<a href="${task.resultImageUrls[0]}" download>下载图片</a>` : ""}
+              <div class="result-thumbs">
+                ${resultImages.length
+                  ? resultImages.map((url, index) => `<img src="${esc(url)}" alt="${esc(task.promptTitle)}结果 ${index + 1}" />`).join("")
+                  : `<img src="./assets/work-portrait.jpg" alt="${esc(task.promptTitle)}占位图" />`}
+              </div>
+              <div class="result-meta">
+                <strong>${esc(task.promptTitle)}</strong>
+                <span>${statusText(task.status)} · ${esc(task.aiModelName)} · ${task.count} 张 · ${task.creditCost} 积分</span>
+                ${task.failureReason ? `<span>${esc(task.failureReason)}</span>` : ""}
+                ${resultImages.map((url, index) => `<a href="${esc(url)}" download>下载${resultImages.length > 1 ? ` ${index + 1}` : "图片"}</a>`).join("")}
               </div>
             </article>
-          `).join("");
+          `;
+          }).join("");
         };
 
         const loadTasks = async () => {
@@ -545,13 +628,16 @@
             Promise.all([renderPromptOptions(), renderModels()]);
           });
 
-          $("[data-prompt-select]").addEventListener("change", updateCost);
+          $("[data-prompt-select]").addEventListener("change", () => {
+            renderPromptPlan();
+            updateCost();
+          });
           $("[data-model-select]").addEventListener("change", updateCost);
           $("[data-image-count]").addEventListener("input", updateCost);
 
           // File input change
           $("[data-image-upload]").addEventListener("change", (e) => {
-            handleImageFile(e.target.files[0]);
+            handleImageFiles(e.target.files);
           });
 
           // Drag and drop
@@ -561,7 +647,14 @@
           zone.addEventListener("drop", (e) => {
             e.preventDefault();
             zone.classList.remove("drag-over");
-            handleImageFile(e.dataTransfer.files[0]);
+            handleImageFiles(e.dataTransfer.files);
+          });
+          zone.addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-remove-upload]");
+            if (!btn) return;
+            e.preventDefault();
+            state.uploadedImages = state.uploadedImages.filter((item) => item.id !== btn.dataset.removeUpload);
+            renderUploadPreviews();
           });
 
           // Clear button
@@ -579,24 +672,30 @@
               document.querySelector(".member-section-last").scrollIntoView({ behavior: "smooth", block: "start" });
               return;
             }
-            if (state.taskType !== "generate" && !state.uploadedDataUrl) {
+            if (state.taskType !== "generate" && !state.uploadedImages.length) {
               setMessage("该任务类型需要先上传参考图。");
+              return;
+            }
+            if (!$("[data-custom-prompt]").value.trim() && !$("[data-prompt-select]").value) {
+              setMessage("请选择创作方案，或输入完整自定义提示词。");
               return;
             }
             submitBtn.disabled = true;
             submitBtn.textContent = "提交中…";
             setMessage("");
             try {
-              const inputImageUrl = state.taskType === "generate" ? "" : await uploadReferenceImage();
+              const inputImageUrls = state.taskType === "generate" ? [] : await uploadReferenceImages();
               const data = await api("/api/ai-image-tasks", {
                 method: "POST",
                 body: JSON.stringify({
                   taskType: state.taskType,
                   promptTemplateId: $("[data-prompt-select]").value,
+                  customPrompt: $("[data-custom-prompt]").value,
                   aiModelId: $("[data-model-select]").value,
                   size: $("[data-size-select]").value,
-                  count: Number($("[data-image-count]").value),
-                  inputImageUrl,
+                  count: Math.max(1, Math.min(4, Number($("[data-image-count]").value || 1))),
+                  inputImageUrl: inputImageUrls[0] || "",
+                  inputImageUrls,
                   userInstruction: $("[data-user-instruction]").value
                 })
               });
