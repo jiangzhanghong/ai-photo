@@ -672,6 +672,30 @@
           link.remove();
         };
 
+        const downloadAllImages = async () => {
+          const imageUrls = $$(".generation-thumbs button").map((btn) => btn.dataset.thumb).filter(Boolean);
+          if (!imageUrls.length) {
+            setMessage("当前没有可下载的图片。");
+            return;
+          }
+          const response = await fetch(`${API_BASE}/api/downloads/images.zip`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...authHeaders()
+            },
+            body: JSON.stringify({ imageUrls })
+          });
+          if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || "批量下载失败");
+          }
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          downloadImage(url, "ai-photo-images.zip");
+          window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        };
+
         const setAuthMessage = (text) => {
           $("[data-auth-message]").textContent = text || "";
         };
@@ -1227,6 +1251,9 @@
             if (!card) return;
             const images = card.dataset.historyImages.split("|").filter(Boolean);
             setGenerationImages(images);
+            if (window.matchMedia("(max-width: 1180px)").matches) {
+              $(".current-generation-card").scrollIntoView({ behavior: "smooth", block: "start" });
+            }
             setMessage("已切换到所选生成记录。");
           });
 
@@ -1235,9 +1262,13 @@
             setMessage("已开始下载当前图片。");
           });
 
-          $("[data-download-all]").addEventListener("click", () => {
-            $$(".generation-thumbs button").forEach((btn, index) => downloadImage(btn.dataset.thumb, `ai-photo-${index + 1}.webp`));
-            setMessage("已开始下载全部图片。");
+          $("[data-download-all]").addEventListener("click", async () => {
+            try {
+              await downloadAllImages();
+              setMessage("已开始下载全部图片压缩包。");
+            } catch (error) {
+              setMessage(error.message);
+            }
           });
 
           $("[data-share-current]").addEventListener("click", async () => {

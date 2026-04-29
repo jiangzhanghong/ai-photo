@@ -489,6 +489,8 @@ const taskDto = (task) => ({
   id: task.id,
   taskNo: task.task_no,
   userId: task.user_id,
+  userNickname: task.nickname || "",
+  userPhone: task.phone || "",
   promptTemplateId: task.prompt_template_id,
   promptTitle: task.prompt_title,
   aiModelId: task.ai_model_id,
@@ -1188,6 +1190,29 @@ const routeApi = async (req, res, url) => {
     return json(res, 201, { url });
   }
 
+  if (req.method === "POST" && url.pathname === "/api/downloads/images.zip") {
+    const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter(Boolean).slice(0, 8) : [];
+    if (!imageUrls.length) return json(res, 400, { message: "没有可下载的图片。" });
+    const files = [];
+    let totalSize = 0;
+    for (let i = 0; i < imageUrls.length; i++) {
+      const file = await loadDownloadImage(req, imageUrls[i], i);
+      totalSize += file.data.length;
+      if (totalSize > 80 * 1024 * 1024) return json(res, 400, { message: "图片总大小超过 80MB。" });
+      files.push(file);
+    }
+    const zip = createZip(files);
+    res.writeHead(200, {
+      "Content-Type": "application/zip",
+      "Content-Disposition": "attachment; filename=\"ai-photo-images.zip\"",
+      "Content-Length": zip.length,
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS"
+    });
+    return res.end(zip);
+  }
+
   if (req.method === "POST" && url.pathname === "/api/ai-image-tasks") {
     const user = await requireUser(req);
     if (!user) return json(res, 401, { message: "请先登录。" });
@@ -1396,13 +1421,59 @@ const routeApi = async (req, res, url) => {
     }
     if (req.method === "GET" && url.pathname === "/api/admin/ai-image-tasks") {
       const status = url.searchParams.get("status") || "";
-      const rows = await db.query(
-        status
-          ? "SELECT * FROM ai_image_tasks WHERE status = ? ORDER BY created_at DESC LIMIT 200"
-          : "SELECT * FROM ai_image_tasks ORDER BY created_at DESC LIMIT 200",
-        status ? [status] : []
+      const taskType = url.searchParams.get("taskType") || "";
+      const keyword = String(url.searchParams.get("keyword") || "").trim();
+      const startedAt = url.searchParams.get("startedAt") || "";
+      const endedAt = url.searchParams.get("endedAt") || "";
+      const pageSize = Math.min(50, Math.max(1, Number(url.searchParams.get("pageSize") || 10)));
+      const page = Math.max(1, Number(url.searchParams.get("page") || 1));
+      const where = [];
+      const params = [];
+      if (status) {
+        where.push("t.status = ?");
+        params.push(status);
+      }
+      if (taskType) {
+        where.push("t.task_type = ?");
+        params.push(taskType);
+      }
+      if (keyword) {
+        where.push("(t.task_no LIKE ? OR t.prompt_title LIKE ? OR t.user_instruction LIKE ? OR t.ai_model_name LIKE ? OR t.user_id LIKE ? OR u.nickname LIKE ? OR u.phone LIKE ?)");
+        const like = `%${keyword}%`;
+        params.push(like, like, like, like, like, like, like);
+      }
+      if (startedAt) {
+        where.push("t.created_at >= ?");
+        params.push(`${startedAt} 00:00:00`);
+      }
+      if (endedAt) {
+        where.push("t.created_at <= ?");
+        params.push(`${endedAt} 23:59:59`);
+      }
+      const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+      const [{ total }] = await db.query(
+        `SELECT COUNT(*) AS total FROM ai_image_tasks t LEFT JOIN users u ON u.id = t.user_id ${whereSql}`,
+        params
       );
-      return json(res, 200, { tasks: rows.map(taskDto) });
+      const offset = (page - 1) * pageSize;
+      const rows = await db.query(
+        `SELECT t.*, u.nickname, u.phone
+         FROM ai_image_tasks t
+         LEFT JOIN users u ON u.id = t.user_id
+         ${whereSql}
+         ORDER BY t.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [...params, pageSize, offset]
+      );
+      return json(res, 200, {
+        tasks: rows.map(taskDto),
+        pagination: {
+          page,
+          pageSize,
+          total: Number(total || 0),
+          totalPages: Math.max(1, Math.ceil(Number(total || 0) / pageSize))
+        }
+      });
     }
 
     if (req.method === "GET" && url.pathname === "/api/admin/stats") {
@@ -1619,7 +1690,108 @@ const contentTypes = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
   ".png": "image/png",
-  ".svg": "image/svg+xml"
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp"
+};
+
+const crcTable = (() => {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    table[i] = c >>> 0;
+  }
+  return table;
+})();
+
+const crc32 = (buffer) => {
+  let crc = 0xffffffff;
+  for (const byte of buffer) crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  return (crc ^ 0xffffffff) >>> 0;
+};
+
+const zipDateTime = () => ({ time: 0, date: 0 });
+
+const createZip = (files) => {
+  const chunks = [];
+  const central = [];
+  let offset = 0;
+  const { time, date } = zipDateTime();
+  files.forEach((file) => {
+    const name = Buffer.from(file.name, "utf8");
+    const data = file.data;
+    const crc = crc32(data);
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0, 6);
+    local.writeUInt16LE(0, 8);
+    local.writeUInt16LE(time, 10);
+    local.writeUInt16LE(date, 12);
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(data.length, 18);
+    local.writeUInt32LE(data.length, 22);
+    local.writeUInt16LE(name.length, 26);
+    local.writeUInt16LE(0, 28);
+    chunks.push(local, name, data);
+
+    const item = Buffer.alloc(46);
+    item.writeUInt32LE(0x02014b50, 0);
+    item.writeUInt16LE(20, 4);
+    item.writeUInt16LE(20, 6);
+    item.writeUInt16LE(0, 8);
+    item.writeUInt16LE(0, 10);
+    item.writeUInt16LE(time, 12);
+    item.writeUInt16LE(date, 14);
+    item.writeUInt32LE(crc, 16);
+    item.writeUInt32LE(data.length, 20);
+    item.writeUInt32LE(data.length, 24);
+    item.writeUInt16LE(name.length, 28);
+    item.writeUInt16LE(0, 30);
+    item.writeUInt16LE(0, 32);
+    item.writeUInt16LE(0, 34);
+    item.writeUInt16LE(0, 36);
+    item.writeUInt32LE(0, 38);
+    item.writeUInt32LE(offset, 42);
+    central.push(item, name);
+    offset += local.length + name.length + data.length;
+  });
+  const centralSize = central.reduce((sum, item) => sum + item.length, 0);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(0, 4);
+  end.writeUInt16LE(0, 6);
+  end.writeUInt16LE(files.length, 8);
+  end.writeUInt16LE(files.length, 10);
+  end.writeUInt32LE(centralSize, 12);
+  end.writeUInt32LE(offset, 16);
+  end.writeUInt16LE(0, 20);
+  return Buffer.concat([...chunks, ...central, end]);
+};
+
+const imageExtension = (url, contentType = "") => {
+  const ext = path.extname(new URL(url).pathname).toLowerCase();
+  if ([".jpg", ".jpeg", ".png", ".webp"].includes(ext)) return ext === ".jpeg" ? ".jpg" : ext;
+  if (contentType.includes("png")) return ".png";
+  if (contentType.includes("webp")) return ".webp";
+  return ".jpg";
+};
+
+const loadDownloadImage = async (req, rawUrl, index) => {
+  const imageUrl = new URL(String(rawUrl || ""), publicUrl(req, "/"));
+  if (!["http:", "https:"].includes(imageUrl.protocol)) throw new Error("图片地址无效。");
+  const sameHost = imageUrl.host === (req.headers.host || `localhost:${PORT}`);
+  if (sameHost) {
+    const pathname = decodeURIComponent(imageUrl.pathname);
+    const filePath = path.join(ROOT, "web", pathname.replace(/^\/+/, ""));
+    if (!filePath.startsWith(path.join(ROOT, "web")) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) throw new Error("图片文件不存在。");
+    const data = await fs.promises.readFile(filePath);
+    return { name: `ai-photo-${index + 1}${imageExtension(imageUrl.href)}`, data };
+  }
+  const response = await fetch(imageUrl, { signal: AbortSignal.timeout(20000) });
+  if (!response.ok) throw new Error(`图片下载失败：${response.status}`);
+  const data = Buffer.from(await response.arrayBuffer());
+  return { name: `ai-photo-${index + 1}${imageExtension(imageUrl.href, response.headers.get("content-type") || "")}`, data };
 };
 
 const serveStatic = (req, res, url) => {

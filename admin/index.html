@@ -421,6 +421,118 @@
         gap: 6px;
       }
 
+      .task-filters {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) 130px 130px 150px 150px auto auto;
+        gap: 8px;
+        align-items: end;
+      }
+
+      .task-table {
+        min-width: 1160px;
+        table-layout: fixed;
+      }
+
+      .task-table col:nth-child(1) {
+        width: 150px;
+      }
+
+      .task-table col:nth-child(2) {
+        width: 280px;
+      }
+
+      .task-table col:nth-child(3),
+      .task-table col:nth-child(4) {
+        width: 150px;
+      }
+
+      .task-table col:nth-child(5) {
+        width: 140px;
+      }
+
+      .task-table col:nth-child(6) {
+        width: 96px;
+      }
+
+      .task-table col:nth-child(7) {
+        width: 160px;
+      }
+
+      .task-table col:nth-child(8) {
+        width: 184px;
+      }
+
+      .task-table th,
+      .task-table td {
+        overflow-wrap: anywhere;
+      }
+
+      .task-table th:nth-child(6),
+      .task-table td:nth-child(6) {
+        white-space: nowrap;
+      }
+
+      .task-text strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 13px;
+      }
+
+      .task-text small {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .task-images {
+        min-width: 132px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .task-thumb {
+        width: 58px;
+        height: 58px;
+        display: block;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        overflow: hidden;
+        background: #f3f6f4;
+      }
+
+      .task-thumb img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+
+      .task-empty-image {
+        color: var(--muted);
+      }
+
+      .pager {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        border-top: 1px solid var(--line-soft);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .pager-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .pager .btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
       .list-tools {
         display: grid;
         grid-template-columns: minmax(180px, 1fr) 140px 120px auto auto;
@@ -539,6 +651,7 @@
         .stats-grid,
         .dashboard-grid,
         .form-grid,
+        .task-filters,
         .list-tools {
           grid-template-columns: 1fr 1fr;
         }
@@ -550,6 +663,7 @@
         .stats-grid,
         .dashboard-grid,
         .form-grid,
+        .task-filters,
         .list-tools,
         .nav {
           grid-template-columns: 1fr;
@@ -657,15 +771,44 @@
             <section class="panel">
               <div class="panel-head">
                 <h2>AI 任务</h2>
-                <select data-task-status>
-                  <option value="">全部状态</option>
-                  <option value="queued">排队中</option>
-                  <option value="processing">生成中</option>
-                  <option value="succeeded">成功</option>
-                  <option value="failed">失败</option>
-                </select>
               </div>
-              <div class="table-wrap"><table><thead><tr><th>任务号</th><th>提示词</th><th>模型</th><th>类型</th><th>状态</th><th>积分</th><th>失败原因</th><th>时间</th></tr></thead><tbody data-task-list></tbody></table></div>
+              <div class="panel-body">
+                <div class="task-filters">
+                  <label><span>关键词</span><input type="search" placeholder="任务号、用户、提示词、模型" data-task-query /></label>
+                  <label>
+                    <span>状态</span>
+                    <select data-task-status>
+                      <option value="">全部状态</option>
+                      <option value="queued">排队中</option>
+                      <option value="processing">生成中</option>
+                      <option value="succeeded">成功</option>
+                      <option value="failed">失败</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>类型</span>
+                    <select data-task-type>
+                      <option value="">全部类型</option>
+                      <option value="generate">生成图片</option>
+                      <option value="image_to_image">以图生图</option>
+                      <option value="edit">修改图片</option>
+                    </select>
+                  </label>
+                  <label><span>开始日期</span><input type="date" data-task-start /></label>
+                  <label><span>结束日期</span><input type="date" data-task-end /></label>
+                  <button class="btn" type="button" data-task-search>搜索</button>
+                  <button class="btn secondary" type="button" data-task-reset>重置</button>
+                </div>
+              </div>
+              <div class="table-wrap"><table class="task-table"><colgroup><col /><col /><col /><col /><col /><col /><col /><col /></colgroup><thead><tr><th>任务/用户</th><th>提示词</th><th>输入图片</th><th>输出图片</th><th>模型/类型</th><th>状态/积分</th><th>失败原因</th><th>时间</th></tr></thead><tbody data-task-list></tbody></table></div>
+              <div class="pager">
+                <span data-task-page-info>共 0 条</span>
+                <div class="pager-actions">
+                  <button class="btn secondary" type="button" data-task-prev>上一页</button>
+                  <span data-task-page-current>第 1 / 1 页</span>
+                  <button class="btn secondary" type="button" data-task-next>下一页</button>
+                </div>
+              </div>
             </section>
           </section>
 
@@ -812,11 +955,26 @@
         const statusText = { queued: "排队中", processing: "生成中", succeeded: "成功", failed: "失败", active: "启用", disabled: "禁用" };
         const taskTypeText = { generate: "生成图片", image_to_image: "以图生图", edit: "修改图片" };
         const cache = { models: [], prompts: [], plans: [] };
+        const taskState = { page: 1, pageSize: 10, total: 0, totalPages: 1 };
         let editState = null;
 
         const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (s) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[s]);
         const fmtTime = (value) => value ? new Date(value).toLocaleString("zh-CN", { hour12: false }) : "";
         const badge = (text, type = "") => `<span class="badge ${type}">${esc(text)}</span>`;
+        const imageUrl = (value) => {
+          const url = String(value || "").trim();
+          if (!url || /^(https?:|data:|blob:)/.test(url)) return url;
+          if (url.startsWith("./")) return `/${url.slice(2)}`;
+          return url.startsWith("/") ? url : `/${url}`;
+        };
+        const taskImageList = (urls) => {
+          const list = (Array.isArray(urls) ? urls : []).filter(Boolean);
+          if (!list.length) return `<span class="task-empty-image">无</span>`;
+          return `<div class="task-images">${list.slice(0, 4).map((url) => {
+            const src = imageUrl(url);
+            return `<a class="task-thumb" href="${esc(src)}" target="_blank" rel="noopener"><img src="${esc(src)}" alt="" loading="lazy" /></a>`;
+          }).join("")}${list.length > 4 ? `<span class="task-empty-image">+${list.length - 4}</span>` : ""}</div>`;
+        };
 
         const adminHeaders = () => ({
           "Content-Type": "application/json",
@@ -1051,15 +1209,28 @@
         const renderTasks = (selector, tasks, compact = false) => {
           $(selector).innerHTML = tasks.map((task) => {
             const status = task.status === "failed" ? badge(statusText[task.status] || task.status, "red") : task.status === "succeeded" ? badge("成功") : badge(statusText[task.status] || task.status, "orange");
+            if (compact) {
+              return `<tr>
+                <td>${esc(task.taskNo)}</td>
+                <td>${esc(task.promptTitle)}</td>
+                <td>${esc(task.aiModelName)}</td>
+                <td>${badge(taskTypeText[task.taskType] || task.taskType, "blue")}</td>
+                <td>${status}</td>
+                <td>${task.creditCost}</td>
+                <td>${fmtTime(task.createdAt)}</td>
+              </tr>`;
+            }
+            const userName = task.userNickname || task.userPhone || task.userId || "";
+            const inputUrls = task.inputImageUrls?.length ? task.inputImageUrls : (task.inputImageUrl ? [task.inputImageUrl] : []);
             return `<tr>
-              <td>${esc(task.taskNo)}</td>
-              <td>${esc(task.promptTitle)}</td>
-              <td>${esc(task.aiModelName)}</td>
-              <td>${badge(taskTypeText[task.taskType] || task.taskType, "blue")}</td>
-              <td>${status}</td>
-              <td>${task.creditCost}</td>
-              ${compact ? "" : `<td>${esc(task.failureReason || "")}</td>`}
-              <td>${fmtTime(task.createdAt)}</td>
+              <td class="task-text"><strong>${esc(task.taskNo)}</strong><small>${esc(userName)}</small></td>
+              <td class="task-text"><strong>${esc(task.promptTitle)}</strong><small>${esc(task.userInstruction || "")}</small></td>
+              <td>${taskImageList(inputUrls)}</td>
+              <td>${taskImageList(task.resultImageUrls)}</td>
+              <td>${esc(task.aiModelName)}<br>${badge(taskTypeText[task.taskType] || task.taskType, "blue")}</td>
+              <td>${status}<br><small>${task.creditCost} 积分</small></td>
+              <td>${esc(task.failureReason || "")}</td>
+              <td>${fmtTime(task.createdAt)}<br><small>${fmtTime(task.updatedAt)}</small></td>
             </tr>`;
           }).join("") || `<tr><td colspan="${compact ? 7 : 8}">暂无数据</td></tr>`;
         };
@@ -1107,9 +1278,29 @@
         };
 
         const loadTasks = async () => {
+          const params = new URLSearchParams({
+            page: String(taskState.page),
+            pageSize: String(taskState.pageSize)
+          });
+          const keyword = $("[data-task-query]")?.value.trim() || "";
           const status = $("[data-task-status]")?.value || "";
-          const data = await api(`/api/admin/ai-image-tasks${status ? `?status=${encodeURIComponent(status)}` : ""}`);
+          const taskType = $("[data-task-type]")?.value || "";
+          const startedAt = $("[data-task-start]")?.value || "";
+          const endedAt = $("[data-task-end]")?.value || "";
+          if (keyword) params.set("keyword", keyword);
+          if (status) params.set("status", status);
+          if (taskType) params.set("taskType", taskType);
+          if (startedAt) params.set("startedAt", startedAt);
+          if (endedAt) params.set("endedAt", endedAt);
+          const data = await api(`/api/admin/ai-image-tasks?${params.toString()}`);
+          Object.assign(taskState, data.pagination || {});
           renderTasks("[data-task-list]", data.tasks || []);
+          setText("[data-task-page-info]", `共 ${taskState.total || 0} 条`);
+          setText("[data-task-page-current]", `第 ${taskState.page || 1} / ${taskState.totalPages || 1} 页`);
+          const prev = $("[data-task-prev]");
+          const next = $("[data-task-next]");
+          if (prev) prev.disabled = taskState.page <= 1;
+          if (next) next.disabled = taskState.page >= taskState.totalPages;
         };
 
         const loadCredits = async () => {
@@ -1197,7 +1388,31 @@
           $$("[data-nav]").forEach((btn) => btn.addEventListener("click", () => switchView(btn.dataset.nav).catch((error) => setModelMessage(error.message))));
           $("[data-refresh]").addEventListener("click", loadStats);
           $("[data-open-tasks]").addEventListener("click", () => switchView("tasks"));
-          $("[data-task-status]").addEventListener("change", loadTasks);
+          const searchTasks = () => {
+            taskState.page = 1;
+            loadTasks().catch((error) => setModelMessage(error.message));
+          };
+          $("[data-task-search]").addEventListener("click", searchTasks);
+          $("[data-task-reset]").addEventListener("click", () => {
+            ["[data-task-query]", "[data-task-status]", "[data-task-type]", "[data-task-start]", "[data-task-end]"].forEach((selector) => { $(selector).value = ""; });
+            searchTasks();
+          });
+          ["[data-task-status]", "[data-task-type]", "[data-task-start]", "[data-task-end]"].forEach((selector) => {
+            $(selector).addEventListener("change", searchTasks);
+          });
+          $("[data-task-query]").addEventListener("keydown", (event) => {
+            if (event.key === "Enter") searchTasks();
+          });
+          $("[data-task-prev]").addEventListener("click", () => {
+            if (taskState.page <= 1) return;
+            taskState.page -= 1;
+            loadTasks().catch((error) => setModelMessage(error.message));
+          });
+          $("[data-task-next]").addEventListener("click", () => {
+            if (taskState.page >= taskState.totalPages) return;
+            taskState.page += 1;
+            loadTasks().catch((error) => setModelMessage(error.message));
+          });
           $("[data-edit-close]").addEventListener("click", closeEdit);
           $("[data-edit-close-secondary]").addEventListener("click", closeEdit);
           $("[data-edit-backdrop]").addEventListener("click", (event) => { if (event.target === $("[data-edit-backdrop]")) closeEdit(); });
