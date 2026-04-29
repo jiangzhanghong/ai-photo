@@ -69,25 +69,78 @@ const isSeedreamModel = (model) => {
   const code = String(model?.model_code || model?.modelCode || "").trim().toLowerCase();
   return code.includes("seedream");
 };
-const imageSizePixels = (size) => {
-  const match = String(size || "").match(/^(\d+)x(\d+)$/);
-  return match ? Number(match[1]) * Number(match[2]) : 0;
+const parseImageSize = (size) => {
+  const match = String(size || "").trim().match(/^(\d+)x(\d+)$/);
+  if (!match) return null;
+  const width = Number(match[1]);
+  const height = Number(match[2]);
+  return { width, height, pixels: width * height, ratio: width / height };
+};
+const isValidExactImageSize = (size) => {
+  const parsed = parseImageSize(size);
+  return Boolean(parsed && parsed.pixels >= 3686400 && parsed.pixels <= 16777216 && parsed.ratio >= 1 / 16 && parsed.ratio <= 16);
+};
+const normalizeImageRatio = (ratio, size) => {
+  const value = String(ratio || "").trim();
+  if (value === "adaptive" || value === "auto") return "adaptive";
+  if (/^\d+:\d+$/.test(value)) return value;
+  const parsed = parseImageSize(size);
+  if (!parsed) return String(size || "").trim() === "4K" ? "adaptive" : "1:1";
+  const knownRatios = [
+    ["1:1", 1],
+    ["3:4", 3 / 4],
+    ["4:3", 4 / 3],
+    ["16:9", 16 / 9],
+    ["9:16", 9 / 16],
+    ["2:3", 2 / 3],
+    ["3:2", 3 / 2],
+    ["21:9", 21 / 9]
+  ];
+  return knownRatios.reduce((best, item) => {
+    const diff = Math.abs(parsed.ratio - item[1]);
+    return diff < best.diff ? { ratio: item[0], diff } : best;
+  }, { ratio: "1:1", diff: Infinity }).ratio;
+};
+const recommended2kSizes = {
+  "1:1": "2048x2048",
+  "4:3": "2304x1728",
+  "3:4": "1728x2304",
+  "16:9": "2848x1600",
+  "9:16": "1600x2848",
+  "3:2": "2496x1664",
+  "2:3": "1664x2496",
+  "21:9": "3136x1344"
 };
 const normalizeImageSize = (size, model) => {
+  const requestedSize = String(size || "").trim();
   if (isGptImageModel(model)) {
     const map = {
+      "2K": "1024x1024",
+      "4K": "1024x1024",
       "1:1": "1024x1024",
+      "auto": "1024x1024",
       "3:4": "1024x1536",
+      "4:3": "1536x1024",
       "16:9": "1536x1024",
+      "9:16": "1024x1536",
+      "2:3": "1024x1536",
+      "3:2": "1536x1024",
+      "21:9": "1536x1024",
       "2048x2048": "1024x1024",
       "1728x2304": "1024x1536",
       "2560x1440": "1536x1024"
     };
-    return map[size] || size || "1024x1024";
+    if (map[requestedSize]) return map[requestedSize];
+    const parsed = parseImageSize(requestedSize);
+    if (!parsed) return "1024x1024";
+    if (parsed.ratio > 1.2) return "1536x1024";
+    if (parsed.ratio < 0.83) return "1024x1536";
+    return "1024x1024";
   }
-  const map = { "1:1": "2048x2048", "3:4": "1728x2304", "16:9": "2560x1440" };
-  const normalized = map[size] || size || "2048x2048";
-  return imageSizePixels(normalized) && imageSizePixels(normalized) < 3686400 ? "2048x2048" : normalized;
+  if (requestedSize === "2K" || requestedSize === "4K") return requestedSize;
+  if (recommended2kSizes[requestedSize]) return recommended2kSizes[requestedSize];
+  if (requestedSize === "auto") return "2K";
+  return isValidExactImageSize(requestedSize) ? requestedSize : "2048x2048";
 };
 const sanitizeImageParams = (model, params) => {
   const sanitized = { ...(params || {}) };
@@ -612,27 +665,36 @@ const modelAuthHeaders = (model, apiKey) => {
 };
 
 const promptWithImageCount = (prompt, count) => {
-  const imageCount = Math.max(1, Math.min(4, Number(count || 1)));
+  const imageCount = Math.max(1, Math.min(9, Number(count || 1)));
   return imageCount > 1 ? `${prompt}\n请生成 ${imageCount} 张不同结果。` : prompt;
 };
 
-const callImageModel = async ({ model, taskType, prompt, inputImageUrl, inputImageUrls = [], size, count, overrideParams = {} }) => {
+const callImageModel = async ({ model, taskType, prompt, inputImageUrl, inputImageUrls = [], ratio, size, count, overrideParams = {} }) => {
   const baseUrl = String(model.base_url || "").replace(/\/+$/, "");
   if (!/^https:\/\//.test(baseUrl) && !/^http:\/\/127\.0\.0\.1/.test(baseUrl)) throw new Error("模型 baseUrl 必须是 https 地址。");
   const apiKey = decrypt(model.api_key_ciphertext);
   if (!apiKey) throw new Error("模型 apiKey 未配置。");
   const defaultParams = sanitizeImageParams(model, jsonParse(model.default_params_json, {}));
+  const requestParams = sanitizeImageParams(model, overrideParams);
+  delete defaultParams.size;
+  delete defaultParams.ratio;
+  delete requestParams.size;
+  delete requestParams.ratio;
   const body = {
+    ...defaultParams,
+    ...requestParams,
     model: model.model_code,
     prompt,
+    ratio: normalizeImageRatio(ratio, size || model.default_size),
     size: normalizeImageSize(size || model.default_size, model),
-    n: Math.max(1, Math.min(4, Number(count || 1))),
-    ...defaultParams,
-    ...sanitizeImageParams(model, overrideParams)
+    n: Math.max(1, Math.min(9, Number(count || 1)))
   };
-  if (isGptImageModel(model)) delete body.response_format;
+  if (isGptImageModel(model)) {
+    delete body.response_format;
+    delete body.ratio;
+  }
   if (isSeedreamModel(model)) {
-    const imageCount = Math.max(1, Math.min(4, Number(count || 1)));
+    const imageCount = Math.max(1, Math.min(9, Number(count || 1)));
     delete body.n;
     body.sequential_image_generation = imageCount > 1 ? "auto" : "disabled";
     body.sequential_image_generation_options = { max_images: imageCount };
@@ -698,12 +760,13 @@ const processTask = async (taskId) => {
       text = [prompt?.prompt_content, task.user_instruction].filter(Boolean).join("\n");
     }
     if (!text) text = task.user_instruction || "";
-    const expectedCount = Math.max(1, Math.min(4, Number(task.count || 1)));
+    const expectedCount = Math.max(1, Math.min(9, Number(task.count || 1)));
     const requestBase = {
       model,
       taskType: task.task_type,
       inputImageUrl: task.input_image_url,
       inputImageUrls: jsonParse(task.input_image_urls_json, []),
+      ratio: snapshot.ratio,
       size: task.size,
       overrideParams: snapshot.defaultParams || {}
     };
@@ -1229,7 +1292,8 @@ const routeApi = async (req, res, url) => {
     if (["edit", "image_to_image"].includes(taskType) && !inputImageUrls.length) return json(res, 400, { message: "该任务类型需要上传参考图。" });
     const model = await resolveModel(user, taskType, body.aiModelId);
     if (!model) return json(res, 400, { message: "没有可用模型。" });
-    const count = Math.max(1, Math.min(4, Number(body.count || 1)));
+    const count = Math.max(1, Math.min(9, Number(body.count || 1)));
+    const ratio = normalizeImageRatio(body.ratio, body.size || model.default_size);
     const creditCost = modelCost(model, taskType, count);
     if (Number(user.credits || 0) < creditCost) return json(res, 400, { message: "积分不足，请选择更少数量或开通更高方案。" });
     const promptVariables = body.promptVariables && typeof body.promptVariables === "object" ? body.promptVariables : {};
@@ -1253,6 +1317,7 @@ const routeApi = async (req, res, url) => {
       userInstruction: body.userInstruction || "",
       renderedPrompt,
       defaultParams,
+      ratio,
       inputImageUrls,
       isCustomPrompt: Boolean(customPrompt)
     };
@@ -1398,6 +1463,7 @@ const routeApi = async (req, res, url) => {
         const payload = {
           taskType: body.taskType || "generate",
           prompt: body.prompt || "一张柔光人像测试图",
+          ratio: normalizeImageRatio(body.ratio, body.size || model.default_size),
           size: body.size || model.default_size,
           count: Number(body.count || 1),
           inputImageUrl: body.inputImageUrl || "",
@@ -1621,6 +1687,7 @@ const routeApi = async (req, res, url) => {
             taskType: prompt.task_type,
             prompt: renderedPrompt,
             inputImageUrl: body.inputImageUrl || "",
+            ratio: normalizeImageRatio(body.ratio, body.size || model.default_size),
             size: body.size || model.default_size,
             count: body.count || 1,
             overrideParams: snapshot.defaultParams

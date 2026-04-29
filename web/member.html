@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>会员中心 - 光影AI</title>
-    <link rel="stylesheet" href="./styles.css?v=20260429-member-actions" />
+    <link rel="stylesheet" href="./styles.css?v=20260429-member-compact" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -172,18 +172,75 @@
               <select data-model-select></select>
             </label>
             <div class="form-row-2">
-              <label class="mc-label">
+              <label class="mc-label member-hidden-field">
                 <span>图片比例</span>
                 <select data-size-select>
+                  <option value="2048x2048" selected>1:1 方图</option>
                   <option value="1:1">1:1 方图</option>
                   <option value="3:4">3:4 竖图</option>
-                  <option value="16:9" selected>3:2 横图</option>
+                  <option value="4:3">4:3 横图</option>
+                  <option value="16:9">16:9 横图</option>
+                  <option value="9:16">9:16 竖图</option>
+                  <option value="2:3">2:3 竖图</option>
+                  <option value="3:2">3:2 横图</option>
+                  <option value="21:9">21:9 横图</option>
                 </select>
               </label>
-              <label class="mc-label">
+              <label class="mc-label member-hidden-field">
                 <span>生成数量</span>
-                <input type="number" min="1" max="4" value="1" data-image-count />
+                <input type="number" min="1" max="9" value="1" data-image-count />
               </label>
+              <div class="image-control" data-image-control>
+                <div class="image-control-popover" data-image-control-panel hidden>
+                  <section>
+                    <h3>分辨率</h3>
+                    <div class="resolution-tabs">
+                      <button class="active" type="button" data-resolution-option="2K">2K</button>
+                      <button type="button" data-resolution-option="4K">4K</button>
+                    </div>
+                  </section>
+                  <section>
+                    <h3>图片比例</h3>
+                    <div class="ratio-grid">
+                      <button type="button" data-ratio-option="adaptive" data-ratio-label="智能比例"><span class="ratio-symbol smart"></span><b>智能</b></button>
+                      <button class="active" type="button" data-ratio-option="1:1" data-ratio-label="1:1"><span class="ratio-symbol square"></span><b>1:1</b></button>
+                      <button type="button" data-ratio-option="3:4" data-ratio-label="3:4"><span class="ratio-symbol portrait"></span><b>3:4</b></button>
+                      <button type="button" data-ratio-option="4:3" data-ratio-label="4:3"><span class="ratio-symbol landscape"></span><b>4:3</b></button>
+                      <button type="button" data-ratio-option="16:9" data-ratio-label="16:9"><span class="ratio-symbol wide"></span><b>16:9</b></button>
+                      <button type="button" data-ratio-option="9:16" data-ratio-label="9:16"><span class="ratio-symbol tall"></span><b>9:16</b></button>
+                      <button type="button" data-ratio-option="2:3" data-ratio-label="2:3"><span class="ratio-symbol portrait"></span><b>2:3</b></button>
+                      <button type="button" data-ratio-option="3:2" data-ratio-label="3:2"><span class="ratio-symbol landscape"></span><b>3:2</b></button>
+                      <button type="button" data-ratio-option="21:9" data-ratio-label="21:9"><span class="ratio-symbol ultra"></span><b>21:9</b></button>
+                    </div>
+                  </section>
+                  <section>
+                    <h3>图片尺寸</h3>
+                    <div class="dimension-row">
+                      <label><span>W</span><input type="text" placeholder="--" data-dimension-w /></label>
+                      <em></em>
+                      <label><span>H</span><input type="text" placeholder="--" data-dimension-h /></label>
+                    </div>
+                  </section>
+                </div>
+                <div class="image-control-actions">
+                  <button class="image-config-trigger" type="button" data-image-control-toggle>
+                    <span data-resolution-label>2K</span>
+                    <i></i>
+                    <span class="ratio-symbol square"></span>
+                    <span data-current-ratio-label>1:1</span>
+                  </button>
+                  <div class="count-control">
+                    <button class="image-count-trigger" type="button" data-count-toggle><span data-count-label>1张</span></button>
+                    <div class="count-menu" data-count-menu hidden>
+                      <span>生成张数</span>
+                      <div class="count-slider-row">
+                        <input type="range" min="1" max="9" value="1" data-count-range />
+                        <input type="number" min="1" max="9" value="1" data-count-number />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -225,30 +282,6 @@
         </aside>
 
         <section class="creation-column">
-          <div class="mc-card current-generation-card">
-            <div class="generation-head">
-              <div>
-                <h2>当前生成</h2>
-                <span data-generation-count>共 4 张</span>
-              </div>
-              <strong data-generation-status>生成完成 ●</strong>
-            </div>
-            <div class="generation-preview">
-              <img src="./assets/hero-slide-3.webp" alt="校园阳光少女当前生成图" data-current-image />
-              <div class="generation-thumbs" aria-label="当前生成缩略图">
-                <button class="active" type="button" data-thumb="./assets/hero-slide-3.webp"><img src="./assets/hero-slide-3.webp" alt="" /></button>
-                <button type="button" data-thumb="./assets/hero-slide-1.webp"><img src="./assets/hero-slide-1.webp" alt="" /></button>
-                <button type="button" data-thumb="./assets/hero-slide-2.webp"><img src="./assets/hero-slide-2.webp" alt="" /></button>
-                <button type="button" data-thumb="./assets/hero-slide-4.webp"><img src="./assets/hero-slide-4.webp" alt="" /></button>
-              </div>
-            </div>
-            <div class="generation-actions" data-generation-actions>
-              <button type="button" data-download-current>⌄ 下载当前</button>
-              <button type="button" data-download-all>⌄ 全部下载</button>
-              <button type="button" data-share-current>⌯ 分享</button>
-            </div>
-          </div>
-
           <div id="records" class="mc-card record-panel history-panel">
             <div class="task-head">
               <h3>我的生成 <span>(<b data-task-count>0</b>)</span></h3>
@@ -407,6 +440,33 @@
         </aside>
       </section>
 
+      <div class="generation-modal-backdrop" data-generation-backdrop aria-hidden="true">
+        <div class="generation-modal current-generation-card" role="dialog" aria-modal="true" aria-label="生成结果预览">
+          <button class="generation-modal-close" type="button" data-generation-close aria-label="关闭">✕</button>
+          <div class="generation-head">
+            <div>
+              <h2>生成结果</h2>
+              <span data-generation-count>共 4 张</span>
+            </div>
+            <strong data-generation-status>生成完成 ●</strong>
+          </div>
+          <div class="generation-preview">
+            <img src="./assets/hero-slide-3.webp" alt="校园阳光少女当前生成图" data-current-image />
+            <div class="generation-thumbs" aria-label="当前生成缩略图">
+              <button class="active" type="button" data-thumb="./assets/hero-slide-3.webp"><img src="./assets/hero-slide-3.webp" alt="" /></button>
+              <button type="button" data-thumb="./assets/hero-slide-1.webp"><img src="./assets/hero-slide-1.webp" alt="" /></button>
+              <button type="button" data-thumb="./assets/hero-slide-2.webp"><img src="./assets/hero-slide-2.webp" alt="" /></button>
+              <button type="button" data-thumb="./assets/hero-slide-4.webp"><img src="./assets/hero-slide-4.webp" alt="" /></button>
+            </div>
+          </div>
+          <div class="generation-actions" data-generation-actions>
+            <button type="button" data-download-current>⌄ 下载当前</button>
+            <button type="button" data-download-all>⌄ 全部下载</button>
+            <button type="button" data-share-current>⌯ 分享</button>
+          </div>
+        </div>
+      </div>
+
       <section id="recharge" class="member-section member-section-last recharge-section">
         <div class="recharge-inner">
           <div class="mc-section-header">
@@ -433,8 +493,33 @@
           authMode: "phone-login",
           tasks: [],
           uploadedImages: [],
+          imageResolution: "2K",
+          imageRatio: "1:1",
           templatePromptLocked: false
         };
+        const recommendedImageSizes = {
+          "2K": {
+            "1:1": "2048x2048",
+            "4:3": "2304x1728",
+            "3:4": "1728x2304",
+            "16:9": "2848x1600",
+            "9:16": "1600x2848",
+            "3:2": "2496x1664",
+            "2:3": "1664x2496",
+            "21:9": "3136x1344"
+          },
+          "4K": {
+            "1:1": "4096x4096",
+            "3:4": "3520x4704",
+            "4:3": "4704x3520",
+            "16:9": "5504x3040",
+            "9:16": "3040x5504",
+            "2:3": "3328x4992",
+            "3:2": "4992x3328",
+            "21:9": "6240x2656"
+          }
+        };
+        const imagePixelRange = { min: 3686400, max: 16777216 };
         const defaultPromptText = "校园，阳光，逆光，清新，日系，女孩，回眸，长发微风，白色衬衫，教学楼背景，浅景深，温柔治愈，青春感，自然光影，胶片质感，8K 高清";
         const templatePromptText = {
           "校园阳光少女": defaultPromptText,
@@ -561,14 +646,29 @@
           updateKeyInfo(selectedChipValues());
         };
 
+        const openGenerationModal = () => {
+          const backdrop = $("[data-generation-backdrop]");
+          backdrop.classList.add("is-open");
+          backdrop.removeAttribute("aria-hidden");
+          $("[data-generation-close]").focus();
+        };
+
+        const closeGenerationModal = () => {
+          const backdrop = $("[data-generation-backdrop]");
+          backdrop.classList.remove("is-open");
+          backdrop.setAttribute("aria-hidden", "true");
+        };
+
         const setCurrentImage = (src) => {
           const main = $("[data-current-image]");
           main.src = src;
           $$(".generation-thumbs button").forEach((btn) => btn.classList.toggle("active", btn.dataset.thumb === src));
         };
 
-        const setGenerationImages = (images, statusText = "生成完成 ●") => {
-          const safeImages = images.length ? images : demoImagePool.slice(0, 4);
+        const setGenerationImages = (images, statusText = "生成完成 ●", options = {}) => {
+          const shouldOpen = options.open !== false;
+          const inputImages = Array.isArray(images) ? images : [];
+          const safeImages = inputImages.length ? inputImages : demoImagePool.slice(0, 4);
           $(".current-generation-card").classList.remove("is-template-applied", "is-generating");
           $("[data-generation-status]").textContent = statusText;
           $("[data-generation-count]").textContent = `共 ${safeImages.length} 张`;
@@ -576,6 +676,7 @@
             <button class="${index === 0 ? "active" : ""}" type="button" data-thumb="${esc(src)}"><img src="${esc(src)}" alt="" /></button>
           `).join("");
           setCurrentImage(safeImages[0]);
+          if (shouldOpen) openGenerationModal();
         };
 
         const setGenerationLoading = (title = "正在生成") => {
@@ -604,9 +705,9 @@
           const primary = card?.dataset.templateImage || demoImagePool[0];
           const templateImages = card?.dataset.templateImages?.split("|").filter(Boolean) || [];
           if (templateImages.length) {
-            return templateImages.slice(0, Math.max(1, Math.min(4, Number($("[data-image-count]").value || 1))));
+            return templateImages.slice(0, Math.max(1, Math.min(9, Number($("[data-image-count]").value || 1))));
           }
-          return [primary, ...demoImagePool.filter((src) => src !== primary)].slice(0, Math.max(1, Math.min(4, Number($("[data-image-count]").value || 1))));
+          return [primary, ...demoImagePool.filter((src) => src !== primary)].slice(0, Math.max(1, Math.min(9, Number($("[data-image-count]").value || 1))));
         };
 
         const historyThumbHtml = (images, title) => {
@@ -644,7 +745,7 @@
         const completeGeneratedPreview = ({ images, title, tags }) => {
           setGenerationImages(images);
           prependGeneratedRecord(images, title, tags);
-          setMessage("生成完成，已替换当前生成。");
+          setMessage("生成完成，已打开结果预览。");
         };
 
         const prepareGeneratedPreview = () => {
@@ -979,12 +1080,164 @@
 
         const updateCost = () => {
           const countInput = $("[data-image-count]");
-          const count = Math.max(1, Math.min(4, Number(countInput.value || 1)));
+          const count = Math.max(1, Math.min(9, Number(countInput.value || 1)));
           countInput.value = count;
+          if ($("[data-count-label]")) $("[data-count-label]").textContent = `${count}张`;
+          if ($("[data-count-range]")) $("[data-count-range]").value = count;
+          if ($("[data-count-number]")) $("[data-count-number]").value = count;
           const model = currentModel();
           const cost = model ? Number(model.creditCost?.[state.taskType] || 0) * count : 0;
           $("[data-credit-cost]").textContent = cost;
           return cost;
+        };
+
+        const closeImageControlPanels = () => {
+          $("[data-image-control-panel]").hidden = true;
+          $("[data-count-menu]").hidden = true;
+        };
+
+        const setHiddenSize = (size) => {
+          const select = $("[data-size-select]");
+          if (!$$("option", select).some((option) => option.value === size)) {
+            select.add(new Option(size, size));
+          }
+          select.value = size;
+        };
+
+        const splitImageSize = (size) => {
+          const match = String(size || "").match(/^(\d+)x(\d+)$/);
+          return match ? { width: match[1], height: match[2] } : null;
+        };
+
+        const setDimensionFields = (size) => {
+          const parsed = splitImageSize(size);
+          $("[data-dimension-w]").value = parsed?.width || "";
+          $("[data-dimension-h]").value = parsed?.height || "";
+        };
+
+        const customSizeValue = () => {
+          const widthText = $("[data-dimension-w]").value.trim();
+          const heightText = $("[data-dimension-h]").value.trim();
+          if (!/^\d+$/.test(widthText) || !/^\d+$/.test(heightText)) return "";
+          const width = Number(widthText);
+          const height = Number(heightText);
+          if (!width || !height) return "";
+          const pixels = width * height;
+          const ratio = width / height;
+          return pixels >= imagePixelRange.min && pixels <= imagePixelRange.max && ratio >= 1 / 16 && ratio <= 16 ? `${width}x${height}` : "";
+        };
+
+        const selectedRatioParts = () => {
+          const match = String(state.imageRatio || "").match(/^(\d+):(\d+)$/);
+          return match ? { width: Number(match[1]), height: Number(match[2]) } : null;
+        };
+
+        const currentRequestRatio = () => state.imageRatio === "adaptive" ? "adaptive" : state.imageRatio;
+
+        const dimensionSizeFromRatio = (source) => {
+          const ratio = selectedRatioParts();
+          if (!ratio) return "";
+          let width;
+          let height;
+          if (source === "height") {
+            height = Math.max(1, Math.round(Number($("[data-dimension-h]").value || 0)));
+            width = Math.round(height * ratio.width / ratio.height);
+          } else {
+            width = Math.max(1, Math.round(Number($("[data-dimension-w]").value || 0)));
+            height = Math.round(width * ratio.height / ratio.width);
+          }
+          const currentPixels = width * height;
+          if (currentPixels < imagePixelRange.min) {
+            if (source === "height") {
+              height = Math.ceil(Math.sqrt(imagePixelRange.min * ratio.height / ratio.width));
+              width = Math.round(height * ratio.width / ratio.height);
+            } else {
+              width = Math.ceil(Math.sqrt(imagePixelRange.min * ratio.width / ratio.height));
+              height = Math.round(width * ratio.height / ratio.width);
+            }
+          }
+          if (width * height > imagePixelRange.max) {
+            if (source === "height") {
+              height = Math.floor(Math.sqrt(imagePixelRange.max * ratio.height / ratio.width));
+              width = Math.round(height * ratio.width / ratio.height);
+            } else {
+              width = Math.floor(Math.sqrt(imagePixelRange.max * ratio.width / ratio.height));
+              height = Math.round(width * ratio.height / ratio.width);
+            }
+          }
+          while (width * height < imagePixelRange.min) {
+            if (source === "height") {
+              height += 1;
+              width = Math.round(height * ratio.width / ratio.height);
+            } else {
+              width += 1;
+              height = Math.round(width * ratio.height / ratio.width);
+            }
+          }
+          while (width * height > imagePixelRange.max) {
+            if (source === "height") {
+              height -= 1;
+              width = Math.round(height * ratio.width / ratio.height);
+            } else {
+              width -= 1;
+              height = Math.round(width * ratio.height / ratio.width);
+            }
+          }
+          return `${width}x${height}`;
+        };
+
+        const syncCustomImageSize = () => {
+          const customSize = customSizeValue();
+          if (!customSize) return;
+          setHiddenSize(customSize);
+          $("[data-current-ratio-label]").textContent = customSize.replace("x", "×");
+          $$("[data-ratio-option]").forEach((btn) => btn.classList.remove("active"));
+        };
+
+        const syncRatioDimensionSize = (source) => {
+          if (state.imageRatio === "adaptive") {
+            syncCustomImageSize();
+            return;
+          }
+          const size = dimensionSizeFromRatio(source);
+          if (!size) return;
+          setHiddenSize(size);
+          setDimensionFields(size);
+          $("[data-current-ratio-label]").textContent = size.replace("x", "×");
+          $$("[data-ratio-option]").forEach((btn) => btn.classList.toggle("active", btn.dataset.ratioOption === state.imageRatio));
+        };
+
+        const syncPresetImageSize = () => {
+          const size = state.imageRatio === "adaptive" ? "4K" : recommendedImageSizes[state.imageResolution][state.imageRatio];
+          setHiddenSize(size);
+          setDimensionFields(state.imageRatio === "adaptive" ? "" : size);
+          const activeRatio = $(`[data-ratio-option="${state.imageRatio}"]`);
+          $("[data-current-ratio-label]").textContent = activeRatio?.dataset.ratioLabel || "智能比例";
+          $$("[data-ratio-option]").forEach((btn) => btn.classList.toggle("active", btn.dataset.ratioOption === state.imageRatio));
+        };
+
+        const setResolution = (resolution) => {
+          state.imageResolution = state.imageRatio === "adaptive" || resolution === "4K" ? "4K" : "2K";
+          $("[data-resolution-label]").textContent = state.imageResolution;
+          $$("[data-resolution-option]").forEach((btn) => btn.classList.toggle("active", btn.dataset.resolutionOption === state.imageResolution));
+          syncPresetImageSize();
+        };
+
+        const setRatio = (ratio, label) => {
+          state.imageRatio = ratio;
+          if (state.imageRatio === "adaptive") {
+            state.imageResolution = "4K";
+            $("[data-resolution-label]").textContent = "4K";
+            $$("[data-resolution-option]").forEach((btn) => btn.classList.toggle("active", btn.dataset.resolutionOption === "4K"));
+          }
+          $("[data-current-ratio-label]").textContent = label;
+          syncPresetImageSize();
+          updateCost();
+        };
+
+        const setImageCount = (count) => {
+          $("[data-image-count]").value = Math.max(1, Math.min(9, Number(count || 1)));
+          updateCost();
         };
 
         const statusText = (s) => ({ queued: "排队中", processing: "生成中", succeeded: "已完成", failed: "失败", refunded: "已退款" })[s] || s;
@@ -1004,7 +1257,7 @@
           list.innerHTML = state.tasks.map((task) => {
             const resultImages = task.resultImageUrls || [];
             const firstImage = resultImages[0] || "./assets/work-portrait.jpg";
-            const tags = [statusText(task.status), task.aiModelName, `${task.count} 张`, `${task.creditCost} 积分`].filter(Boolean);
+            const tags = [statusText(task.status), `${task.count} 张`, `${task.creditCost} 积分`].filter(Boolean);
             return `
             ${historyCardHtml({ images: resultImages.length ? resultImages : [firstImage], title: task.promptTitle, time: task.createdAt || task.updatedAt || task.promptTitle, tags })}
           `;
@@ -1027,7 +1280,7 @@
               if (task?.status === "succeeded" && task.resultImageUrls?.length) {
                 setGenerationImages(task.resultImageUrls);
               }
-              setMessage(task?.status === "succeeded" ? "任务已完成，可在右侧查看和下载。" : (task?.failureReason || "任务处理结束。"));
+              setMessage(task?.status === "succeeded" ? "任务已完成，已打开结果预览。" : (task?.failureReason || "任务处理结束。"));
               return;
             }
           }
@@ -1153,6 +1406,46 @@
           });
           $("[data-model-select]").addEventListener("change", updateCost);
           $("[data-image-count]").addEventListener("input", updateCost);
+          $("[data-image-control-toggle]").addEventListener("click", (e) => {
+            e.stopPropagation();
+            $("[data-count-menu]").hidden = true;
+            $("[data-image-control-panel]").hidden = !$("[data-image-control-panel]").hidden;
+          });
+          $("[data-count-toggle]").addEventListener("click", (e) => {
+            e.stopPropagation();
+            $("[data-image-control-panel]").hidden = true;
+            $("[data-count-menu]").hidden = !$("[data-count-menu]").hidden;
+          });
+          $("[data-image-control-panel]").addEventListener("click", (e) => {
+            e.stopPropagation();
+            const resolution = e.target.closest("[data-resolution-option]");
+            if (resolution) setResolution(resolution.dataset.resolutionOption);
+            const ratio = e.target.closest("[data-ratio-option]");
+            if (ratio) setRatio(ratio.dataset.ratioOption, ratio.dataset.ratioLabel);
+          });
+          $("[data-dimension-w]").addEventListener("input", () => {
+            if (state.imageRatio === "adaptive") syncCustomImageSize();
+          });
+          $("[data-dimension-h]").addEventListener("input", () => {
+            if (state.imageRatio === "adaptive") syncCustomImageSize();
+          });
+          $("[data-dimension-w]").addEventListener("change", () => syncRatioDimensionSize("width"));
+          $("[data-dimension-h]").addEventListener("change", () => syncRatioDimensionSize("height"));
+          $("[data-count-menu]").addEventListener("click", (e) => {
+            e.stopPropagation();
+          });
+          $("[data-count-range]").addEventListener("input", (e) => {
+            setImageCount(e.target.value);
+          });
+          $("[data-count-number]").addEventListener("input", (e) => {
+            setImageCount(e.target.value);
+          });
+          $("[data-count-number]").addEventListener("change", (e) => {
+            setImageCount(e.target.value);
+          });
+          document.addEventListener("click", (e) => {
+            if (!e.target.closest("[data-image-control]")) closeImageControlPanels();
+          });
 
           // File input change
           $("[data-image-upload]").addEventListener("change", (e) => {
@@ -1218,8 +1511,9 @@
                   promptTemplateId: $("[data-prompt-select]").value,
                   customPrompt: $("[data-custom-prompt]").value,
                   aiModelId: $("[data-model-select]").value,
+                  ratio: currentRequestRatio(),
                   size: $("[data-size-select]").value,
-                  count: Math.max(1, Math.min(4, Number($("[data-image-count]").value || 1))),
+                  count: Math.max(1, Math.min(9, Number($("[data-image-count]").value || 1))),
                   inputImageUrl: inputImageUrls[0] || "",
                   inputImageUrls,
                   userInstruction: $("[data-user-instruction]").value
@@ -1240,6 +1534,16 @@
             }
           });
 
+          $("[data-generation-close]").addEventListener("click", closeGenerationModal);
+          $("[data-generation-backdrop]").addEventListener("click", (e) => {
+            if (e.target === $("[data-generation-backdrop]")) closeGenerationModal();
+          });
+          document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && $("[data-generation-backdrop]").classList.contains("is-open")) {
+              closeGenerationModal();
+            }
+          });
+
           $(".generation-thumbs").addEventListener("click", (e) => {
             const btn = e.target.closest("[data-thumb]");
             if (!btn) return;
@@ -1251,9 +1555,6 @@
             if (!card) return;
             const images = card.dataset.historyImages.split("|").filter(Boolean);
             setGenerationImages(images);
-            if (window.matchMedia("(max-width: 1180px)").matches) {
-              $(".current-generation-card").scrollIntoView({ behavior: "smooth", block: "start" });
-            }
             setMessage("已切换到所选生成记录。");
           });
 
@@ -1311,7 +1612,7 @@
             }
             const templateImages = card.dataset.templateImages?.split("|").filter(Boolean) || [card.dataset.templateImage];
             setTemplatePending(templateImages);
-            setMessage(`已套用「${title}」，点击生成图片后替换当前生成。`);
+            setMessage(`已套用「${title}」，点击生成图片后查看结果预览。`);
           });
 
           const filterTemplates = () => {
@@ -1356,6 +1657,7 @@
           filterTemplates();
           updatePromptCount();
           updateKeyInfo();
+          syncPresetImageSize();
         };
 
         const initPlans = () => {
