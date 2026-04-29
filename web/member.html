@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>会员中心 - 光影AI</title>
-    <link rel="stylesheet" href="./styles.css?v=20260427-prompts" />
+    <link rel="stylesheet" href="./styles.css?v=20260429-member-actions" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -63,120 +63,352 @@
           <a href="#studio">AI创作</a>
           <a href="#records">生成记录</a>
         </nav>
-        <a class="header-cta" href="./index.html#booking">预约咨询</a>
+        <div class="member-header-actions">
+          <div class="member-nav-status" aria-label="会员状态">
+            <span>登录状态：<b data-login-state>未登录</b></span>
+            <span>当前方案：<b data-current-plan>未开通</b></span>
+            <span>可用积分：<b data-credit-balance>0</b></span>
+          </div>
+          <a class="header-cta" href="#recharge">积分充值</a>
+          <button class="member-logout-btn" type="button" data-logout>退出登录</button>
+        </div>
       </div>
     </header>
 
     <main class="member-main">
+      <section id="studio" class="member-studio-shell" aria-label="AI 创作工作台">
+        <aside class="mc-card tool-panel">
+          <div class="panel-title-row">
+            <h1>提示词生成工具</h1>
+            <button type="button" class="clear-prompt-btn" aria-label="清空提示词">↻ 清空</button>
+          </div>
 
-      <!-- Hero -->
-      <section class="member-hero">
-        <div class="shell member-hero-inner">
-          <div class="member-hero-text">
-            <h1>会员中心</h1>
-            <p>管理积分，生成图片，查看创作记录</p>
+          <div class="credit-bar member-hidden-field">
+            <span data-member-state>未登录</span>
+            <strong><b data-form-credit>0</b> 积分</strong>
           </div>
-          <div class="member-summary">
-            <div class="member-summary-row">
-              <span class="summary-label">登录状态</span>
-              <strong class="summary-state" data-login-state>未登录</strong>
+
+          <div class="segmented task-type-switch" data-task-type>
+            <button class="active" type="button" data-type="image_to_image">以图生图</button>
+          </div>
+
+          <div class="prompt-chip-groups" aria-label="提示词快捷项">
+            <div class="chip-group">
+              <span>场景</span>
+              <div>
+                <button class="active" type="button">校园</button>
+                <button type="button">教室</button>
+                <button type="button">操场</button>
+                <button type="button">图书馆</button>
+                <button type="button">宿舍</button>
+                <button type="button">街道</button>
+                <button type="button">公园</button>
+                <button type="button">咖啡馆</button>
+              </div>
             </div>
-            <div class="member-summary-divider"></div>
-            <div class="member-summary-row">
-              <span class="summary-label">当前方案</span>
-              <b class="summary-value" data-current-plan>未开通</b>
+            <div class="chip-group">
+              <span>光影</span>
+              <div>
+                <button class="active" type="button">逆光</button>
+                <button type="button">傍逆光</button>
+                <button type="button">侧光</button>
+                <button type="button">柔光</button>
+                <button type="button">顶光</button>
+                <button type="button">散射光</button>
+                <button type="button">晨光</button>
+                <button type="button">黄昏</button>
+              </div>
             </div>
-            <div class="member-summary-row">
-              <span class="summary-label">可用积分</span>
-              <b class="summary-value summary-credits"><b data-credit-balance>0</b> 分</b>
+            <div class="chip-group">
+              <span>风格</span>
+              <div>
+                <button class="active" type="button">清新</button>
+                <button type="button">日系</button>
+                <button type="button">胶片</button>
+                <button type="button">电影感</button>
+                <button type="button">复古</button>
+                <button type="button">森系</button>
+                <button type="button">港风</button>
+                <button type="button">纪实</button>
+              </div>
             </div>
-            <div class="member-summary-actions">
-              <button class="member-login-toggle" type="button" data-login-toggle>登录 / 注册</button>
-              <button class="member-logout-btn" type="button" data-logout>退出登录</button>
+            <div class="chip-group">
+              <span>人物状态</span>
+              <div>
+                <button class="active" type="button">回眸</button>
+                <button type="button">侧脸</button>
+                <button type="button">微笑</button>
+                <button type="button">低头</button>
+                <button type="button">站立</button>
+                <button type="button">奔跑</button>
+                <button type="button">背影</button>
+                <button type="button">望远</button>
+              </div>
+            </div>
+            <div class="chip-group">
+              <span>情绪氛围</span>
+              <div>
+                <button class="active" type="button">温柔</button>
+                <button type="button">治愈</button>
+                <button type="button">文艺</button>
+                <button type="button">青春</button>
+                <button type="button">宁静</button>
+                <button type="button">甜美</button>
+                <button type="button">浪漫</button>
+                <button type="button">自然</button>
+              </div>
             </div>
           </div>
-        </div>
+
+          <div class="basic-settings">
+            <h2>基础设置</h2>
+            <label class="mc-label member-hidden-field">
+              <span>创作方案</span>
+              <select data-prompt-select></select>
+            </label>
+            <div class="prompt-plan member-hidden-field" data-prompt-plan></div>
+            <label class="mc-label">
+              <span>模型</span>
+              <select data-model-select></select>
+            </label>
+            <div class="form-row-2">
+              <label class="mc-label">
+                <span>图片比例</span>
+                <select data-size-select>
+                  <option value="1:1">1:1 方图</option>
+                  <option value="3:4">3:4 竖图</option>
+                  <option value="16:9" selected>3:2 横图</option>
+                </select>
+              </label>
+              <label class="mc-label">
+                <span>生成数量</span>
+                <input type="number" min="1" max="4" value="1" data-image-count />
+              </label>
+            </div>
+          </div>
+
+          <div class="upload-field" data-upload-field>
+            <span class="upload-title">上传参考图 <em class="upload-size-hint">支持点击上传、拖拽或粘贴图片</em></span>
+            <label class="upload-zone" for="image-upload-input" data-upload-zone tabindex="0">
+              <span class="upload-zone-placeholder" data-upload-placeholder>点击上传，或粘贴 / 拖拽图片</span>
+              <div class="upload-preview-list" data-upload-preview-list></div>
+              <button class="upload-clear" type="button" data-upload-clear aria-label="移除全部图片">✕</button>
+            </label>
+            <input id="image-upload-input" type="file" accept="image/*" multiple data-image-upload />
+          </div>
+
+          <label class="mc-label compact-textarea template-prompt-field" data-template-prompt-field>
+            <span>模板提示词 <em data-template-prompt-state>可自定义</em></span>
+            <textarea rows="3" placeholder="描述基于参考图想要调整的风格、氛围或保留要求" data-template-prompt-input></textarea>
+          </label>
+
+          <label class="mc-label compact-textarea member-hidden-field">
+            <span>补充说明</span>
+            <textarea rows="2" placeholder="例如：保留自然肤色，背景更干净" data-user-instruction></textarea>
+          </label>
+          <div class="key-info-box">
+            <div class="key-info-head">
+              <span>关键信息</span>
+              <em data-prompt-count>86/500</em>
+            </div>
+            <p data-key-info>校园 / 阳光 / 逆光 / 清新 / 日系 / 回眸 / 温柔</p>
+          </div>
+
+          <label class="mc-label compact-textarea member-hidden-field">
+            <span>完整自定义提示词 <em>隐藏提交字段</em></span>
+            <textarea rows="4" placeholder="校园，阳光，逆光，清新，日系，女孩，回眸，长发微风，白色衬衫，教学楼背景，浅景深，温柔治愈，青春感，自然光影，胶片质感，8K 高清" data-custom-prompt>校园，阳光，逆光，清新，日系，女孩，回眸，长发微风，白色衬衫，教学楼背景，浅景深，温柔治愈，青春感，自然光影，胶片质感，8K 高清</textarea>
+          </label>
+
+          <div class="cost-line">预计消耗 <strong data-credit-cost>0</strong> 积分</div>
+          <button class="mc-btn mc-btn-primary submit-ai" type="button" data-submit-ai>生成图片 ✨</button>
+          <p class="form-message" data-ai-message role="status"></p>
+        </aside>
+
+        <section class="creation-column">
+          <div class="mc-card current-generation-card">
+            <div class="generation-head">
+              <div>
+                <h2>当前生成</h2>
+                <span data-generation-count>共 4 张</span>
+              </div>
+              <strong data-generation-status>生成完成 ●</strong>
+            </div>
+            <div class="generation-preview">
+              <img src="./assets/hero-slide-3.webp" alt="校园阳光少女当前生成图" data-current-image />
+              <div class="generation-thumbs" aria-label="当前生成缩略图">
+                <button class="active" type="button" data-thumb="./assets/hero-slide-3.webp"><img src="./assets/hero-slide-3.webp" alt="" /></button>
+                <button type="button" data-thumb="./assets/hero-slide-1.webp"><img src="./assets/hero-slide-1.webp" alt="" /></button>
+                <button type="button" data-thumb="./assets/hero-slide-2.webp"><img src="./assets/hero-slide-2.webp" alt="" /></button>
+                <button type="button" data-thumb="./assets/hero-slide-4.webp"><img src="./assets/hero-slide-4.webp" alt="" /></button>
+              </div>
+            </div>
+            <div class="generation-actions" data-generation-actions>
+              <button type="button" data-download-current>⌄ 下载当前</button>
+              <button type="button" data-download-all>⌄ 全部下载</button>
+              <button type="button" data-share-current>⌯ 分享</button>
+            </div>
+          </div>
+
+          <div id="records" class="mc-card record-panel history-panel">
+            <div class="task-head">
+              <h3>我的生成 <span>(<b data-task-count>0</b>)</span></h3>
+              <a href="#records">查看全部 ›</a>
+            </div>
+            <div class="result-grid" data-task-list></div>
+          </div>
+        </section>
+
+        <aside class="mc-card template-panel">
+          <div class="template-head">
+            <h2>模板库</h2>
+            <label>
+              <span>⌕</span>
+              <input type="search" placeholder="搜索模板关键词" />
+            </label>
+          </div>
+          <div class="template-tabs" aria-label="模板分类">
+            <button class="active" type="button" data-template-filter="全部">全部</button>
+            <button type="button" data-template-filter="校园">校园</button>
+            <button type="button" data-template-filter="写真">写真</button>
+            <button type="button" data-template-filter="情侣">情侣</button>
+            <button type="button" data-template-filter="日系">日系</button>
+            <button type="button" data-template-filter="清新">清新</button>
+            <button type="button" data-template-filter="胶片">胶片</button>
+            <button type="button" data-template-filter="更多">更多</button>
+          </div>
+          <div class="template-more-menu" data-template-more-menu>
+            <button type="button" data-template-filter="复古">复古</button>
+            <button type="button" data-template-filter="漫画">漫画</button>
+            <button type="button" data-template-filter="参考图">参考图</button>
+            <button type="button" data-template-filter="人像">人像</button>
+          </div>
+          <div class="template-grid">
+            <article class="template-card is-selected" data-template-card data-template-mode="generate" data-template-prompt="校园阳光少女" data-template-tags="校园 阳光 清新 日系" data-template-image="./assets/hero-slide-3.webp" data-template-images="./assets/hero-slide-3.webp|./assets/hero-slide-1.webp|./assets/hero-slide-2.webp|./assets/hero-slide-4.webp">
+              <div class="template-preview">
+                <img src="./assets/hero-slide-3.webp" alt="校园阳光少女模板" />
+                <div class="template-hover-grid" aria-hidden="true">
+                  <img src="./assets/hero-slide-3.webp" alt="" />
+                  <img src="./assets/hero-slide-1.webp" alt="" />
+                  <img src="./assets/hero-slide-2.webp" alt="" />
+                  <img src="./assets/hero-slide-4.webp" alt="" />
+                </div>
+              </div>
+              <h3>校园阳光少女</h3>
+              <p>校园 / 阳光 / 清新 / 日系</p>
+              <span>8 积分/张</span>
+              <button type="button" data-apply-template>一键套用</button>
+            </article>
+            <article class="template-card" data-template-card data-template-mode="generate" data-template-prompt="毕业季 · 青春纪念" data-template-tags="校园 毕业 清新 纪念 日系" data-template-image="./assets/style-korean.jpg" data-template-images="./assets/style-korean.jpg|./assets/hero-slide-3.webp|./assets/style-french.jpg|./assets/work-portrait.jpg">
+              <div class="template-preview">
+                <img src="./assets/style-korean.jpg" alt="毕业季青春纪念模板" />
+                <div class="template-hover-grid" aria-hidden="true">
+                  <img src="./assets/style-korean.jpg" alt="" />
+                  <img src="./assets/hero-slide-3.webp" alt="" />
+                  <img src="./assets/style-french.jpg" alt="" />
+                  <img src="./assets/work-portrait.jpg" alt="" />
+                </div>
+              </div>
+              <h3>毕业季 · 青春纪念</h3>
+              <p>校园 / 毕业 / 清新 / 纪念</p>
+              <span>8 积分/张</span>
+              <button type="button" data-apply-template>一键套用</button>
+            </article>
+            <article class="template-card" data-template-card data-template-mode="generate" data-template-prompt="逆光少女" data-template-tags="逆光 清新 日系 治愈 写真" data-template-image="./assets/work-portrait.jpg" data-template-images="./assets/work-portrait.jpg|./assets/hero-slide-3.webp|./assets/hero-slide-2.webp|./assets/style-korean.jpg">
+              <div class="template-preview">
+                <img src="./assets/work-portrait.jpg" alt="逆光少女模板" />
+                <div class="template-hover-grid" aria-hidden="true">
+                  <img src="./assets/work-portrait.jpg" alt="" />
+                  <img src="./assets/hero-slide-3.webp" alt="" />
+                  <img src="./assets/hero-slide-2.webp" alt="" />
+                  <img src="./assets/style-korean.jpg" alt="" />
+                </div>
+              </div>
+              <h3>逆光少女</h3>
+              <p>逆光 / 清新 / 日系 / 治愈</p>
+              <span>8 积分/张</span>
+              <button type="button" data-apply-template>一键套用</button>
+            </article>
+            <article class="template-card" data-template-card data-template-mode="generate" data-template-prompt="漫画风校园" data-template-tags="校园 漫画 清新 日系 更多" data-template-image="./assets/style-cinematic.jpg" data-template-images="./assets/style-cinematic.jpg|./assets/hero-slide-2.webp|./assets/hero-slide-4.webp|./assets/style-french.jpg">
+              <div class="template-preview">
+                <img src="./assets/style-cinematic.jpg" alt="漫画风校园模板" />
+                <div class="template-hover-grid" aria-hidden="true">
+                  <img src="./assets/style-cinematic.jpg" alt="" />
+                  <img src="./assets/hero-slide-2.webp" alt="" />
+                  <img src="./assets/hero-slide-4.webp" alt="" />
+                  <img src="./assets/style-french.jpg" alt="" />
+                </div>
+              </div>
+              <h3>漫画风校园</h3>
+              <p>校园 / 漫画 / 清新 / 日系</p>
+              <span>8 积分/张</span>
+              <button type="button" data-apply-template>一键套用</button>
+            </article>
+            <article class="template-card" data-template-card data-template-mode="image_to_image" data-template-prompt="照片转日系校园" data-template-tags="参考图 校园 日系 清新 人像" data-template-image="./assets/hero-slide-1.webp" data-template-images="./assets/hero-slide-1.webp|./assets/hero-slide-3.webp|./assets/hero-slide-2.webp|./assets/style-korean.jpg" hidden>
+              <div class="template-preview">
+                <img src="./assets/hero-slide-1.webp" alt="照片转日系校园模板" />
+                <div class="template-hover-grid" aria-hidden="true">
+                  <img src="./assets/hero-slide-1.webp" alt="" />
+                  <img src="./assets/hero-slide-3.webp" alt="" />
+                  <img src="./assets/hero-slide-2.webp" alt="" />
+                  <img src="./assets/style-korean.jpg" alt="" />
+                </div>
+              </div>
+              <h3>照片转日系校园</h3>
+              <p>参考图 / 校园 / 日系 / 清新</p>
+              <span>8 积分/张</span>
+              <button type="button" data-apply-template>一键套用</button>
+            </article>
+            <article class="template-card" data-template-card data-template-mode="image_to_image" data-template-prompt="人像光影增强" data-template-tags="参考图 写真 逆光 质感 人像" data-template-image="./assets/hero-slide-2.webp" data-template-images="./assets/hero-slide-2.webp|./assets/work-portrait.jpg|./assets/hero-slide-3.webp|./assets/hero-slide-4.webp" hidden>
+              <div class="template-preview">
+                <img src="./assets/hero-slide-2.webp" alt="人像光影增强模板" />
+                <div class="template-hover-grid" aria-hidden="true">
+                  <img src="./assets/hero-slide-2.webp" alt="" />
+                  <img src="./assets/work-portrait.jpg" alt="" />
+                  <img src="./assets/hero-slide-3.webp" alt="" />
+                  <img src="./assets/hero-slide-4.webp" alt="" />
+                </div>
+              </div>
+              <h3>人像光影增强</h3>
+              <p>参考图 / 写真 / 逆光 / 质感</p>
+              <span>8 积分/张</span>
+              <button type="button" data-apply-template>一键套用</button>
+            </article>
+            <article class="template-card" data-template-card data-template-mode="image_to_image" data-template-prompt="胶片风格迁移" data-template-tags="参考图 胶片 复古 清新 更多" data-template-image="./assets/hero-slide-4.webp" data-template-images="./assets/hero-slide-4.webp|./assets/style-french.jpg|./assets/style-korean.jpg|./assets/work-portrait.jpg" hidden>
+              <div class="template-preview">
+                <img src="./assets/hero-slide-4.webp" alt="胶片风格迁移模板" />
+                <div class="template-hover-grid" aria-hidden="true">
+                  <img src="./assets/hero-slide-4.webp" alt="" />
+                  <img src="./assets/style-french.jpg" alt="" />
+                  <img src="./assets/style-korean.jpg" alt="" />
+                  <img src="./assets/work-portrait.jpg" alt="" />
+                </div>
+              </div>
+              <h3>胶片风格迁移</h3>
+              <p>参考图 / 胶片 / 复古 / 清新</p>
+              <span>8 积分/张</span>
+              <button type="button" data-apply-template>一键套用</button>
+            </article>
+            <article class="template-card" data-template-card data-template-mode="image_to_image" data-template-prompt="背景氛围重塑" data-template-tags="参考图 情侣 校园 氛围 更多" data-template-image="./assets/style-french.jpg" data-template-images="./assets/style-french.jpg|./assets/style-korean.jpg|./assets/hero-slide-1.webp|./assets/hero-slide-4.webp" hidden>
+              <div class="template-preview">
+                <img src="./assets/style-french.jpg" alt="背景氛围重塑模板" />
+                <div class="template-hover-grid" aria-hidden="true">
+                  <img src="./assets/style-french.jpg" alt="" />
+                  <img src="./assets/style-korean.jpg" alt="" />
+                  <img src="./assets/hero-slide-1.webp" alt="" />
+                  <img src="./assets/hero-slide-4.webp" alt="" />
+                </div>
+              </div>
+              <h3>背景氛围重塑</h3>
+              <p>参考图 / 情侣 / 校园 / 氛围</p>
+              <span>8 积分/张</span>
+              <button type="button" data-apply-template>一键套用</button>
+            </article>
+          </div>
+        </aside>
       </section>
 
-      <!-- Studio + Records -->
-      <section id="studio" class="member-section">
-        <div class="shell">
-          <div class="mc-section-header">
-            <h2>AI 创作工作台</h2>
-            <p>选择创作方案或输入完整提示词，提交生成任务</p>
-          </div>
-          <div class="member-workbench">
-
-            <div class="mc-card ai-form">
-              <div class="credit-bar">
-                <span data-member-state>未开通会员</span>
-                <strong><b data-form-credit>0</b> 积分</strong>
-              </div>
-              <div class="segmented" data-task-type>
-                <button class="active" type="button" data-type="image_to_image">以图生图</button>
-                <button type="button" data-type="generate">生成图片</button>
-                <button type="button" data-type="edit">修改图片</button>
-              </div>
-              <label class="mc-label">
-                <span>创作方案</span>
-                <select data-prompt-select></select>
-              </label>
-              <div class="prompt-plan" data-prompt-plan></div>
-              <label class="mc-label">
-                <span>生图模型</span>
-                <select data-model-select></select>
-              </label>
-              <div class="form-row-2">
-                <label class="mc-label">
-                  <span>图片尺寸</span>
-                  <select data-size-select>
-                    <option value="1:1">1:1 方图</option>
-                    <option value="3:4">3:4 人像</option>
-                    <option value="16:9">16:9 横图</option>
-                  </select>
-                </label>
-                <label class="mc-label">
-                  <span>数量</span>
-                  <input type="number" min="1" max="4" value="1" data-image-count />
-                </label>
-              </div>
-              <div class="upload-field" data-upload-field>
-                <span class="upload-title">上传参考图 <em class="upload-size-hint">（最多 5 张，超过 5MB 自动压缩至 5MB 以内）</em></span>
-                <label class="upload-zone" for="image-upload-input" data-upload-zone>
-                  <span class="upload-zone-placeholder" data-upload-placeholder>点击或拖拽上传图片，最多 5 张</span>
-                  <div class="upload-preview-list" data-upload-preview-list></div>
-                  <button class="upload-clear" type="button" data-upload-clear aria-label="移除全部图片">✕</button>
-                </label>
-                <input id="image-upload-input" type="file" accept="image/*" multiple data-image-upload />
-              </div>
-              <label class="mc-label">
-                <span>补充说明</span>
-                <textarea rows="3" placeholder="例如：保留自然肤色，背景更干净" data-user-instruction></textarea>
-              </label>
-              <label class="mc-label">
-                <span>完整自定义提示词</span>
-                <textarea rows="4" placeholder="填写后将直接使用这段提示词，不再限定后台方案内容" data-custom-prompt></textarea>
-              </label>
-              <div class="cost-line">预计消耗 <strong data-credit-cost>0</strong> 积分</div>
-              <button class="mc-btn mc-btn-primary submit-ai" type="button" data-submit-ai>提交 AI 任务</button>
-              <p class="form-message" data-ai-message role="status"></p>
-            </div>
-
-            <div id="records" class="mc-card record-panel">
-              <div class="task-head">
-                <h3>生成记录</h3>
-                <span data-task-count>0 条</span>
-              </div>
-              <div class="result-grid" data-task-list></div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      <!-- Plans / Credits -->
-      <section class="member-section member-section-last">
-        <div class="shell">
+      <section id="recharge" class="member-section member-section-last recharge-section">
+        <div class="recharge-inner">
           <div class="mc-section-header">
             <h2 data-plans-title>积分套餐</h2>
             <p data-plans-subtitle>购买积分，继续创作</p>
@@ -200,8 +432,44 @@
           taskType: "image_to_image",
           authMode: "phone-login",
           tasks: [],
-          uploadedImages: []
+          uploadedImages: [],
+          templatePromptLocked: false
         };
+        const defaultPromptText = "校园，阳光，逆光，清新，日系，女孩，回眸，长发微风，白色衬衫，教学楼背景，浅景深，温柔治愈，青春感，自然光影，胶片质感，8K 高清";
+        const templatePromptText = {
+          "校园阳光少女": defaultPromptText,
+          "毕业季 · 青春纪念": "校园，毕业季，青春纪念，清新，日系，女孩，白色衬衫，教学楼背景，温柔光线，浅景深，纪念写真，8K 高清",
+          "逆光少女": "户外，逆光，清新，日系，少女，回眸，发丝光，柔和背景，治愈氛围，自然肤色，胶片质感，8K 高清",
+          "漫画风校园": "校园，漫画风，清新，日系，女孩，青春感，柔和阳光，干净背景，精致线条，明亮色彩，8K 高清",
+          "照片转日系校园": "参考图，校园氛围，日系清新，保留人物主体，自然光影，统一色调，8K 高清",
+          "人像光影增强": "参考图，人像写真，逆光质感，增强发丝光，保留五官和肤色，背景自然虚化，8K 高清",
+          "胶片风格迁移": "参考图，胶片质感，复古色调，轻颗粒，自然对比，保留画面构图，8K 高清",
+          "背景氛围重塑": "参考图，重塑背景氛围，校园感，柔和光线，保留人物主体，8K 高清"
+        };
+        const demoImagePool = [
+          "./assets/hero-slide-3.webp",
+          "./assets/hero-slide-1.webp",
+          "./assets/hero-slide-2.webp",
+          "./assets/hero-slide-4.webp",
+          "./assets/work-portrait.jpg",
+          "./assets/style-korean.jpg",
+          "./assets/style-french.jpg",
+          "./assets/style-cinematic.jpg"
+        ];
+
+        const fallbackPlans = [
+          { id: "plan_trial", code: "trial", version: "Lite", name: "轻量体验包", price: 19, suffix: "/次", credits: 80, quota: 10, features: ["适合少量出图", "基础模板库", "标准队列"] },
+          { id: "plan_plus", code: "plus", version: "Popular", name: "创作会员", price: 59, suffix: "/月", credits: 320, quota: 40, features: ["模板库全量开放", "生成记录保存", "优先队列"] },
+          { id: "plan_pro", code: "pro", version: "Pro", name: "专业会员", price: 129, suffix: "/月", credits: 800, quota: 100, features: ["高频商拍创作", "批量生成下载", "高级模型优先"] },
+          { id: "plan_team", code: "team", version: "Team", name: "团队包", price: 299, suffix: "/月", credits: 2200, quota: 275, features: ["多人协作额度", "品牌模板沉淀", "专属服务支持"] }
+        ];
+        const fallbackPrompts = [
+          { id: "prompt_campus", title: "校园阳光少女", scene: "校园", creditCost: 8, exampleImageUrl: "./assets/hero-slide-3.webp", userDescription: "适合校园、阳光、清新、日系人像。", categoryTags: ["逆光", "回眸", "青春感"] },
+          { id: "prompt_backlight", title: "逆光少女", scene: "户外", creditCost: 8, exampleImageUrl: "./assets/work-portrait.jpg", userDescription: "保留自然肤色，突出发丝光与浅景深。", categoryTags: ["逆光", "治愈", "日系"] }
+        ];
+        const fallbackModels = [
+          { id: "model_seedream_lite", name: "Doubao-Seedream-5.0-lite", creditCost: { image_to_image: 8, generate: 8, edit: 8 } }
+        ];
 
         const $ = (selector, root = document) => root.querySelector(selector);
         const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -243,6 +511,167 @@
           $("[data-ai-message]").textContent = text || "";
         };
 
+        const updatePromptCount = () => {
+          const count = $("[data-custom-prompt]").value.length;
+          $("[data-prompt-count]").textContent = `${Math.min(count, 500)}/500`;
+        };
+
+        const setTemplatePrompt = (text, locked = false) => {
+          const input = $("[data-template-prompt-input]");
+          input.value = text || "";
+          input.readOnly = locked;
+          input.classList.toggle("is-locked", locked);
+          state.templatePromptLocked = locked;
+          $("[data-template-prompt-state]").textContent = locked ? "模板信息" : "可自定义";
+          $("[data-custom-prompt]").value = text || "";
+          updatePromptCount();
+        };
+
+        const unlockTemplatePrompt = () => {
+          setTemplatePrompt($("[data-template-prompt-input]").value, false);
+        };
+
+        const selectedChipValues = () => $$(".chip-group button.active").map((btn) => btn.textContent.trim());
+
+        const updateKeyInfo = (values = selectedChipValues()) => {
+          const info = values.length ? values.join(" / ") : "未选择关键信息";
+          $("[data-key-info]").textContent = info;
+        };
+
+        const updatePromptFromChips = () => {
+          const chips = selectedChipValues();
+          $("[data-custom-prompt]").value = chips.length
+            ? `${chips.join("，")}，女孩，长发微风，白色衬衫，浅景深，自然光影，8K 高清`
+            : "";
+          updatePromptCount();
+          updateKeyInfo(chips);
+        };
+
+        const activateChipsByText = (tags) => {
+          const tagSet = new Set(tags);
+          $$(".chip-group").forEach((group) => {
+            let matched = false;
+            $$("button", group).forEach((btn) => {
+              const active = tagSet.has(btn.textContent.trim());
+              btn.classList.toggle("active", active);
+              matched = matched || active;
+            });
+            if (!matched) $$("button", group).forEach((btn) => btn.classList.remove("active"));
+          });
+          updateKeyInfo(selectedChipValues());
+        };
+
+        const setCurrentImage = (src) => {
+          const main = $("[data-current-image]");
+          main.src = src;
+          $$(".generation-thumbs button").forEach((btn) => btn.classList.toggle("active", btn.dataset.thumb === src));
+        };
+
+        const setGenerationImages = (images, statusText = "生成完成 ●") => {
+          const safeImages = images.length ? images : demoImagePool.slice(0, 4);
+          $(".current-generation-card").classList.remove("is-template-applied", "is-generating");
+          $("[data-generation-status]").textContent = statusText;
+          $("[data-generation-count]").textContent = `共 ${safeImages.length} 张`;
+          $(".generation-thumbs").innerHTML = safeImages.map((src, index) => `
+            <button class="${index === 0 ? "active" : ""}" type="button" data-thumb="${esc(src)}"><img src="${esc(src)}" alt="" /></button>
+          `).join("");
+          setCurrentImage(safeImages[0]);
+        };
+
+        const setGenerationLoading = (title = "正在生成") => {
+          $(".current-generation-card").classList.remove("is-template-applied");
+          $(".current-generation-card").classList.add("is-generating");
+          $("[data-generation-status]").textContent = "生成中...";
+          $("[data-generation-count]").textContent = title;
+        };
+
+        const setTemplatePending = (images) => {
+          const safeImages = images.length ? images : demoImagePool.slice(0, 4);
+          $(".current-generation-card").classList.remove("is-generating");
+          $(".current-generation-card").classList.add("is-template-applied");
+          $("[data-generation-status]").textContent = "模板已套用，待生成";
+          $("[data-generation-count]").textContent = `共 ${safeImages.length} 张`;
+          $(".generation-thumbs").innerHTML = safeImages.map((src, index) => `
+            <button class="${index === 0 ? "active" : ""}" type="button" data-thumb="${esc(src)}"><img src="${esc(src)}" alt="" /></button>
+          `).join("");
+          setCurrentImage(safeImages[0]);
+        };
+
+        const selectedTemplateCard = () => $("[data-template-card].is-selected:not([hidden])") || $("[data-template-card]:not([hidden])");
+
+        const makeGeneratedImages = () => {
+          const card = selectedTemplateCard();
+          const primary = card?.dataset.templateImage || demoImagePool[0];
+          const templateImages = card?.dataset.templateImages?.split("|").filter(Boolean) || [];
+          if (templateImages.length) {
+            return templateImages.slice(0, Math.max(1, Math.min(4, Number($("[data-image-count]").value || 1))));
+          }
+          return [primary, ...demoImagePool.filter((src) => src !== primary)].slice(0, Math.max(1, Math.min(4, Number($("[data-image-count]").value || 1))));
+        };
+
+        const historyThumbHtml = (images, title) => {
+          const safeImages = images.length ? images : ["./assets/work-portrait.jpg"];
+          return `
+            <div class="history-thumb-grid count-${Math.min(safeImages.length, 4)}">
+              ${safeImages.slice(0, 4).map((src, index) => `<img src="${esc(src)}" alt="${esc(title)}${index + 1}" />`).join("")}
+              ${safeImages.length > 4 ? `<span>+${safeImages.length - 4}</span>` : ""}
+            </div>
+          `;
+        };
+
+        const historyCardHtml = ({ images, title, time, tags }) => `
+          <article class="result-card sample-result-card" data-history-images="${esc(images.join("|"))}">
+            ${historyThumbHtml(images, title)}
+            <div class="result-meta">
+              <strong>${esc(time)}</strong>
+              <p>${tags.slice(0, 4).map((tag) => `<span>${esc(tag)}</span>`).join("")}</p>
+              <button type="button" aria-label="${esc(title)}更多操作">...</button>
+            </div>
+          </article>
+        `;
+
+        const prependGeneratedRecord = (images, title, tags) => {
+          const now = new Date();
+          const pad = (n) => String(n).padStart(2, "0");
+          const time = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+          const list = $("[data-task-list]");
+          list.insertAdjacentHTML("afterbegin", historyCardHtml({ images, title, time, tags }));
+          $$("[data-task-list] .sample-result-card").slice(4).forEach((node) => node.remove());
+          const currentCount = Number($("[data-task-count]").textContent || 24);
+          $("[data-task-count]").textContent = currentCount + 1;
+        };
+
+        const completeGeneratedPreview = ({ images, title, tags }) => {
+          setGenerationImages(images);
+          prependGeneratedRecord(images, title, tags);
+          setMessage("生成完成，已替换当前生成。");
+        };
+
+        const prepareGeneratedPreview = () => {
+          const card = selectedTemplateCard();
+          const title = card?.dataset.templatePrompt || "自定义生成";
+          const tags = card?.dataset.templateTags.split(/\s+/).filter(Boolean) || selectedChipValues();
+          const images = makeGeneratedImages();
+          return { images, title, tags };
+        };
+
+        const generateLocalPreview = () => {
+          const preview = prepareGeneratedPreview();
+          setGenerationLoading(preview.title);
+          window.setTimeout(() => completeGeneratedPreview(preview), 700);
+          setMessage("正在生成...");
+          return preview;
+        };
+
+        const downloadImage = (src, filename) => {
+          const link = document.createElement("a");
+          link.href = src;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+        };
+
         const setAuthMessage = (text) => {
           $("[data-auth-message]").textContent = text || "";
         };
@@ -250,12 +679,15 @@
         // Modal open/close
         const openModal = () => {
           $("[data-auth-backdrop]").classList.add("is-open");
+          $("[data-auth-backdrop]").classList.toggle("auth-required", !state.user);
           $("[data-auth-backdrop]").removeAttribute("aria-hidden");
           $("[data-auth-phone]").focus();
         };
 
         const closeModal = () => {
+          if (!state.user) return;
           $("[data-auth-backdrop]").classList.remove("is-open");
+          $("[data-auth-backdrop]").classList.remove("auth-required");
           $("[data-auth-backdrop]").setAttribute("aria-hidden", "true");
           setAuthMessage("");
         };
@@ -265,17 +697,19 @@
           const credits = state.user?.credits || 0;
           const loggedIn = !!state.user;
 
-          $("[data-login-state]").textContent = loggedIn ? "已登录" : "未登录";
-          $("[data-current-plan]").textContent = membership ? membership.planName : "未开通";
-          $("[data-credit-balance]").textContent = credits;
-          $("[data-form-credit]").textContent = credits;
-          $("[data-member-state]").textContent = loggedIn
+          $$("[data-login-state]").forEach((node) => { node.textContent = loggedIn ? "已登录" : "未登录"; });
+          $$("[data-current-plan]").forEach((node) => { node.textContent = membership ? membership.planName : "未开通"; });
+          $$("[data-credit-balance]").forEach((node) => { node.textContent = credits; });
+          $$("[data-form-credit]").forEach((node) => { node.textContent = credits; });
+          $$("[data-member-state]").forEach((node) => { node.textContent = loggedIn
             ? (membership ? `${membership.planName} · ${state.user.phone}` : `已登录 · ${state.user.phone}`)
-            : "未登录";
+            : "未登录"; });
 
-          $("[data-login-toggle]").textContent = loggedIn ? "账号信息" : "登录 / 注册";
-          $("[data-login-toggle]").style.display = loggedIn ? "none" : "";
-          $("[data-logout]").style.display = loggedIn ? "" : "none";
+          $$(".member-login-toggle[data-login-toggle]").forEach((btn) => {
+            btn.textContent = loggedIn ? "账号信息" : "登录 / 注册";
+            btn.style.display = loggedIn ? "none" : "";
+          });
+          $$("[data-logout]").forEach((btn) => { btn.style.display = loggedIn ? "" : "none"; });
 
           // Plans section: title changes based on login state
           $("[data-plans-title]").textContent = loggedIn ? "购买积分" : "会员套餐";
@@ -319,7 +753,18 @@
           });
           const needsUpload = state.taskType !== "generate";
           $("[data-upload-field]").classList.toggle("is-visible", needsUpload);
+          $(".prompt-chip-groups").classList.toggle("is-hidden", needsUpload);
+          $("[data-template-prompt-field]").classList.toggle("is-visible", needsUpload);
+          $(".key-info-box").classList.toggle("is-hidden", needsUpload);
           if (!needsUpload) clearUpload();
+          if (needsUpload) {
+            if (!$("[data-template-prompt-input]").value) {
+              setTemplatePrompt("保留参考图主体与自然肤色，调整画面风格和光影氛围。", false);
+            }
+          } else {
+            unlockTemplatePrompt();
+            updatePromptFromChips();
+          }
         };
 
         // ── Image compress + preview ──────────────────────────────
@@ -448,8 +893,26 @@
           }
         };
 
+        const pastedImageFiles = (clipboardData) => Array.from(clipboardData?.items || [])
+          .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+          .map((item) => item.getAsFile())
+          .filter(Boolean);
+
+        const handlePasteImages = (e) => {
+          if (e.defaultPrevented) return;
+          const files = pastedImageFiles(e.clipboardData);
+          if (!files.length || state.taskType === "generate") return;
+          e.preventDefault();
+          handleImageFiles(files);
+        };
+
         const renderPromptOptions = async () => {
-          const data = await api(`/api/prompts?taskType=${state.taskType}`);
+          let data;
+          try {
+            data = await api(`/api/prompts?taskType=${state.taskType}`);
+          } catch {
+            data = { prompts: fallbackPrompts };
+          }
           state.prompts = data.prompts;
           $("[data-prompt-select]").innerHTML = state.prompts.map((p) => `<option value="${p.id}">${esc(p.title)} · ${esc(p.scene)}</option>`).join("");
           renderPromptPlan();
@@ -476,7 +939,12 @@
         };
 
         const renderModels = async () => {
-          const data = await api(`/api/ai-models?taskType=${state.taskType}`);
+          let data;
+          try {
+            data = await api(`/api/ai-models?taskType=${state.taskType}`);
+          } catch {
+            data = { models: fallbackModels, preferredModelId: fallbackModels[0].id };
+          }
           state.models = data.models;
           $("[data-model-select]").innerHTML = state.models.map((m) => `<option value="${m.id}">${m.name}</option>`).join("");
           if (data.preferredModelId) $("[data-model-select]").value = data.preferredModelId;
@@ -499,27 +967,22 @@
 
         const renderTasks = () => {
           const list = $("[data-task-list]");
-          $("[data-task-count]").textContent = `${state.tasks.length} 条`;
+          $("[data-task-count]").textContent = state.tasks.length || 24;
           if (!state.tasks.length) {
-            list.innerHTML = `<p class="empty-task">暂无生成记录。</p>`;
+            list.innerHTML = [
+              { images: ["./assets/hero-slide-3.webp", "./assets/hero-slide-1.webp", "./assets/hero-slide-2.webp", "./assets/hero-slide-4.webp"], title: "校园阳光少女", time: "2024-06-04 14:30", tags: ["校园", "逆光", "清新", "日系"] },
+              { images: ["./assets/work-portrait.jpg"], title: "毕业季纪念", time: "2024-06-04 14:25", tags: ["校园", "侧光", "清新", "日系"] },
+              { images: ["./assets/style-korean.jpg", "./assets/style-french.jpg"], title: "日系回眸", time: "2024-06-04 14:20", tags: ["校园", "逆光", "胶片", "日系"] },
+              { images: ["./assets/style-french.jpg"], title: "晨光少女", time: "2024-06-04 14:15", tags: ["校园", "晨光", "清新"] }
+            ].map(historyCardHtml).join("");
             return;
           }
           list.innerHTML = state.tasks.map((task) => {
             const resultImages = task.resultImageUrls || [];
+            const firstImage = resultImages[0] || "./assets/work-portrait.jpg";
+            const tags = [statusText(task.status), task.aiModelName, `${task.count} 张`, `${task.creditCost} 积分`].filter(Boolean);
             return `
-            <article class="result-card">
-              <div class="result-thumbs">
-                ${resultImages.length
-                  ? resultImages.map((url, index) => `<img src="${esc(url)}" alt="${esc(task.promptTitle)}结果 ${index + 1}" />`).join("")
-                  : `<img src="./assets/work-portrait.jpg" alt="${esc(task.promptTitle)}占位图" />`}
-              </div>
-              <div class="result-meta">
-                <strong>${esc(task.promptTitle)}</strong>
-                <span>${statusText(task.status)} · ${esc(task.aiModelName)} · ${task.count} 张 · ${task.creditCost} 积分</span>
-                ${task.failureReason ? `<span>${esc(task.failureReason)}</span>` : ""}
-                ${resultImages.map((url, index) => `<a href="${esc(url)}" download>下载${resultImages.length > 1 ? ` ${index + 1}` : "图片"}</a>`).join("")}
-              </div>
-            </article>
+            ${historyCardHtml({ images: resultImages.length ? resultImages : [firstImage], title: task.promptTitle, time: task.createdAt || task.updatedAt || task.promptTitle, tags })}
           `;
           }).join("");
         };
@@ -537,6 +1000,9 @@
             await loadTasks();
             const task = state.tasks.find((t) => t.id === taskId);
             if (!task || task.status === "succeeded" || task.status === "failed") {
+              if (task?.status === "succeeded" && task.resultImageUrls?.length) {
+                setGenerationImages(task.resultImageUrls);
+              }
               setMessage(task?.status === "succeeded" ? "任务已完成，可在右侧查看和下载。" : (task?.failureReason || "任务处理结束。"));
               return;
             }
@@ -553,7 +1019,10 @@
         };
 
         const initAuth = () => {
-          $("[data-login-toggle]").addEventListener("click", openModal);
+          $$("[data-login-toggle]").forEach((btn) => btn.addEventListener("click", () => {
+            if (state.user) return;
+            openModal();
+          }));
 
           $("[data-auth-close]").addEventListener("click", closeModal);
           $("[data-auth-backdrop]").addEventListener("click", (e) => {
@@ -609,22 +1078,48 @@
             }
           });
 
-          $("[data-logout]").addEventListener("click", async () => {
+          $$("[data-logout]").forEach((btn) => btn.addEventListener("click", async () => {
             try {
               await api("/api/auth/logout", { method: "POST", body: JSON.stringify({ refreshToken: localStorage.getItem(refreshKey) }) });
             } catch { /* ignore */ }
             clearSession();
             updateMemberState();
             renderTasks();
-          });
+            openModal();
+          }));
         };
 
         const initStudio = () => {
+          $$(".chip-group").forEach((group) => {
+            group.addEventListener("click", (e) => {
+              const btn = e.target.closest("button");
+              if (!btn) return;
+              $$("button", group).forEach((item) => item.classList.toggle("active", item === btn));
+              updatePromptFromChips();
+            });
+          });
+          $(".clear-prompt-btn").addEventListener("click", () => {
+            $$(".chip-group button").forEach((btn) => btn.classList.remove("active"));
+            $("[data-user-instruction]").value = "";
+            $("[data-custom-prompt]").value = "";
+            setTemplatePrompt("", false);
+            updatePromptCount();
+            updateKeyInfo([]);
+            setMessage("");
+          });
+          $("[data-custom-prompt]").addEventListener("input", updatePromptCount);
+          $("[data-template-prompt-input]").addEventListener("input", (e) => {
+            if (state.templatePromptLocked) return;
+            $("[data-custom-prompt]").value = e.target.value;
+            updatePromptCount();
+          });
+
           $("[data-task-type]").addEventListener("click", (e) => {
             const btn = e.target.closest("button");
             if (!btn) return;
             state.taskType = btn.dataset.type;
             updateTaskTypeButtons();
+            filterTemplates();
             Promise.all([renderPromptOptions(), renderModels()]);
           });
 
@@ -649,6 +1144,11 @@
             zone.classList.remove("drag-over");
             handleImageFiles(e.dataTransfer.files);
           });
+          zone.addEventListener("paste", handlePasteImages);
+          document.addEventListener("paste", (e) => {
+            if (!$("[data-upload-field]").classList.contains("is-visible")) return;
+            handlePasteImages(e);
+          });
           zone.addEventListener("click", (e) => {
             const btn = e.target.closest("[data-remove-upload]");
             if (!btn) return;
@@ -666,20 +1166,22 @@
           // Submit with loading state
           const submitBtn = $("[data-submit-ai]");
           $("[data-submit-ai]").addEventListener("click", async () => {
-            if (!state.user) { openModal(); return; }
-            if (!state.user.membership) {
-              setMessage("请先购买积分套餐。");
-              document.querySelector(".member-section-last").scrollIntoView({ behavior: "smooth", block: "start" });
-              return;
+            if (state.user) {
+              if (!state.user.membership) {
+                setMessage("请先购买积分套餐。");
+                return;
+              }
+              if (state.taskType !== "generate" && !state.uploadedImages.length) {
+                setMessage("该任务类型需要先上传参考图。");
+                return;
+              }
+              if (!$("[data-custom-prompt]").value.trim() && !$("[data-prompt-select]").value) {
+                setMessage("请选择创作方案，或输入完整自定义提示词。");
+                return;
+              }
             }
-            if (state.taskType !== "generate" && !state.uploadedImages.length) {
-              setMessage("该任务类型需要先上传参考图。");
-              return;
-            }
-            if (!$("[data-custom-prompt]").value.trim() && !$("[data-prompt-select]").value) {
-              setMessage("请选择创作方案，或输入完整自定义提示词。");
-              return;
-            }
+            generateLocalPreview();
+            if (!state.user) { return; }
             submitBtn.disabled = true;
             submitBtn.textContent = "提交中…";
             setMessage("");
@@ -703,15 +1205,126 @@
               state.tasks.unshift(data.task);
               updateMemberState();
               renderTasks();
+              if (data.task.resultImageUrls?.length) setGenerationImages(data.task.resultImageUrls);
               setMessage("任务已提交，正在生成中…");
               watchTaskUntilDone(data.task.id);
             } catch (e) {
-              setMessage(e.message);
+              setMessage(`${e.message}，已保留本地预览。`);
             } finally {
               submitBtn.disabled = false;
-              submitBtn.textContent = "提交 AI 任务";
+              submitBtn.textContent = "生成图片 ✨";
             }
           });
+
+          $(".generation-thumbs").addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-thumb]");
+            if (!btn) return;
+            setCurrentImage(btn.dataset.thumb);
+          });
+
+          $("[data-task-list]").addEventListener("click", (e) => {
+            const card = e.target.closest("[data-history-images]");
+            if (!card) return;
+            const images = card.dataset.historyImages.split("|").filter(Boolean);
+            setGenerationImages(images);
+            setMessage("已切换到所选生成记录。");
+          });
+
+          $("[data-download-current]").addEventListener("click", () => {
+            downloadImage($("[data-current-image]").getAttribute("src"), "ai-photo-current.webp");
+            setMessage("已开始下载当前图片。");
+          });
+
+          $("[data-download-all]").addEventListener("click", () => {
+            $$(".generation-thumbs button").forEach((btn, index) => downloadImage(btn.dataset.thumb, `ai-photo-${index + 1}.webp`));
+            setMessage("已开始下载全部图片。");
+          });
+
+          $("[data-share-current]").addEventListener("click", async () => {
+            const url = new URL($("[data-current-image]").getAttribute("src"), window.location.href).href;
+            try {
+              if (navigator.share) {
+                await navigator.share({ title: "光影AI 生成图片", url });
+              } else if (navigator.clipboard) {
+                await navigator.clipboard.writeText(url);
+                setMessage("图片链接已复制。");
+              } else {
+                setMessage(url);
+              }
+            } catch {
+              setMessage("分享已取消。");
+            }
+          });
+
+          $(".template-grid").addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-apply-template]");
+            const card = e.target.closest("[data-template-card]");
+            if (!card || !btn) return;
+            $$("[data-template-card]").forEach((item) => item.classList.toggle("is-selected", item === card));
+            const title = card.dataset.templatePrompt;
+            const tags = card.dataset.templateTags.split(/\s+/).filter(Boolean);
+            const prompt = templatePromptText[title] || `${title}，${tags.join("，")}，8K 高清`;
+            const option = $$("[data-prompt-select] option").find((item) => item.textContent.includes(title.replace(" · ", "")) || item.textContent.includes(title));
+            if (option) {
+              $("[data-prompt-select]").value = option.value;
+              renderPromptPlan();
+              updateCost();
+            }
+            activateChipsByText(tags);
+            $("[data-custom-prompt]").value = prompt;
+            updatePromptCount();
+            updateKeyInfo(tags);
+            if (state.taskType !== "generate") {
+              setTemplatePrompt(tags.join(" / "), false);
+              $("[data-template-prompt-state]").textContent = "模板信息，可修改";
+            }
+            const templateImages = card.dataset.templateImages?.split("|").filter(Boolean) || [card.dataset.templateImage];
+            setTemplatePending(templateImages);
+            setMessage(`已套用「${title}」，点击生成图片后替换当前生成。`);
+          });
+
+          const filterTemplates = () => {
+            const keyword = $(".template-head input").value.trim().toLowerCase();
+            const moreFilter = $("[data-template-more-menu] button.active")?.dataset.templateFilter;
+            const activeFilter = moreFilter || $(".template-tabs button.active").dataset.templateFilter;
+            $$("[data-template-card]").forEach((card) => {
+              const text = `${card.dataset.templatePrompt} ${card.dataset.templateTags}`.toLowerCase();
+              const matchesMode = card.dataset.templateMode === state.taskType;
+              const matchesKeyword = !keyword || text.includes(keyword);
+              const matchesFilter = activeFilter === "全部" || text.includes(activeFilter.toLowerCase());
+              card.hidden = !(matchesMode && matchesKeyword && matchesFilter);
+            });
+            if (!$("[data-template-card].is-selected:not([hidden])")) {
+              const firstVisible = $("[data-template-card]:not([hidden])");
+              $$("[data-template-card]").forEach((item) => item.classList.toggle("is-selected", item === firstVisible));
+            }
+          };
+
+          $(".template-tabs").addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-template-filter]");
+            if (!btn) return;
+            if (btn.dataset.templateFilter === "更多") {
+              $("[data-template-more-menu]").classList.toggle("is-open");
+              return;
+            }
+            $("[data-template-more-menu]").classList.remove("is-open");
+            $$(".template-tabs button").forEach((item) => item.classList.toggle("active", item === btn));
+            $$("[data-template-more-menu] button").forEach((item) => item.classList.remove("active"));
+            filterTemplates();
+          });
+          $("[data-template-more-menu]").addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-template-filter]");
+            if (!btn) return;
+            $$(".template-tabs button").forEach((item) => item.classList.remove("active"));
+            $("[data-template-filter='更多']").classList.add("active");
+            $$("[data-template-more-menu] button").forEach((item) => item.classList.toggle("active", item === btn));
+            $("[data-template-more-menu]").classList.remove("is-open");
+            filterTemplates();
+          });
+          $(".template-head input").addEventListener("input", filterTemplates);
+          filterTemplates();
+          updatePromptCount();
+          updateKeyInfo();
         };
 
         const initPlans = () => {
@@ -740,15 +1353,15 @@
           updateAuthMode();
           updateTaskTypeButtons();
           try {
-            const planData = await api("/api/membership-plans");
+            const planData = await api("/api/membership-plans").catch(() => ({ plans: fallbackPlans }));
             state.plans = planData.plans;
             await refreshMe();
             renderPlans();
             await Promise.all([renderPromptOptions(), renderModels(), loadTasks()]);
-            const planCode = new URLSearchParams(window.location.search).get("plan");
-            if (planCode && !state.user) openModal();
+            if (!state.user) openModal();
           } catch (e) {
             setMessage(e.message);
+            if (!state.user) openModal();
           }
           updateMemberState();
           renderTasks();

@@ -69,6 +69,10 @@ const isSeedreamModel = (model) => {
   const code = String(model?.model_code || model?.modelCode || "").trim().toLowerCase();
   return code.includes("seedream");
 };
+const imageSizePixels = (size) => {
+  const match = String(size || "").match(/^(\d+)x(\d+)$/);
+  return match ? Number(match[1]) * Number(match[2]) : 0;
+};
 const normalizeImageSize = (size, model) => {
   if (isGptImageModel(model)) {
     const map = {
@@ -82,7 +86,8 @@ const normalizeImageSize = (size, model) => {
     return map[size] || size || "1024x1024";
   }
   const map = { "1:1": "2048x2048", "3:4": "1728x2304", "16:9": "2560x1440" };
-  return map[size] || size || "2048x2048";
+  const normalized = map[size] || size || "2048x2048";
+  return imageSizePixels(normalized) && imageSizePixels(normalized) < 3686400 ? "2048x2048" : normalized;
 };
 const sanitizeImageParams = (model, params) => {
   const sanitized = { ...(params || {}) };
@@ -1331,7 +1336,7 @@ const routeApi = async (req, res, url) => {
         [
           id, body.provider || "custom", body.name || "未命名模型", body.modelCode || "custom-model", body.baseUrl || "",
           encrypt(apiKey), maskSecret(apiKey), body.authType || "bearer", jsonText(body.supportedTaskTypes || ["generate"]),
-          body.defaultSize || "1024x1024", jsonText(defaultParams), jsonText(body.creditCostConfig || { generate: 5, edit: 8 }),
+          body.defaultSize || "1:1", jsonText(defaultParams), jsonText(body.creditCostConfig || { generate: 5, edit: 8 }),
           jsonText(body.costConfig || {}), jsonText(body.testPayload || {}), Number(body.timeoutSeconds || 60), Number(body.retryLimit || 0), Number(body.concurrencyLimit || 4), body.version || "2026.04", body.remark || ""
         ]
       );

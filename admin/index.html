@@ -1242,7 +1242,7 @@
               if (toggleButton) await api(`/api/admin/ai-models/${toggleButton.dataset.toggle}/status`, { method: "PATCH", body: JSON.stringify({ isActive: toggleButton.dataset.active === "1" }) });
               if (testButton) {
                 const model = cache.models.find((item) => item.id === testButton.dataset.test);
-                await api(`/api/admin/ai-models/${testButton.dataset.test}/test`, { method: "POST", body: JSON.stringify({ taskType: "generate", prompt: "一张柔光人像测试图", size: model?.defaultSize || "1024x1024", count: 1 }) });
+                await api(`/api/admin/ai-models/${testButton.dataset.test}/test`, { method: "POST", body: JSON.stringify({ taskType: "generate", prompt: "一张柔光人像测试图", size: model?.defaultSize || "1:1", count: 1 }) });
               }
               await loadModels();
               setModelMessage("操作已完成。");
