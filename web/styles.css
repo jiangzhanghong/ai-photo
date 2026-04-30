@@ -2208,59 +2208,91 @@ blockquote em {
 
 .image-control-popover {
   position: absolute;
-  right: 0;
-  top: 40px;
+  top: 42px;
   z-index: 5;
   display: grid;
-  width: min(342px, calc(100vw - 32px));
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid #dfe5f0;
-  border-radius: 10px;
+  gap: 0;
+  padding: 0;
+  border: 1px solid #e4e9f4;
+  border-radius: 14px;
   background: #fff;
-  box-shadow: 0 14px 30px rgba(31, 39, 66, 0.14);
+  box-shadow: 0 8px 24px rgba(31, 39, 66, 0.10), 0 2px 6px rgba(31, 39, 66, 0.06);
+  overflow: hidden;
+}
+
+.image-control-popover section {
+  padding: 14px 14px 12px;
+}
+
+.image-control-popover section + section {
+  border-top: 1px solid #f0f3fa;
+}
+
+.image-control-popover section:first-child {
+  border-radius: 14px 14px 0 0;
+}
+
+.image-control-popover section:last-child {
+  border-radius: 0 0 14px 14px;
+}
+
+/* ratio section 撑满宽度，滚动不被截断 */
+.image-control-popover section:nth-child(2) {
+  padding-left: 0;
+  padding-right: 0;
+  padding-bottom: 14px;
+}
+
+.image-control-popover section:nth-child(2) h3 {
+  padding-left: 14px;
+  padding-right: 14px;
 }
 
 .image-control-popover h3 {
-  margin: 0 0 6px;
-  color: #555d70;
+  margin: 0 0 8px;
+  color: #8892a4;
   font-size: 11px;
-  font-weight: 500;
-}
-
-.resolution-tabs,
-.ratio-grid {
-  border-radius: 10px;
-  background: #f4f6fb;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .resolution-tabs {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   padding: 3px;
+  border-radius: 10px;
+  background: #f2f4fb;
 }
 
 .resolution-tabs button {
-  height: 30px;
-  border-radius: 7px;
+  min-width: 0;
+  height: 32px;
+  border-radius: 8px;
   background: transparent;
-  color: #42475b;
+  color: #555d70;
   font-size: 13px;
   font-weight: 500;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.resolution-tabs button:hover {
+  background: rgba(255, 255, 255, 0.66);
 }
 
 .resolution-tabs button.active {
   background: #fff;
   color: #111827;
-  box-shadow: 0 0 0 1px #dbe1f0;
+  box-shadow: 0 1px 4px rgba(31, 39, 66, 0.10);
 }
 
 .ratio-grid {
   display: flex;
-  gap: 2px;
-  padding: 4px;
+  gap: 3px;
+  padding: 3px 14px;
   overflow-x: auto;
   scrollbar-width: none;
+  background: #f2f4fb;
 }
 
 .ratio-grid::-webkit-scrollbar {
@@ -2268,24 +2300,30 @@ blockquote em {
 }
 
 .ratio-grid button {
-  flex: 0 0 42px;
+  flex: 0 0 44px;
   display: grid;
   place-items: center;
-  gap: 4px;
-  min-height: 46px;
-  border-radius: 7px;
+  gap: 5px;
+  min-height: 50px;
+  border-radius: 8px;
   background: transparent;
   color: #353a4e;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.ratio-grid button:hover {
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .ratio-grid button.active {
   background: #fff;
-  box-shadow: 0 0 0 1px #dbe1f0;
+  box-shadow: 0 1px 4px rgba(31, 39, 66, 0.10);
 }
 
 .ratio-grid b {
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 600;
+  color: inherit;
 }
 
 .ratio-symbol {
@@ -2300,9 +2338,17 @@ blockquote em {
   position: absolute;
   left: 50%;
   top: 50%;
-  border: 1.5px solid #4a5064;
+  border: 1.5px solid #5a6078;
   border-radius: 3px;
   transform: translate(-50%, -50%);
+}
+
+.ratio-grid button.active .ratio-symbol::before {
+  border-color: #3b6ef8;
+}
+
+.ratio-grid button.active b {
+  color: #3b6ef8;
 }
 
 .ratio-symbol.smart::before {
@@ -2317,9 +2363,13 @@ blockquote em {
   top: 5px;
   width: 4px;
   height: 4px;
-  border: 1px solid #4a5064;
+  border: 1px solid #5a6078;
   border-radius: 2px;
   background: #fff;
+}
+
+.ratio-grid button.active .ratio-symbol.smart::after {
+  border-color: #3b6ef8;
 }
 
 .ratio-symbol.square::before {
@@ -2347,7 +2397,7 @@ blockquote em {
 
 .dimension-row {
   display: grid;
-  grid-template-columns: 1fr 22px 1fr;
+  grid-template-columns: 1fr 20px 1fr;
   align-items: center;
   gap: 6px;
 }
@@ -2359,31 +2409,40 @@ blockquote em {
 
 .dimension-row label span {
   position: absolute;
-  left: 12px;
+  left: 10px;
   top: 50%;
-  color: #454a5f;
-  font-size: 12px;
+  color: #8892a4;
+  font-size: 11px;
+  font-weight: 600;
   transform: translateY(-50%);
+  pointer-events: none;
 }
 
 .dimension-row input {
   width: 100%;
-  height: 32px;
-  padding: 0 10px 0 30px;
+  height: 34px;
+  padding: 0 10px 0 28px;
   border: 1px solid #dbe2ef;
   border-radius: 8px;
-  background: #fff;
+  background: #f8fafd;
   color: #303648;
-  font-size: 12px;
+  font-size: 13px;
   text-align: right;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.dimension-row input:focus {
+  outline: none;
+  border-color: #3b6ef8;
+  background: #fff;
 }
 
 .dimension-row em {
-  width: 14px;
-  height: 7px;
+  width: 12px;
+  height: 6px;
   justify-self: center;
-  border-top: 2px solid #727989;
-  border-bottom: 2px solid #727989;
+  border-top: 1.5px solid #9aa0b4;
+  border-bottom: 1.5px solid #9aa0b4;
   border-radius: 8px;
 }
 
@@ -2392,7 +2451,6 @@ blockquote em {
     grid-template-columns: 1fr;
   }
 
-  .image-control-popover,
   .count-menu {
     right: auto;
     left: 0;
@@ -2556,7 +2614,7 @@ blockquote em {
 
 .generation-modal {
   position: relative;
-  width: min(920px, calc(100vw - 48px));
+  width: min(var(--generation-modal-width, 920px), calc(100vw - 48px));
   max-height: calc(100vh - 48px);
   padding: 16px;
   border: 1px solid #e0e5e2;
@@ -2620,17 +2678,19 @@ blockquote em {
 
 .generation-preview {
   position: relative;
-  height: min(64vh, 620px);
-  min-height: 360px;
+  aspect-ratio: var(--generation-ratio, 16 / 9);
+  width: 100%;
+  max-height: min(64vh, 620px);
+  min-height: 0;
   overflow: hidden;
   border-radius: 6px;
-  background: #e7ebe8;
+  background: #eef2ef;
 }
 
 .generation-preview > img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .generation-thumbs {
@@ -3380,8 +3440,7 @@ blockquote em {
   }
 
   .generation-preview {
-    height: min(62vh, 520px);
-    min-height: 320px;
+    max-height: min(62vh, 520px);
   }
 
   .generation-thumbs {
@@ -3480,14 +3539,13 @@ blockquote em {
   }
 
   .generation-modal {
-    width: calc(100vw - 28px);
+    width: min(var(--generation-modal-width, 920px), calc(100vw - 28px));
     max-height: calc(100vh - 28px);
     padding: 14px;
   }
 
   .generation-preview {
-    height: min(58vh, 520px);
-    min-height: 260px;
+    max-height: min(58vh, 520px);
   }
 
   .generation-thumbs {

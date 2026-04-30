@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>会员中心 - 光影AI</title>
-    <link rel="stylesheet" href="./styles.css?v=20260429-member-compact" />
+    <link rel="stylesheet" href="./styles.css?v=20260430-modal-ratio-fix" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -541,6 +541,8 @@
           "./assets/style-french.jpg",
           "./assets/style-cinematic.jpg"
         ];
+        const generationImageMetrics = new Map();
+        let generationImageToken = 0;
 
         const fallbackPlans = [
           { id: "plan_trial", code: "trial", version: "Lite", name: "轻量体验包", price: 19, suffix: "/次", credits: 80, quota: 10, features: ["适合少量出图", "基础模板库", "标准队列"] },
@@ -659,9 +661,50 @@
           backdrop.setAttribute("aria-hidden", "true");
         };
 
+        const setGenerationImageFrame = (width, height) => {
+          const modal = $(".generation-modal");
+          const safeWidth = Math.max(1, Number(width) || 16);
+          const safeHeight = Math.max(1, Number(height) || 9);
+          const ratio = safeWidth / safeHeight;
+          const compact = window.innerWidth <= 1180;
+          const medium = window.innerWidth <= 1600;
+          const backdropPad = compact ? 28 : 48;
+          const modalPadding = compact ? 28 : 32;
+          const maxPreviewHeight = Math.min(
+            window.innerHeight * (compact ? 0.58 : medium ? 0.62 : 0.64),
+            compact || medium ? 520 : 620
+          );
+          const availablePreviewWidth = Math.max(220, window.innerWidth - backdropPad - modalPadding);
+          const previewWidth = Math.min(availablePreviewWidth, maxPreviewHeight * ratio);
+          modal.style.setProperty("--generation-ratio", `${safeWidth} / ${safeHeight}`);
+          modal.style.setProperty("--generation-modal-width", `${Math.ceil(previewWidth + modalPadding)}px`);
+        };
+
+        const updateGenerationImageFrame = (src) => {
+          const cached = generationImageMetrics.get(src);
+          const token = ++generationImageToken;
+          if (cached) {
+            setGenerationImageFrame(cached.width, cached.height);
+            return;
+          }
+          const probe = new Image();
+          probe.onload = () => {
+            if (token !== generationImageToken) return;
+            const metrics = { width: probe.naturalWidth, height: probe.naturalHeight };
+            generationImageMetrics.set(src, metrics);
+            setGenerationImageFrame(metrics.width, metrics.height);
+          };
+          probe.onerror = () => {
+            if (token !== generationImageToken) return;
+            setGenerationImageFrame(16, 9);
+          };
+          probe.src = src;
+        };
+
         const setCurrentImage = (src) => {
           const main = $("[data-current-image]");
           main.src = src;
+          updateGenerationImageFrame(src);
           $$(".generation-thumbs button").forEach((btn) => btn.classList.toggle("active", btn.dataset.thumb === src));
         };
 
@@ -1541,6 +1584,11 @@
           document.addEventListener("keydown", (e) => {
             if (e.key === "Escape" && $("[data-generation-backdrop]").classList.contains("is-open")) {
               closeGenerationModal();
+            }
+          });
+          window.addEventListener("resize", () => {
+            if ($("[data-generation-backdrop]").classList.contains("is-open")) {
+              updateGenerationImageFrame($("[data-current-image]").getAttribute("src"));
             }
           });
 
