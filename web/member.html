@@ -92,6 +92,8 @@
             <button class="active" type="button" data-type="image_to_image">以图生图</button>
           </div>
 
+          <div class="segmented prompt-category-tabs" data-prompt-category-tabs></div>
+
           <div class="prompt-chip-groups" aria-label="提示词快捷项">
             <div class="chip-group">
               <span>场景</span>
@@ -299,146 +301,22 @@
               <input type="search" placeholder="搜索模板关键词" />
             </label>
           </div>
-          <div class="template-tabs" aria-label="模板分类">
-            <button class="active" type="button" data-template-filter="全部">全部</button>
-            <button type="button" data-template-filter="校园">校园</button>
-            <button type="button" data-template-filter="写真">写真</button>
-            <button type="button" data-template-filter="情侣">情侣</button>
-            <button type="button" data-template-filter="日系">日系</button>
-            <button type="button" data-template-filter="清新">清新</button>
-            <button type="button" data-template-filter="胶片">胶片</button>
-            <button type="button" data-template-filter="更多">更多</button>
-          </div>
-          <div class="template-more-menu" data-template-more-menu>
-            <button type="button" data-template-filter="复古">复古</button>
-            <button type="button" data-template-filter="漫画">漫画</button>
-            <button type="button" data-template-filter="参考图">参考图</button>
-            <button type="button" data-template-filter="人像">人像</button>
-          </div>
-          <div class="template-grid">
-            <article class="template-card is-selected" data-template-card data-template-mode="generate" data-template-prompt="校园阳光少女" data-template-tags="校园 阳光 清新 日系" data-template-image="./assets/hero-slide-3.webp" data-template-images="./assets/hero-slide-3.webp|./assets/hero-slide-1.webp|./assets/hero-slide-2.webp|./assets/hero-slide-4.webp">
-              <div class="template-preview">
-                <img src="./assets/hero-slide-3.webp" alt="校园阳光少女模板" />
-                <div class="template-hover-grid" aria-hidden="true">
-                  <img src="./assets/hero-slide-3.webp" alt="" />
-                  <img src="./assets/hero-slide-1.webp" alt="" />
-                  <img src="./assets/hero-slide-2.webp" alt="" />
-                  <img src="./assets/hero-slide-4.webp" alt="" />
-                </div>
-              </div>
-              <h3>校园阳光少女</h3>
-              <p>校园 / 阳光 / 清新 / 日系</p>
-              <span>8 积分/张</span>
-              <button type="button" data-apply-template>一键套用</button>
-            </article>
-            <article class="template-card" data-template-card data-template-mode="generate" data-template-prompt="毕业季 · 青春纪念" data-template-tags="校园 毕业 清新 纪念 日系" data-template-image="./assets/style-korean.jpg" data-template-images="./assets/style-korean.jpg|./assets/hero-slide-3.webp|./assets/style-french.jpg|./assets/work-portrait.jpg">
-              <div class="template-preview">
-                <img src="./assets/style-korean.jpg" alt="毕业季青春纪念模板" />
-                <div class="template-hover-grid" aria-hidden="true">
-                  <img src="./assets/style-korean.jpg" alt="" />
-                  <img src="./assets/hero-slide-3.webp" alt="" />
-                  <img src="./assets/style-french.jpg" alt="" />
-                  <img src="./assets/work-portrait.jpg" alt="" />
-                </div>
-              </div>
-              <h3>毕业季 · 青春纪念</h3>
-              <p>校园 / 毕业 / 清新 / 纪念</p>
-              <span>8 积分/张</span>
-              <button type="button" data-apply-template>一键套用</button>
-            </article>
-            <article class="template-card" data-template-card data-template-mode="generate" data-template-prompt="逆光少女" data-template-tags="逆光 清新 日系 治愈 写真" data-template-image="./assets/work-portrait.jpg" data-template-images="./assets/work-portrait.jpg|./assets/hero-slide-3.webp|./assets/hero-slide-2.webp|./assets/style-korean.jpg">
-              <div class="template-preview">
-                <img src="./assets/work-portrait.jpg" alt="逆光少女模板" />
-                <div class="template-hover-grid" aria-hidden="true">
-                  <img src="./assets/work-portrait.jpg" alt="" />
-                  <img src="./assets/hero-slide-3.webp" alt="" />
-                  <img src="./assets/hero-slide-2.webp" alt="" />
-                  <img src="./assets/style-korean.jpg" alt="" />
-                </div>
-              </div>
-              <h3>逆光少女</h3>
-              <p>逆光 / 清新 / 日系 / 治愈</p>
-              <span>8 积分/张</span>
-              <button type="button" data-apply-template>一键套用</button>
-            </article>
-            <article class="template-card" data-template-card data-template-mode="generate" data-template-prompt="漫画风校园" data-template-tags="校园 漫画 清新 日系 更多" data-template-image="./assets/style-cinematic.jpg" data-template-images="./assets/style-cinematic.jpg|./assets/hero-slide-2.webp|./assets/hero-slide-4.webp|./assets/style-french.jpg">
-              <div class="template-preview">
-                <img src="./assets/style-cinematic.jpg" alt="漫画风校园模板" />
-                <div class="template-hover-grid" aria-hidden="true">
-                  <img src="./assets/style-cinematic.jpg" alt="" />
-                  <img src="./assets/hero-slide-2.webp" alt="" />
-                  <img src="./assets/hero-slide-4.webp" alt="" />
-                  <img src="./assets/style-french.jpg" alt="" />
-                </div>
-              </div>
-              <h3>漫画风校园</h3>
-              <p>校园 / 漫画 / 清新 / 日系</p>
-              <span>8 积分/张</span>
-              <button type="button" data-apply-template>一键套用</button>
-            </article>
-            <article class="template-card" data-template-card data-template-mode="image_to_image" data-template-prompt="照片转日系校园" data-template-tags="参考图 校园 日系 清新 人像" data-template-image="./assets/hero-slide-1.webp" data-template-images="./assets/hero-slide-1.webp|./assets/hero-slide-3.webp|./assets/hero-slide-2.webp|./assets/style-korean.jpg" hidden>
-              <div class="template-preview">
-                <img src="./assets/hero-slide-1.webp" alt="照片转日系校园模板" />
-                <div class="template-hover-grid" aria-hidden="true">
-                  <img src="./assets/hero-slide-1.webp" alt="" />
-                  <img src="./assets/hero-slide-3.webp" alt="" />
-                  <img src="./assets/hero-slide-2.webp" alt="" />
-                  <img src="./assets/style-korean.jpg" alt="" />
-                </div>
-              </div>
-              <h3>照片转日系校园</h3>
-              <p>参考图 / 校园 / 日系 / 清新</p>
-              <span>8 积分/张</span>
-              <button type="button" data-apply-template>一键套用</button>
-            </article>
-            <article class="template-card" data-template-card data-template-mode="image_to_image" data-template-prompt="人像光影增强" data-template-tags="参考图 写真 逆光 质感 人像" data-template-image="./assets/hero-slide-2.webp" data-template-images="./assets/hero-slide-2.webp|./assets/work-portrait.jpg|./assets/hero-slide-3.webp|./assets/hero-slide-4.webp" hidden>
-              <div class="template-preview">
-                <img src="./assets/hero-slide-2.webp" alt="人像光影增强模板" />
-                <div class="template-hover-grid" aria-hidden="true">
-                  <img src="./assets/hero-slide-2.webp" alt="" />
-                  <img src="./assets/work-portrait.jpg" alt="" />
-                  <img src="./assets/hero-slide-3.webp" alt="" />
-                  <img src="./assets/hero-slide-4.webp" alt="" />
-                </div>
-              </div>
-              <h3>人像光影增强</h3>
-              <p>参考图 / 写真 / 逆光 / 质感</p>
-              <span>8 积分/张</span>
-              <button type="button" data-apply-template>一键套用</button>
-            </article>
-            <article class="template-card" data-template-card data-template-mode="image_to_image" data-template-prompt="胶片风格迁移" data-template-tags="参考图 胶片 复古 清新 更多" data-template-image="./assets/hero-slide-4.webp" data-template-images="./assets/hero-slide-4.webp|./assets/style-french.jpg|./assets/style-korean.jpg|./assets/work-portrait.jpg" hidden>
-              <div class="template-preview">
-                <img src="./assets/hero-slide-4.webp" alt="胶片风格迁移模板" />
-                <div class="template-hover-grid" aria-hidden="true">
-                  <img src="./assets/hero-slide-4.webp" alt="" />
-                  <img src="./assets/style-french.jpg" alt="" />
-                  <img src="./assets/style-korean.jpg" alt="" />
-                  <img src="./assets/work-portrait.jpg" alt="" />
-                </div>
-              </div>
-              <h3>胶片风格迁移</h3>
-              <p>参考图 / 胶片 / 复古 / 清新</p>
-              <span>8 积分/张</span>
-              <button type="button" data-apply-template>一键套用</button>
-            </article>
-            <article class="template-card" data-template-card data-template-mode="image_to_image" data-template-prompt="背景氛围重塑" data-template-tags="参考图 情侣 校园 氛围 更多" data-template-image="./assets/style-french.jpg" data-template-images="./assets/style-french.jpg|./assets/style-korean.jpg|./assets/hero-slide-1.webp|./assets/hero-slide-4.webp" hidden>
-              <div class="template-preview">
-                <img src="./assets/style-french.jpg" alt="背景氛围重塑模板" />
-                <div class="template-hover-grid" aria-hidden="true">
-                  <img src="./assets/style-french.jpg" alt="" />
-                  <img src="./assets/style-korean.jpg" alt="" />
-                  <img src="./assets/hero-slide-1.webp" alt="" />
-                  <img src="./assets/hero-slide-4.webp" alt="" />
-                </div>
-              </div>
-              <h3>背景氛围重塑</h3>
-              <p>参考图 / 情侣 / 校园 / 氛围</p>
-              <span>8 积分/张</span>
-              <button type="button" data-apply-template>一键套用</button>
-            </article>
-          </div>
+          <div class="template-tabs" aria-label="模板分类" data-template-tabs></div>
+          <div class="template-grid" data-template-grid></div>
         </aside>
       </section>
+
+      <div class="template-modal-backdrop" data-template-modal-backdrop aria-hidden="true">
+        <div class="template-modal" role="dialog" aria-modal="true" aria-label="模板预览">
+          <button class="template-modal-close" type="button" data-template-modal-close aria-label="关闭">✕</button>
+          <div class="template-modal-head">
+            <h2 data-template-modal-title></h2>
+            <span data-template-modal-desc></span>
+          </div>
+          <div class="template-modal-gallery" data-template-modal-gallery></div>
+          <button class="template-modal-apply" type="button" data-template-modal-apply>一键套用</button>
+        </div>
+      </div>
 
       <div class="generation-modal-backdrop" data-generation-backdrop aria-hidden="true">
         <div class="generation-modal current-generation-card" role="dialog" aria-modal="true" aria-label="生成结果预览">
@@ -492,9 +370,13 @@
           taskType: "image_to_image",
           authMode: "phone-login",
           tasks: [],
+          localTasks: [],
           uploadedImages: [],
           imageResolution: "2K",
           imageRatio: "1:1",
+          promptCategory: "",
+          templateFilter: "全部",
+          selectedTemplateId: "",
           templatePromptLocked: false
         };
         const recommendedImageSizes = {
@@ -520,16 +402,16 @@
           }
         };
         const imagePixelRange = { min: 3686400, max: 16777216 };
-        const defaultPromptText = "校园，阳光，逆光，清新，日系，女孩，回眸，长发微风，白色衬衫，教学楼背景，浅景深，温柔治愈，青春感，自然光影，胶片质感，8K 高清";
-        const templatePromptText = {
-          "校园阳光少女": defaultPromptText,
-          "毕业季 · 青春纪念": "校园，毕业季，青春纪念，清新，日系，女孩，白色衬衫，教学楼背景，温柔光线，浅景深，纪念写真，8K 高清",
-          "逆光少女": "户外，逆光，清新，日系，少女，回眸，发丝光，柔和背景，治愈氛围，自然肤色，胶片质感，8K 高清",
-          "漫画风校园": "校园，漫画风，清新，日系，女孩，青春感，柔和阳光，干净背景，精致线条，明亮色彩，8K 高清",
-          "照片转日系校园": "参考图，校园氛围，日系清新，保留人物主体，自然光影，统一色调，8K 高清",
-          "人像光影增强": "参考图，人像写真，逆光质感，增强发丝光，保留五官和肤色，背景自然虚化，8K 高清",
-          "胶片风格迁移": "参考图，胶片质感，复古色调，轻颗粒，自然对比，保留画面构图，8K 高清",
-          "背景氛围重塑": "参考图，重塑背景氛围，校园感，柔和光线，保留人物主体，8K 高清"
+        const imageRatioLabels = {
+          adaptive: "智能比例",
+          "1:1": "1:1",
+          "3:4": "3:4",
+          "4:3": "4:3",
+          "16:9": "16:9",
+          "9:16": "9:16",
+          "2:3": "2:3",
+          "3:2": "3:2",
+          "21:9": "21:9"
         };
         const demoImagePool = [
           "./assets/hero-slide-3.webp",
@@ -550,10 +432,6 @@
           { id: "plan_pro", code: "pro", version: "Pro", name: "专业会员", price: 129, suffix: "/月", credits: 800, quota: 100, features: ["高频商拍创作", "批量生成下载", "高级模型优先"] },
           { id: "plan_team", code: "team", version: "Team", name: "团队包", price: 299, suffix: "/月", credits: 2200, quota: 275, features: ["多人协作额度", "品牌模板沉淀", "专属服务支持"] }
         ];
-        const fallbackPrompts = [
-          { id: "prompt_campus", title: "校园阳光少女", scene: "校园", creditCost: 8, exampleImageUrl: "./assets/hero-slide-3.webp", userDescription: "适合校园、阳光、清新、日系人像。", categoryTags: ["逆光", "回眸", "青春感"] },
-          { id: "prompt_backlight", title: "逆光少女", scene: "户外", creditCost: 8, exampleImageUrl: "./assets/work-portrait.jpg", userDescription: "保留自然肤色，突出发丝光与浅景深。", categoryTags: ["逆光", "治愈", "日系"] }
-        ];
         const fallbackModels = [
           { id: "model_seedream_lite", name: "Doubao-Seedream-5.0-lite", creditCost: { image_to_image: 8, generate: 8, edit: 8 } }
         ];
@@ -561,6 +439,19 @@
         const $ = (selector, root = document) => root.querySelector(selector);
         const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
         const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (s) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[s]);
+        const promptExcerpt = (value) => {
+          const text = String(value || "").replace(/\s+/g, " ").trim();
+          return text.length > 100 ? `${text.slice(0, 100)}...` : text;
+        };
+        const promptQuarter = (value) => {
+          const text = String(value || "").replace(/\s+/g, " ").trim();
+          if (!text) return "";
+          return text.slice(0, Math.max(1, Math.ceil(text.length / 4)));
+        };
+        const promptExampleImages = (prompt) => {
+          if (Array.isArray(prompt.exampleImages)) return prompt.exampleImages;
+          return prompt.exampleImageUrl ? [{ compressedUrl: prompt.exampleImageUrl, originalUrl: prompt.resultImageUrl || prompt.exampleImageUrl }] : [];
+        };
 
         const authHeaders = () => {
           const token = localStorage.getItem(tokenKey);
@@ -614,6 +505,15 @@
           updatePromptCount();
         };
 
+        const setTemplatePromptPreview = (text, locked = false) => {
+          const input = $("[data-template-prompt-input]");
+          input.value = text || "";
+          input.readOnly = locked;
+          input.classList.toggle("is-locked", locked);
+          state.templatePromptLocked = locked;
+          $("[data-template-prompt-state]").textContent = locked ? "模板信息" : "可自定义";
+        };
+
         const unlockTemplatePrompt = () => {
           setTemplatePrompt($("[data-template-prompt-input]").value, false);
         };
@@ -657,6 +557,38 @@
 
         const closeGenerationModal = () => {
           const backdrop = $("[data-generation-backdrop]");
+          backdrop.classList.remove("is-open");
+          backdrop.setAttribute("aria-hidden", "true");
+        };
+
+        const openTemplateModal = (card) => {
+          if (!card) return;
+          const backdrop = $("[data-template-modal-backdrop]");
+          const gallery = $("[data-template-modal-gallery]");
+          const images = card.dataset.templateImages?.split("|").filter(Boolean) || [card.dataset.templateImage].filter(Boolean);
+          const safeImages = images.length ? images : demoImagePool.slice(0, 4);
+          $("[data-template-modal-title]").textContent = card.dataset.templatePrompt || "模板预览";
+          $("[data-template-modal-desc]").textContent = card.dataset.templateTags.split(/\s+/).filter(Boolean).slice(0, 4).join(" / ");
+          gallery.innerHTML = safeImages.map((src, index) => `
+            <figure class="template-modal-image">
+              <img src="${esc(src)}" alt="${esc(card.dataset.templatePrompt || "模板")}示例图${index + 1}" />
+            </figure>
+          `).join("");
+          $$("img", gallery).forEach((img) => {
+            const syncRatio = () => {
+              if (!img.naturalWidth || !img.naturalHeight) return;
+              img.parentElement.style.setProperty("--template-modal-image-ratio", `${img.naturalWidth} / ${img.naturalHeight}`);
+            };
+            img.addEventListener("load", syncRatio, { once: true });
+            if (img.complete) syncRatio();
+          });
+          backdrop.classList.add("is-open");
+          backdrop.setAttribute("aria-hidden", "false");
+          $("[data-template-modal-apply]").focus();
+        };
+
+        const closeTemplateModal = () => {
+          const backdrop = $("[data-template-modal-backdrop]");
           backdrop.classList.remove("is-open");
           backdrop.setAttribute("aria-hidden", "true");
         };
@@ -725,8 +657,9 @@
         const setGenerationLoading = (title = "正在生成") => {
           $(".current-generation-card").classList.remove("is-template-applied");
           $(".current-generation-card").classList.add("is-generating");
-          $("[data-generation-status]").textContent = "生成中...";
-          $("[data-generation-count]").textContent = title;
+          $("[data-generation-status]").textContent = "生成中，请稍候";
+          $("[data-generation-count]").textContent = `${title} · AI 正在生成`;
+          openGenerationModal();
         };
 
         const setTemplatePending = (images) => {
@@ -778,16 +711,14 @@
           const now = new Date();
           const pad = (n) => String(n).padStart(2, "0");
           const time = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-          const list = $("[data-task-list]");
-          list.insertAdjacentHTML("afterbegin", historyCardHtml({ images, title, time, tags }));
-          $$("[data-task-list] .sample-result-card").slice(4).forEach((node) => node.remove());
-          const currentCount = Number($("[data-task-count]").textContent || 24);
-          $("[data-task-count]").textContent = currentCount + 1;
+          state.localTasks.unshift({ id: `local-${Date.now()}`, images, title, time, tags });
+          state.localTasks = state.localTasks.slice(0, 50);
+          renderTasks();
         };
 
-        const completeGeneratedPreview = ({ images, title, tags }) => {
+        const completeGeneratedPreview = ({ images, title, tags }, options = {}) => {
           setGenerationImages(images);
-          prependGeneratedRecord(images, title, tags);
+          if (options.record) prependGeneratedRecord(images, title, tags);
           setMessage("生成完成，已打开结果预览。");
         };
 
@@ -799,10 +730,12 @@
           return { images, title, tags };
         };
 
-        const generateLocalPreview = () => {
+        const generateLocalPreview = (options = {}) => {
           const preview = prepareGeneratedPreview();
           setGenerationLoading(preview.title);
-          window.setTimeout(() => completeGeneratedPreview(preview), 700);
+          if (options.complete !== false) {
+            window.setTimeout(() => completeGeneratedPreview(preview, options), 700);
+          }
           setMessage("正在生成...");
           return preview;
         };
@@ -816,13 +749,8 @@
           link.remove();
         };
 
-        const downloadAllImages = async () => {
-          const imageUrls = $$(".generation-thumbs button").map((btn) => btn.dataset.thumb).filter(Boolean);
-          if (!imageUrls.length) {
-            setMessage("当前没有可下载的图片。");
-            return;
-          }
-          const response = await fetch(`${API_BASE}/api/downloads/images.zip`, {
+        const directDownloadUrls = async (imageUrls) => {
+          const response = await fetch(`${API_BASE}/api/downloads/direct-urls`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -832,12 +760,33 @@
           });
           if (!response.ok) {
             const data = await response.json().catch(() => ({}));
-            throw new Error(data.message || "批量下载失败");
+            throw new Error(data.message || "下载地址生成失败");
           }
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-          downloadImage(url, "ai-photo-images.zip");
-          window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+          const data = await response.json();
+          return Array.isArray(data.urls) ? data.urls.filter(Boolean) : [];
+        };
+
+        const downloadCurrentImage = async () => {
+          const imageUrl = $("[data-current-image]").getAttribute("src");
+          if (!imageUrl) {
+            setMessage("当前没有可下载的图片。");
+            return;
+          }
+          const urls = await directDownloadUrls([imageUrl]);
+          if (!urls.length) throw new Error("下载地址生成失败");
+          downloadImage(urls[0], "ai-photo-current.jpg");
+        };
+
+        const downloadAllImages = async () => {
+          const imageUrls = $$(".generation-thumbs button").map((btn) => btn.dataset.thumb).filter(Boolean);
+          if (!imageUrls.length) {
+            setMessage("当前没有可下载的图片。");
+            return;
+          }
+          const urls = await directDownloadUrls(imageUrls);
+          urls.forEach((url, index) => {
+            window.setTimeout(() => downloadImage(url, `ai-photo-${index + 1}.jpg`), index * 180);
+          });
         };
 
         const setAuthMessage = (text) => {
@@ -1079,15 +1028,100 @@
           try {
             data = await api(`/api/prompts?taskType=${state.taskType}`);
           } catch {
-            data = { prompts: fallbackPrompts };
+            data = { prompts: [] };
           }
           state.prompts = data.prompts;
-          $("[data-prompt-select]").innerHTML = state.prompts.map((p) => `<option value="${p.id}">${esc(p.title)} · ${esc(p.scene)}</option>`).join("");
+          renderPromptCategoryTabs();
+          syncPromptSelect();
+          applyPromptImageDefaults(currentPrompt());
+          renderTemplateLibrary();
           renderPromptPlan();
           updateCost();
         };
 
+        const promptCategoryList = () => Array.from(new Set(state.prompts.map((p) => p.scene || "其他").filter(Boolean)));
+
+        const promptsForCurrentCategory = () => state.promptCategory
+          ? state.prompts.filter((p) => (p.scene || "其他") === state.promptCategory)
+          : state.prompts;
+
+        const renderPromptCategoryTabs = () => {
+          const categories = promptCategoryList();
+          if (!categories.includes(state.promptCategory)) state.promptCategory = categories[0] || "";
+          const tabs = $("[data-prompt-category-tabs]");
+          tabs.innerHTML = categories.map((category) => `<button class="${category === state.promptCategory ? "active" : ""}" type="button" data-category="${esc(category)}">${esc(category)}</button>`).join("");
+          tabs.hidden = categories.length <= 1;
+        };
+
+        const syncPromptSelect = () => {
+          const prompts = promptsForCurrentCategory();
+          const select = $("[data-prompt-select]");
+          const current = prompts.some((p) => p.id === select.value) ? select.value : prompts[0]?.id || "";
+          select.innerHTML = prompts.map((p) => `<option value="${p.id}">${esc(p.title)} · ${esc(p.scene)}</option>`).join("");
+          select.value = current;
+        };
+
         const currentPrompt = () => state.prompts.find((p) => p.id === $("[data-prompt-select]").value);
+
+        const templateTags = (prompt) => [prompt.scene, ...(prompt.categoryTags || [])].filter(Boolean);
+
+        const templateImages = (prompt) => promptExampleImages(prompt)
+          .map((item) => item.compressedUrl || item.originalUrl)
+          .filter(Boolean);
+
+        const templateOriginalImages = (prompt) => promptExampleImages(prompt)
+          .map((item) => item.originalUrl || item.compressedUrl)
+          .filter(Boolean);
+
+        const templateSearchText = (prompt) => [
+          prompt.title,
+          prompt.scene,
+          prompt.promptPreview,
+          prompt.userDescription,
+          ...(prompt.categoryTags || [])
+        ].join(" ").toLowerCase();
+
+        const renderTemplateTabs = () => {
+          const categories = ["全部", ...Array.from(new Set(state.prompts.map((prompt) => prompt.scene || "其他").filter(Boolean)))];
+          if (!categories.includes(state.templateFilter)) state.templateFilter = "全部";
+          $("[data-template-tabs]").innerHTML = categories.map((category) => `
+            <button class="${category === state.templateFilter ? "active" : ""}" type="button" data-template-filter="${esc(category)}">${esc(category)}</button>
+          `).join("");
+        };
+
+        const renderTemplateLibrary = () => {
+          renderTemplateTabs();
+          const keyword = $(".template-head input").value.trim().toLowerCase();
+          const prompts = state.prompts.filter((prompt) => {
+            const matchesMode = prompt.taskType === state.taskType;
+            const matchesKeyword = !keyword || templateSearchText(prompt).includes(keyword);
+            const matchesFilter = state.templateFilter === "全部" || (prompt.scene || "其他") === state.templateFilter;
+            return matchesMode && matchesKeyword && matchesFilter;
+          });
+          const selectedPrompt = prompts.find((prompt) => prompt.id === state.selectedTemplateId);
+          if (!selectedPrompt) state.selectedTemplateId = "";
+          $("[data-template-grid]").innerHTML = prompts.map((prompt) => {
+            const images = templateImages(prompt);
+            const originalImages = templateOriginalImages(prompt);
+            const primary = images[0] || demoImagePool[0];
+            const hoverImages = images.length ? images : [primary];
+            const tags = templateTags(prompt);
+            return `
+              <article class="template-card ${selectedPrompt && prompt.id === state.selectedTemplateId ? "is-selected" : ""}" data-template-card data-template-id="${esc(prompt.id)}" data-template-mode="${esc(prompt.taskType)}" data-template-prompt="${esc(prompt.title)}" data-template-tags="${esc(tags.join(" "))}" data-template-preview="${esc(prompt.promptPreview || prompt.userDescription || "")}" data-template-image="${esc(primary)}" data-template-images="${esc((originalImages.length ? originalImages : hoverImages).join("|"))}">
+                <div class="template-preview">
+                  <img src="${esc(primary)}" alt="${esc(prompt.title)}模板" />
+                  <div class="template-hover-grid" aria-hidden="true">
+                    ${hoverImages.slice(0, 4).map((src) => `<img src="${esc(src)}" alt="" />`).join("")}
+                  </div>
+                </div>
+                <h3>${esc(prompt.title)}</h3>
+                <p>${esc(tags.slice(0, 4).join(" / "))}</p>
+                <span>${prompt.creditCost || 0} 积分/张</span>
+                <button type="button" data-apply-template>一键套用</button>
+              </article>
+            `;
+          }).join("") || `<p class="template-empty">暂无可用模板</p>`;
+        };
 
         const renderPromptPlan = () => {
           const prompt = currentPrompt();
@@ -1096,11 +1130,13 @@
             box.innerHTML = `<p>没有可用方案，也可以直接填写完整自定义提示词。</p>`;
             return;
           }
+          const images = promptExampleImages(prompt);
+          const preview = promptExcerpt(prompt.promptPreview || prompt.userDescription || "适合按当前方案快速生成稳定效果。");
           box.innerHTML = `
-            ${prompt.exampleImageUrl ? `<img src="${esc(prompt.exampleImageUrl)}" alt="${esc(prompt.title)}示例图" />` : ""}
+            ${images.length ? `<div class="prompt-plan-images">${images.slice(0, 4).map((item) => `<img src="${esc(item.compressedUrl || item.originalUrl)}" alt="${esc(prompt.title)}示例图" />`).join("")}</div>` : ""}
             <div>
               <strong>${esc(prompt.title)}</strong>
-              <p>${esc(prompt.userDescription || "适合按当前方案快速生成稳定效果。")}</p>
+              <p>${esc(preview)}</p>
               <span>${esc(prompt.scene || "通用")} · ${prompt.creditCost || 0} 积分/张 · ${(prompt.categoryTags || []).map(esc).join(" / ")}</span>
             </div>
           `;
@@ -1278,6 +1314,45 @@
           updateCost();
         };
 
+        const ratioFromImageSize = (size) => {
+          const value = String(size || "").trim();
+          if (imageRatioLabels[value]) return value;
+          if (value === "4K") return "adaptive";
+          const parsed = splitImageSize(value);
+          if (!parsed) return "";
+          const sizeRatio = Number(parsed.width) / Number(parsed.height);
+          return Object.entries({
+            "1:1": 1,
+            "3:4": 3 / 4,
+            "4:3": 4 / 3,
+            "16:9": 16 / 9,
+            "9:16": 9 / 16,
+            "2:3": 2 / 3,
+            "3:2": 3 / 2,
+            "21:9": 21 / 9
+          }).reduce((best, item) => {
+            const diff = Math.abs(sizeRatio - item[1]);
+            return diff < best.diff ? { ratio: item[0], diff } : best;
+          }, { ratio: "1:1", diff: Infinity }).ratio;
+        };
+
+        const applyPromptImageDefaults = (prompt) => {
+          const params = prompt?.defaultParams || {};
+          const defaultSize = params.size || currentModel()?.defaultSize || "";
+          if (!params.ratio && !defaultSize && !params.resolution) return;
+          const ratio = imageRatioLabels[params.ratio] ? params.ratio : ratioFromImageSize(defaultSize);
+          const resolution = params.resolution === "4K" || defaultSize === "4K" ? "4K" : "2K";
+          if (ratio) {
+            setRatio(ratio, imageRatioLabels[ratio]);
+            setResolution(resolution);
+          }
+          if (/^\d+x\d+$/.test(String(defaultSize))) {
+            setHiddenSize(defaultSize);
+            setDimensionFields(defaultSize);
+            if (!ratio) $("[data-current-ratio-label]").textContent = defaultSize.replace("x", "×");
+          }
+        };
+
         const setImageCount = (count) => {
           $("[data-image-count]").value = Math.max(1, Math.min(9, Number(count || 1)));
           updateCost();
@@ -1287,8 +1362,21 @@
 
         const renderTasks = () => {
           const list = $("[data-task-list]");
-          $("[data-task-count]").textContent = state.tasks.length || 24;
-          if (!state.tasks.length) {
+          const localItems = state.localTasks.map((task) => historyCardHtml({
+            images: task.images || [],
+            title: task.title,
+            time: task.time,
+            tags: task.tags || []
+          }));
+          const serverItems = state.tasks.map((task) => {
+            const resultImages = task.resultImageUrls || [];
+            const firstImage = resultImages[0] || "./assets/work-portrait.jpg";
+            const tags = [statusText(task.status), `${task.count} 张`, `${task.creditCost} 积分`].filter(Boolean);
+            return historyCardHtml({ images: resultImages.length ? resultImages : [firstImage], title: task.promptTitle, time: task.createdAt || task.updatedAt || task.promptTitle, tags });
+          });
+          const items = [...localItems, ...serverItems];
+          $("[data-task-count]").textContent = items.length || 24;
+          if (!items.length) {
             list.innerHTML = [
               { images: ["./assets/hero-slide-3.webp", "./assets/hero-slide-1.webp", "./assets/hero-slide-2.webp", "./assets/hero-slide-4.webp"], title: "校园阳光少女", time: "2024-06-04 14:30", tags: ["校园", "逆光", "清新", "日系"] },
               { images: ["./assets/work-portrait.jpg"], title: "毕业季纪念", time: "2024-06-04 14:25", tags: ["校园", "侧光", "清新", "日系"] },
@@ -1297,14 +1385,7 @@
             ].map(historyCardHtml).join("");
             return;
           }
-          list.innerHTML = state.tasks.map((task) => {
-            const resultImages = task.resultImageUrls || [];
-            const firstImage = resultImages[0] || "./assets/work-portrait.jpg";
-            const tags = [statusText(task.status), `${task.count} 张`, `${task.creditCost} 积分`].filter(Boolean);
-            return `
-            ${historyCardHtml({ images: resultImages.length ? resultImages : [firstImage], title: task.promptTitle, time: task.createdAt || task.updatedAt || task.promptTitle, tags })}
-          `;
-          }).join("");
+          list.innerHTML = items.join("");
         };
 
         const loadTasks = async () => {
@@ -1438,12 +1519,25 @@
             const btn = e.target.closest("button");
             if (!btn) return;
             state.taskType = btn.dataset.type;
+            state.promptCategory = "";
             updateTaskTypeButtons();
             filterTemplates();
             Promise.all([renderPromptOptions(), renderModels()]);
           });
 
+          $("[data-prompt-category-tabs]").addEventListener("click", (e) => {
+            const btn = e.target.closest("button");
+            if (!btn) return;
+            state.promptCategory = btn.dataset.category || "";
+            renderPromptCategoryTabs();
+            syncPromptSelect();
+            applyPromptImageDefaults(currentPrompt());
+            renderPromptPlan();
+            updateCost();
+          });
+
           $("[data-prompt-select]").addEventListener("change", () => {
+            applyPromptImageDefaults(currentPrompt());
             renderPromptPlan();
             updateCost();
           });
@@ -1540,7 +1634,7 @@
                 return;
               }
             }
-            generateLocalPreview();
+            const localPreview = generateLocalPreview({ record: !state.user, complete: !state.user });
             if (!state.user) { return; }
             submitBtn.disabled = true;
             submitBtn.textContent = "提交中…";
@@ -1570,6 +1664,7 @@
               setMessage("任务已提交，正在生成中…");
               watchTaskUntilDone(data.task.id);
             } catch (e) {
+              completeGeneratedPreview(localPreview, { record: true });
               setMessage(`${e.message}，已保留本地预览。`);
             } finally {
               submitBtn.disabled = false;
@@ -1582,9 +1677,9 @@
             if (e.target === $("[data-generation-backdrop]")) closeGenerationModal();
           });
           document.addEventListener("keydown", (e) => {
-            if (e.key === "Escape" && $("[data-generation-backdrop]").classList.contains("is-open")) {
-              closeGenerationModal();
-            }
+            if (e.key !== "Escape") return;
+            if ($("[data-template-modal-backdrop]").classList.contains("is-open")) closeTemplateModal();
+            if ($("[data-generation-backdrop]").classList.contains("is-open")) closeGenerationModal();
           });
           window.addEventListener("resize", () => {
             if ($("[data-generation-backdrop]").classList.contains("is-open")) {
@@ -1606,9 +1701,13 @@
             setMessage("已切换到所选生成记录。");
           });
 
-          $("[data-download-current]").addEventListener("click", () => {
-            downloadImage($("[data-current-image]").getAttribute("src"), "ai-photo-current.webp");
-            setMessage("已开始下载当前图片。");
+          $("[data-download-current]").addEventListener("click", async () => {
+            try {
+              await downloadCurrentImage();
+              setMessage("已开始下载当前图片。");
+            } catch (error) {
+              setMessage(error.message);
+            }
           });
 
           $("[data-download-all]").addEventListener("click", async () => {
@@ -1636,69 +1735,66 @@
             }
           });
 
-          $(".template-grid").addEventListener("click", (e) => {
-            const btn = e.target.closest("[data-apply-template]");
-            const card = e.target.closest("[data-template-card]");
-            if (!card || !btn) return;
-            $$("[data-template-card]").forEach((item) => item.classList.toggle("is-selected", item === card));
+          const applyTemplateCard = (card) => {
+            if (!card) return;
             const title = card.dataset.templatePrompt;
             const tags = card.dataset.templateTags.split(/\s+/).filter(Boolean);
-            const prompt = templatePromptText[title] || `${title}，${tags.join("，")}，8K 高清`;
-            const option = $$("[data-prompt-select] option").find((item) => item.textContent.includes(title.replace(" · ", "")) || item.textContent.includes(title));
+            const prompt = state.prompts.find((item) => item.id === card.dataset.templateId);
+            if (prompt) {
+              state.promptCategory = prompt.scene || "其他";
+              renderPromptCategoryTabs();
+              syncPromptSelect();
+            }
+            const option = $$("[data-prompt-select] option").find((item) => item.value === card.dataset.templateId);
             if (option) {
               $("[data-prompt-select]").value = option.value;
+              applyPromptImageDefaults(prompt);
               renderPromptPlan();
               updateCost();
             }
             activateChipsByText(tags);
-            $("[data-custom-prompt]").value = prompt;
+            $("[data-custom-prompt]").value = "";
             updatePromptCount();
             updateKeyInfo(tags);
             if (state.taskType !== "generate") {
-              setTemplatePrompt(tags.join(" / "), false);
+              setTemplatePromptPreview(prompt?.promptQuarter || promptQuarter(prompt?.promptPreview || prompt?.userDescription || title), false);
               $("[data-template-prompt-state]").textContent = "模板信息，可修改";
             }
             const templateImages = card.dataset.templateImages?.split("|").filter(Boolean) || [card.dataset.templateImage];
             setTemplatePending(templateImages);
             setMessage(`已套用「${title}」，点击生成图片后查看结果预览。`);
+          };
+
+          $(".template-grid").addEventListener("click", (e) => {
+            const applyButton = e.target.closest("[data-apply-template]");
+            const card = e.target.closest("[data-template-card]");
+            if (!card) return;
+            state.selectedTemplateId = card.dataset.templateId || "";
+            $$("[data-template-card]").forEach((item) => item.classList.toggle("is-selected", item === card));
+            if (applyButton) {
+              applyTemplateCard(card);
+              return;
+            }
+            openTemplateModal(card);
+          });
+
+          $("[data-template-modal-close]").addEventListener("click", closeTemplateModal);
+          $("[data-template-modal-backdrop]").addEventListener("click", (e) => {
+            if (e.target === $("[data-template-modal-backdrop]")) closeTemplateModal();
+          });
+          $("[data-template-modal-apply]").addEventListener("click", () => {
+            applyTemplateCard(selectedTemplateCard());
+            closeTemplateModal();
           });
 
           const filterTemplates = () => {
-            const keyword = $(".template-head input").value.trim().toLowerCase();
-            const moreFilter = $("[data-template-more-menu] button.active")?.dataset.templateFilter;
-            const activeFilter = moreFilter || $(".template-tabs button.active").dataset.templateFilter;
-            $$("[data-template-card]").forEach((card) => {
-              const text = `${card.dataset.templatePrompt} ${card.dataset.templateTags}`.toLowerCase();
-              const matchesMode = card.dataset.templateMode === state.taskType;
-              const matchesKeyword = !keyword || text.includes(keyword);
-              const matchesFilter = activeFilter === "全部" || text.includes(activeFilter.toLowerCase());
-              card.hidden = !(matchesMode && matchesKeyword && matchesFilter);
-            });
-            if (!$("[data-template-card].is-selected:not([hidden])")) {
-              const firstVisible = $("[data-template-card]:not([hidden])");
-              $$("[data-template-card]").forEach((item) => item.classList.toggle("is-selected", item === firstVisible));
-            }
+            renderTemplateLibrary();
           };
 
           $(".template-tabs").addEventListener("click", (e) => {
             const btn = e.target.closest("[data-template-filter]");
             if (!btn) return;
-            if (btn.dataset.templateFilter === "更多") {
-              $("[data-template-more-menu]").classList.toggle("is-open");
-              return;
-            }
-            $("[data-template-more-menu]").classList.remove("is-open");
-            $$(".template-tabs button").forEach((item) => item.classList.toggle("active", item === btn));
-            $$("[data-template-more-menu] button").forEach((item) => item.classList.remove("active"));
-            filterTemplates();
-          });
-          $("[data-template-more-menu]").addEventListener("click", (e) => {
-            const btn = e.target.closest("[data-template-filter]");
-            if (!btn) return;
-            $$(".template-tabs button").forEach((item) => item.classList.remove("active"));
-            $("[data-template-filter='更多']").classList.add("active");
-            $$("[data-template-more-menu] button").forEach((item) => item.classList.toggle("active", item === btn));
-            $("[data-template-more-menu]").classList.remove("is-open");
+            state.templateFilter = btn.dataset.templateFilter || "全部";
             filterTemplates();
           });
           $(".template-head input").addEventListener("input", filterTemplates);

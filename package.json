@@ -4,6 +4,7 @@
     "dev": "node backend/server.js"
   },
   "dependencies": {
+    "cos-nodejs-sdk-v5": "^2.15.4",
     "mysql2": "^3.22.2"
   }
 }

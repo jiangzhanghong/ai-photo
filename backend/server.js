@@ -3,11 +3,11 @@ const fs = require("fs");
 const http = require("http");
 const net = require("net");
 const path = require("path");
+const COS = require("cos-nodejs-sdk-v5");
 const mysql = require("mysql2/promise");
 const { URL } = require("url");
 
 const ROOT = path.resolve(__dirname, "..");
-const UPLOAD_DIR = path.join(ROOT, "web", "uploads");
 const PORT = Number(process.env.PORT || 8000);
 const ACCESS_EXPIRES_SECONDS = 60 * 60 * 2;
 const REFRESH_EXPIRES_SECONDS = 60 * 60 * 24 * 30;
@@ -34,6 +34,17 @@ const JWT_SECRET = process.env.jwt_secret || "dev-jwt-secret";
 const ADMIN_ACCOUNT = process.env.admin_account || "13342860028";
 const ADMIN_PASSWORD = process.env.admin_password || "Sk8er&boi";
 const MODEL_SECRET = crypto.createHash("sha256").update(process.env.model_secret_key || JWT_SECRET).digest();
+const OBJECT_STORAGE = {
+  secretId: process.env.TENCENTCLOUD_SECRET_ID || process.env.COS_SECRET_ID || process.env.lhcos_secret_id || "",
+  secretKey: process.env.TENCENTCLOUD_SECRET_KEY || process.env.COS_SECRET_KEY || process.env.lhcos_secret_key || "",
+  securityToken: process.env.TENCENTCLOUD_TOKEN || process.env.COS_SECURITY_TOKEN || process.env.lhcos_security_token || "",
+  bucket: process.env.LHCOS_BUCKET || process.env.COS_BUCKET || process.env.lhcos_bucket || "",
+  region: process.env.LHCOS_REGION || process.env.COS_REGION || process.env.lhcos_region || "",
+  publicBaseUrl: (process.env.LHCOS_PUBLIC_BASE_URL || process.env.COS_PUBLIC_BASE_URL || process.env.lhcos_public_base_url || "").replace(/\/+$/, ""),
+  uploadPrefix: (process.env.LHCOS_UPLOAD_PREFIX || process.env.COS_UPLOAD_PREFIX || process.env.lhcos_upload_prefix || "member-images").replace(/^\/+|\/+$/g, ""),
+  signedUrls: String(process.env.LHCOS_SIGNED_URLS || process.env.COS_SIGNED_URLS || process.env.lhcos_signed_urls || "true") !== "false",
+  signedUrlExpiresSeconds: Number(process.env.LHCOS_SIGNED_URL_EXPIRES_SECONDS || process.env.COS_SIGNED_URL_EXPIRES_SECONDS || process.env.lhcos_signed_url_expires_seconds || 60 * 60 * 2)
+};
 
 const nowIso = () => new Date().toISOString();
 const mysqlDateTime = (date = new Date()) => date.toISOString().slice(0, 19).replace("T", " ");
@@ -307,6 +318,11 @@ class RefreshStore {
 const refreshStore = new RefreshStore();
 
 const base64url = (input) => Buffer.from(input).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+const decodeBase64url = (input) => {
+  const token = String(input || "").replace(/-/g, "+").replace(/_/g, "/");
+  const padded = token.padEnd(token.length + ((4 - token.length % 4) % 4), "=");
+  return Buffer.from(padded, "base64").toString("utf8");
+};
 const signJwt = (payload, seconds = ACCESS_EXPIRES_SECONDS) => {
   const header = { alg: "HS256", typ: "JWT" };
   const body = { ...payload, exp: Math.floor(Date.now() / 1000) + seconds };
@@ -370,7 +386,7 @@ const readBody = async (req) => new Promise((resolve, reject) => {
   let data = "";
   req.on("data", (chunk) => {
     data += chunk;
-    if (data.length > 1024 * 1024 * 15) reject(new Error("Payload too large"));
+    if (data.length > 1024 * 1024 * 25) reject(new Error("Payload too large"));
   });
   req.on("end", () => {
     if (!data) return resolve({});
@@ -388,18 +404,183 @@ const publicUrl = (req, pathname) => {
   return `${proto}://${host}${pathname}`;
 };
 
-const saveUploadedImage = async (req, imageData) => {
+let objectStorageClient;
+
+const isObjectStorageConfigured = () => Boolean(
+  OBJECT_STORAGE.secretId
+  && OBJECT_STORAGE.secretKey
+  && OBJECT_STORAGE.bucket
+  && OBJECT_STORAGE.region
+);
+
+const requireObjectStorageConfig = () => {
+  if (!isObjectStorageConfigured()) {
+    throw new Error("轻量对象存储未配置，请设置 TENCENTCLOUD_SECRET_ID、TENCENTCLOUD_SECRET_KEY、LHCOS_BUCKET 和 LHCOS_REGION。");
+  }
+  return OBJECT_STORAGE;
+};
+
+const objectStorageHost = (config = OBJECT_STORAGE) => `${config.bucket}.cos.${config.region}.myqcloud.com`;
+
+const getObjectStorageClient = () => {
+  const config = requireObjectStorageConfig();
+  if (!objectStorageClient) {
+    objectStorageClient = new COS({
+      SecretId: config.secretId,
+      SecretKey: config.secretKey,
+      SecurityToken: config.securityToken || undefined,
+      Protocol: "https:"
+    });
+  }
+  return objectStorageClient;
+};
+
+const imageExtensionFromMime = (mime) => {
+  if (mime === "image/png") return "png";
+  if (mime === "image/webp") return "webp";
+  return "jpg";
+};
+
+const decodeImageDataUrl = (imageData) => {
   const match = String(imageData || "").match(/^data:(image\/(?:jpeg|jpg|png|webp));base64,([a-zA-Z0-9+/=]+)$/);
   if (!match) throw new Error("图片数据格式无效。");
   const mime = match[1] === "image/jpg" ? "image/jpeg" : match[1];
-  const extMap = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-  const buffer = Buffer.from(match[2], "base64");
-  if (buffer.length > 5 * 1024 * 1024) throw new Error("图片不能超过 5MB。");
-  await fs.promises.mkdir(UPLOAD_DIR, { recursive: true });
-  const fileName = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}.${extMap[mime]}`;
-  const filePath = path.join(UPLOAD_DIR, fileName);
-  await fs.promises.writeFile(filePath, buffer);
-  return publicUrl(req, `/uploads/${fileName}`);
+  return { mime, buffer: Buffer.from(match[2], "base64") };
+};
+
+const objectKey = (prefix, ext) => {
+  const safePrefix = String(prefix || OBJECT_STORAGE.uploadPrefix).replace(/^\/+|\/+$/g, "") || "member-images";
+  const date = new Date().toISOString().slice(0, 10);
+  return `${safePrefix}/${date}/${Date.now()}-${crypto.randomBytes(8).toString("hex")}.${ext}`;
+};
+
+const objectStorageImagePath = (key) => `/api/storage-images/${base64url(key)}`;
+
+const objectStorageKeyFromApiPath = (pathname) => {
+  const match = String(pathname || "").match(/^\/api\/storage-images\/([^/]+)$/);
+  if (!match) return "";
+  try {
+    return decodeBase64url(match[1]);
+  } catch {
+    return "";
+  }
+};
+
+const getObjectStorageUrl = async (key) => {
+  const config = requireObjectStorageConfig();
+  if (!config.signedUrls) {
+    const baseUrl = config.publicBaseUrl || `https://${objectStorageHost(config)}`;
+    return `${baseUrl}/${key.split("/").map(encodeURIComponent).join("/")}`;
+  }
+  const client = getObjectStorageClient();
+  const data = await new Promise((resolve, reject) => {
+    client.getObjectUrl({
+      Bucket: config.bucket,
+      Region: config.region,
+      Key: key,
+      Sign: true,
+      Expires: config.signedUrlExpiresSeconds
+    }, (err, result) => err ? reject(err) : resolve(result));
+  });
+  return data.Url;
+};
+
+const uploadObjectStorageImage = async (buffer, mime, prefix = OBJECT_STORAGE.uploadPrefix, options = {}) => {
+  const config = requireObjectStorageConfig();
+  const key = objectKey(prefix, imageExtensionFromMime(mime));
+  await getObjectStorageClient().putObject({
+    Bucket: config.bucket,
+    Region: config.region,
+    Key: key,
+    Body: buffer,
+    ContentLength: buffer.length,
+    ContentType: mime,
+    StorageClass: "DEFAULT"
+  });
+  if (options.stableUrl) return objectStorageImagePath(key);
+  return getObjectStorageUrl(key);
+};
+
+const objectStorageKeyFromUrl = (rawUrl) => {
+  if (!isObjectStorageConfigured()) return "";
+  let parsed;
+  try {
+    parsed = new URL(String(rawUrl || ""));
+  } catch {
+    return "";
+  }
+  const hosts = new Set([objectStorageHost()]);
+  let basePath = "";
+  if (OBJECT_STORAGE.publicBaseUrl) {
+    try {
+      const base = new URL(OBJECT_STORAGE.publicBaseUrl);
+      hosts.add(base.host);
+      basePath = base.pathname.replace(/\/+$/, "");
+    } catch {
+      basePath = "";
+    }
+  }
+  if (!hosts.has(parsed.host)) return "";
+  const pathname = decodeURIComponent(parsed.pathname);
+  if (basePath && pathname.startsWith(`${basePath}/`)) return pathname.slice(basePath.length + 1);
+  return pathname.replace(/^\/+/, "");
+};
+
+const stableImageUrl = (rawUrl) => {
+  const value = String(rawUrl || "").trim();
+  if (!value) return "";
+  try {
+    if (objectStorageKeyFromApiPath(new URL(value, "http://localhost").pathname)) return value;
+  } catch {
+    return value;
+  }
+  const key = objectStorageKeyFromUrl(value);
+  return key ? objectStorageImagePath(key) : value;
+};
+
+const stableImageUrls = (urls) => (Array.isArray(urls) ? urls : [])
+  .map(stableImageUrl)
+  .filter(Boolean);
+
+const directImageUrl = async (rawUrl, req = null) => {
+  const value = String(rawUrl || "").trim();
+  if (!value || value.startsWith("data:")) return value;
+  const imageUrl = new URL(value, req ? publicUrl(req, "/") : undefined);
+  const apiStorageKey = objectStorageKeyFromApiPath(imageUrl.pathname);
+  if (apiStorageKey) return getObjectStorageUrl(apiStorageKey);
+  const storageKey = objectStorageKeyFromUrl(imageUrl.href);
+  if (storageKey) return getObjectStorageUrl(storageKey);
+  return imageUrl.href;
+};
+
+const excerpt = (value, length = 100) => {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  return text.length > length ? `${text.slice(0, length)}...` : text;
+};
+
+const quarterText = (value) => {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  return text.slice(0, Math.max(1, Math.ceil(text.length / 4)));
+};
+
+const loadObjectStorageImage = async (key) => {
+  const config = requireObjectStorageConfig();
+  const data = await getObjectStorageClient().getObject({
+    Bucket: config.bucket,
+    Region: config.region,
+    Key: key
+  });
+  return {
+    data: data.Body,
+    contentType: data.headers?.["content-type"] || ""
+  };
+};
+
+const saveUploadedImage = async (req, imageData, options = {}) => {
+  const { mime, buffer } = decodeImageDataUrl(imageData);
+  const maxSize = options.maxSize || 5 * 1024 * 1024;
+  if (buffer.length > maxSize) throw new Error(`图片不能超过 ${Math.round(maxSize / 1024 / 1024)}MB。`);
+  return uploadObjectStorageImage(buffer, mime, options.prefix || OBJECT_STORAGE.uploadPrefix, { stableUrl: options.stableUrl });
 };
 
 const normalizeReferenceImageUrls = (body) => {
@@ -554,10 +735,10 @@ const taskDto = (task) => ({
   creditCost: Number(task.credit_cost || 0),
   size: task.size,
   count: Number(task.count || 1),
-  inputImageUrl: task.input_image_url || "",
-  inputImageUrls: taskReferenceUrls(task),
+  inputImageUrl: stableImageUrl(task.input_image_url || ""),
+  inputImageUrls: stableImageUrls(taskReferenceUrls(task)),
   userInstruction: task.user_instruction || "",
-  resultImageUrls: jsonParse(task.result_image_urls_json, []),
+  resultImageUrls: stableImageUrls(jsonParse(task.result_image_urls_json, [])),
   failureReason: task.failure_reason || "",
   providerRequestId: task.provider_request_id || "",
   providerLatencyMs: task.provider_latency_ms || null,
@@ -566,18 +747,61 @@ const taskDto = (task) => ({
   updatedAt: toIso(task.updated_at)
 });
 
+const promptImageItems = (value) => {
+  const text = String(value || "").trim();
+  if (!text) return [];
+  const parsed = jsonParse(text, null);
+  const items = Array.isArray(parsed) ? parsed : (parsed && typeof parsed === "object" ? [parsed] : [text]);
+  return items.map((item) => {
+    if (typeof item === "string") {
+      const url = stableImageUrl(item);
+      return url ? { originalUrl: url, compressedUrl: url } : null;
+    }
+    const originalUrl = stableImageUrl(item.originalUrl || item.url || item.imageUrl || "");
+    const compressedUrl = stableImageUrl(item.compressedUrl || item.thumbnailUrl || item.previewUrl || originalUrl);
+    if (!originalUrl && !compressedUrl) return null;
+    return { originalUrl: originalUrl || compressedUrl, compressedUrl: compressedUrl || originalUrl };
+  }).filter(Boolean);
+};
+
+const promptImagesText = (body) => {
+  if (Array.isArray(body.exampleImages)) {
+    return jsonText(body.exampleImages.map((item) => ({
+      originalUrl: item.originalUrl || item.url || "",
+      compressedUrl: item.compressedUrl || item.thumbnailUrl || item.originalUrl || item.url || ""
+    })).filter((item) => item.originalUrl || item.compressedUrl));
+  }
+  const url = body.exampleImageUrl ?? body.resultImageUrl ?? "";
+  return url ? String(url) : "";
+};
+
+const publicPromptDefaultParams = (raw) => {
+  const params = jsonParse(raw, {});
+  const defaults = {};
+  if (params.ratio) defaults.ratio = String(params.ratio);
+  if (params.size) defaults.size = String(params.size);
+  if (params.resolution) defaults.resolution = String(params.resolution);
+  return defaults;
+};
+
 const promptDto = (p, includeSensitive = false) => {
+  const exampleImages = promptImageItems(p.result_image_url || "");
+  const firstImage = exampleImages[0] || null;
   const dto = {
     id: p.id,
     title: p.title,
     taskType: p.task_type,
     scene: p.scene || "",
-    userDescription: p.user_description || "",
+    userDescription: includeSensitive ? (p.user_description || "") : excerpt(p.prompt_content, 100),
+    promptPreview: excerpt(p.prompt_content, 100),
+    promptQuarter: quarterText(p.prompt_content),
     categoryTags: jsonParse(p.category_tags_json, []),
     variables: jsonParse(p.variables_json, []),
     creditCost: Number(p.credit_cost),
-    exampleImageUrl: p.result_image_url || "",
-    resultImageUrl: p.result_image_url || "",
+    exampleImageUrl: firstImage?.compressedUrl || "",
+    resultImageUrl: firstImage?.originalUrl || "",
+    exampleImages,
+    defaultParams: includeSensitive ? jsonParse(p.default_params_json, {}) : publicPromptDefaultParams(p.default_params_json),
     sortOrder: Number(p.sort_order),
     isActive: Boolean(p.is_active),
     version: p.version,
@@ -587,7 +811,6 @@ const promptDto = (p, includeSensitive = false) => {
   if (includeSensitive) {
     dto.promptContent = p.prompt_content;
     dto.negativePrompt = p.negative_prompt || "";
-    dto.defaultParams = jsonParse(p.default_params_json, {});
   }
   return dto;
 };
@@ -678,8 +901,10 @@ const callImageModel = async ({ model, taskType, prompt, inputImageUrl, inputIma
   const requestParams = sanitizeImageParams(model, overrideParams);
   delete defaultParams.size;
   delete defaultParams.ratio;
+  delete defaultParams.resolution;
   delete requestParams.size;
   delete requestParams.ratio;
+  delete requestParams.resolution;
   const body = {
     ...defaultParams,
     ...requestParams,
@@ -788,6 +1013,7 @@ const processTask = async (taskId) => {
       if (!retry.resultImageUrls.length) break;
     }
     result.resultImageUrls = result.resultImageUrls.slice(0, expectedCount);
+    result.resultImageUrls = await persistImageUrlsToObjectStorage(result.resultImageUrls, taskId);
     await db.exec(
       "UPDATE ai_image_tasks SET status = 'succeeded', result_image_urls_json = ?, provider_request_id = ?, provider_status_code = ?, provider_latency_ms = ?, updated_at = NOW() WHERE id = ?",
       [jsonText(result.resultImageUrls), requestIds.join(","), result.providerStatusCode, result.latencyMs, taskId]
@@ -904,7 +1130,7 @@ const ensureSchema = async () => {
       negative_prompt TEXT,
       default_params_json TEXT,
       credit_cost INT NOT NULL DEFAULT 0,
-      result_image_url VARCHAR(500),
+      result_image_url TEXT,
       default_model_id VARCHAR(40),
       version VARCHAR(40) NOT NULL DEFAULT '2026.04',
       sort_order INT NOT NULL DEFAULT 0,
@@ -927,7 +1153,7 @@ const ensureSchema = async () => {
       negative_prompt TEXT,
       default_params_json TEXT,
       credit_cost INT NOT NULL DEFAULT 0,
-      result_image_url VARCHAR(500),
+      result_image_url TEXT,
       created_at DATETIME NOT NULL,
       INDEX idx_prompt_created (prompt_template_id, created_at)
     )`,
@@ -1041,6 +1267,8 @@ const ensureSchema = async () => {
   await addColumnIfMissing("prompt_templates", "default_params_json", "TEXT");
   await addColumnIfMissing("ai_image_tasks", "prompt_snapshot_json", "TEXT");
   await addColumnIfMissing("ai_image_tasks", "input_image_urls_json", "TEXT");
+  await db.exec("ALTER TABLE prompt_templates MODIFY COLUMN result_image_url TEXT");
+  await db.exec("ALTER TABLE prompt_versions MODIFY COLUMN result_image_url TEXT");
 };
 
 const seedData = async () => {
@@ -1059,6 +1287,7 @@ const seedData = async () => {
     );
   }
 
+  if (String(process.env.SEED_DEFAULT_PROMPTS || "false") === "true") {
   const prompts = [
     ["generate-cinematic-portrait", "电影感写真生成", "generate", "写真", "适合个人头像、社媒写真和宣传照。", "生成电影感人像写真，柔和布光，高级色彩，真实摄影质感，主体清晰，背景有浅景深。", "", ["subject", "style", "background"], ["写真", "人像"], {}, 5, "./assets/style-cinematic.jpg", 1],
     ["generate-product-poster", "商品商业海报", "generate", "商品", "适合电商主图、详情页和品牌内容配图。", "生成高端商品商业海报，干净背景，柔和棚拍光，突出产品材质和品牌质感，适合电商主图。", "", ["subject", "background", "lighting"], ["商品", "商业"], {}, 6, "./assets/work-still.jpg", 2],
@@ -1098,6 +1327,7 @@ const seedData = async () => {
       [prompt[0], prompt[1], prompt[2], prompt[3], prompt[4], prompt[5], prompt[6], jsonText(normalizeVariables(prompt[7])), jsonText(prompt[8] || []), jsonText(prompt[9] || {}), prompt[10], prompt[11], prompt[12]]
     );
   }
+  }
 
   const modelKey = process.env.default_model_api_key || "";
   await db.exec(`INSERT INTO ai_models
@@ -1123,6 +1353,18 @@ const seedData = async () => {
 
 const routeApi = async (req, res, url) => {
   const body = ["POST", "PATCH", "DELETE"].includes(req.method) ? await readBody(req) : {};
+
+  if (req.method === "GET" && url.pathname.startsWith("/api/storage-images/")) {
+    const key = objectStorageKeyFromApiPath(url.pathname);
+    if (!key) return json(res, 400, { message: "图片地址无效。" });
+    const image = await loadObjectStorageImage(key);
+    res.writeHead(200, {
+      "Content-Type": image.contentType || contentTypes[path.extname(key).toLowerCase()] || "application/octet-stream",
+      "Cache-Control": "private, max-age=86400",
+      "Access-Control-Allow-Origin": "*"
+    });
+    return res.end(image.data);
+  }
 
   if (req.method === "POST" && url.pathname === "/api/auth/verification-codes") {
     const targetType = body.targetType === "phone" ? "phone" : "";
@@ -1253,8 +1495,11 @@ const routeApi = async (req, res, url) => {
     return json(res, 201, { url });
   }
 
-  if (req.method === "POST" && url.pathname === "/api/downloads/images.zip") {
-    const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter(Boolean).slice(0, 8) : [];
+  if ((req.method === "GET" || req.method === "POST") && url.pathname === "/api/downloads/images.zip") {
+    const queryUrls = req.method === "GET" && url.searchParams.get("urls")
+      ? jsonParse(decodeBase64url(url.searchParams.get("urls")), [])
+      : [];
+    const imageUrls = Array.isArray(req.method === "GET" ? queryUrls : body.imageUrls) ? (req.method === "GET" ? queryUrls : body.imageUrls).filter(Boolean).slice(0, 8) : [];
     if (!imageUrls.length) return json(res, 400, { message: "没有可下载的图片。" });
     const files = [];
     let totalSize = 0;
@@ -1276,6 +1521,29 @@ const routeApi = async (req, res, url) => {
     return res.end(zip);
   }
 
+  if ((req.method === "GET" || req.method === "POST") && url.pathname === "/api/downloads/image") {
+    const imageUrl = String(req.method === "GET" ? url.searchParams.get("url") : body.imageUrl || "").trim();
+    if (!imageUrl) return json(res, 400, { message: "没有可下载的图片。" });
+    const image = await loadImageBuffer(imageUrl, req);
+    const ext = imageExtension(image.href, image.contentType);
+    res.writeHead(200, {
+      "Content-Type": image.contentType || contentTypes[ext] || "application/octet-stream",
+      "Content-Disposition": `attachment; filename="ai-photo-current${ext}"`,
+      "Content-Length": image.data.length,
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS"
+    });
+    return res.end(image.data);
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/downloads/direct-urls") {
+    const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter(Boolean).slice(0, 9) : [];
+    if (!imageUrls.length) return json(res, 400, { message: "没有可下载的图片。" });
+    const urls = await Promise.all(imageUrls.map((imageUrl) => directImageUrl(imageUrl, req)));
+    return json(res, 200, { urls });
+  }
+
   if (req.method === "POST" && url.pathname === "/api/ai-image-tasks") {
     const user = await requireUser(req);
     if (!user) return json(res, 401, { message: "请先登录。" });
@@ -1293,13 +1561,14 @@ const routeApi = async (req, res, url) => {
     const model = await resolveModel(user, taskType, body.aiModelId);
     if (!model) return json(res, 400, { message: "没有可用模型。" });
     const count = Math.max(1, Math.min(9, Number(body.count || 1)));
-    const ratio = normalizeImageRatio(body.ratio, body.size || model.default_size);
+    const defaultParams = customPrompt ? {} : jsonParse(prompt.default_params_json, {});
+    const size = body.size || defaultParams.size || model.default_size;
+    const ratio = normalizeImageRatio(body.ratio || defaultParams.ratio, size);
     const creditCost = modelCost(model, taskType, count);
     if (Number(user.credits || 0) < creditCost) return json(res, 400, { message: "积分不足，请选择更少数量或开通更高方案。" });
     const promptVariables = body.promptVariables && typeof body.promptVariables === "object" ? body.promptVariables : {};
     const promptContent = customPrompt || prompt.prompt_content;
     const negativePrompt = customPrompt ? "" : (prompt.negative_prompt || "");
-    const defaultParams = customPrompt ? {} : jsonParse(prompt.default_params_json, {});
     const renderedPrompt = renderPromptText({
       promptContent,
       variables: promptVariables,
@@ -1344,7 +1613,7 @@ const routeApi = async (req, res, url) => {
         `INSERT INTO ai_image_tasks
         (id, task_no, user_id, prompt_template_id, prompt_title, ai_model_id, ai_model_name, ai_model_version, task_type, status, credit_cost, size, count, input_image_url, input_image_urls_json, user_instruction, prompt_snapshot_json, result_image_urls_json, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, '[]', NOW(), NOW())`,
-        [task.id, task.taskNo, user.id, promptSnapshot.promptTemplateId, promptSnapshot.promptTitle, model.id, model.name, model.version, taskType, creditCost, body.size || model.default_size, count, inputImageUrls[0] || "", jsonText(inputImageUrls), body.userInstruction || "", jsonText(promptSnapshot)]
+        [task.id, task.taskNo, user.id, promptSnapshot.promptTemplateId, promptSnapshot.promptTitle, model.id, model.name, model.version, taskType, creditCost, size, count, inputImageUrls[0] || "", jsonText(inputImageUrls), body.userInstruction || "", jsonText(promptSnapshot)]
       );
       await conn.execute(
         "INSERT INTO credit_transactions (id, user_id, amount, transaction_type, related_type, related_id, remark, created_at) VALUES (?, ?, ?, 'task_spend', 'ai_task', ?, ?, NOW())",
@@ -1389,6 +1658,15 @@ const routeApi = async (req, res, url) => {
 
     if (req.method === "GET" && url.pathname === "/api/admin/me") {
       return json(res, 200, { admin: { account: admin.sub } });
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/admin/uploads/images") {
+      const imageUrl = await saveUploadedImage(req, body.imageData, {
+        prefix: body.prefix || "prompt-images",
+        stableUrl: true,
+        maxSize: 12 * 1024 * 1024
+      });
+      return json(res, 201, { url: imageUrl });
     }
 
     if (req.method === "GET" && url.pathname === "/api/admin/users") {
@@ -1643,7 +1921,7 @@ const routeApi = async (req, res, url) => {
           body.negativePrompt || "",
           jsonText(body.defaultParams || {}),
           Number(body.creditCost || 0),
-          body.exampleImageUrl || body.resultImageUrl || "",
+          promptImagesText(body),
           Number(body.sortOrder || 0),
           version
         ]
@@ -1671,6 +1949,9 @@ const routeApi = async (req, res, url) => {
           userInstruction: body.userInstruction || "",
           negativePrompt: prompt.negative_prompt || ""
         });
+        const promptDefaultParams = jsonParse(prompt.default_params_json, {});
+        const testSize = body.size || promptDefaultParams.size || model.default_size;
+        const testRatio = normalizeImageRatio(body.ratio || promptDefaultParams.ratio, testSize);
         const snapshot = {
           promptTemplateId: prompt.id,
           promptTitle: prompt.title,
@@ -1678,7 +1959,7 @@ const routeApi = async (req, res, url) => {
           variables,
           userInstruction: body.userInstruction || "",
           renderedPrompt,
-          defaultParams: jsonParse(prompt.default_params_json, {})
+          defaultParams: promptDefaultParams
         };
         const testId = uid("ptest");
         try {
@@ -1687,20 +1968,20 @@ const routeApi = async (req, res, url) => {
             taskType: prompt.task_type,
             prompt: renderedPrompt,
             inputImageUrl: body.inputImageUrl || "",
-            ratio: normalizeImageRatio(body.ratio, body.size || model.default_size),
-            size: body.size || model.default_size,
+            ratio: testRatio,
+            size: testSize,
             count: body.count || 1,
             overrideParams: snapshot.defaultParams
           });
           await db.exec(
             "INSERT INTO prompt_test_results (id, prompt_template_id, prompt_version, model_id, model_name, task_type, variables_json, prompt_snapshot_json, input_image_url, size, count, success, latency_ms, provider_request_id, result_image_urls_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, NOW())",
-            [testId, prompt.id, prompt.version, model.id, model.name, prompt.task_type, jsonText(variables), jsonText(snapshot), body.inputImageUrl || "", body.size || model.default_size, Number(body.count || 1), result.latencyMs, result.providerRequestId, jsonText(result.resultImageUrls)]
+            [testId, prompt.id, prompt.version, model.id, model.name, prompt.task_type, jsonText(variables), jsonText(snapshot), body.inputImageUrl || "", testSize, Number(body.count || 1), result.latencyMs, result.providerRequestId, jsonText(result.resultImageUrls)]
           );
           return json(res, 200, { success: true, testId, latencyMs: result.latencyMs, requestId: result.providerRequestId, resultImageUrls: result.resultImageUrls, message: "提示词测试已保存。" });
         } catch (error) {
           await db.exec(
             "INSERT INTO prompt_test_results (id, prompt_template_id, prompt_version, model_id, model_name, task_type, variables_json, prompt_snapshot_json, input_image_url, size, count, success, error_message, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, NOW())",
-            [testId, prompt.id, prompt.version, model.id, model.name, prompt.task_type, jsonText(variables), jsonText(snapshot), body.inputImageUrl || "", body.size || model.default_size, Number(body.count || 1), error.message]
+            [testId, prompt.id, prompt.version, model.id, model.name, prompt.task_type, jsonText(variables), jsonText(snapshot), body.inputImageUrl || "", testSize, Number(body.count || 1), error.message]
           );
           return json(res, 400, { success: false, testId, message: error.message });
         }
@@ -1720,7 +2001,7 @@ const routeApi = async (req, res, url) => {
             body.negativePrompt ?? prompt.negative_prompt,
             jsonText(body.defaultParams || jsonParse(prompt.default_params_json, {})),
             Number(body.creditCost ?? prompt.credit_cost),
-            body.exampleImageUrl ?? body.resultImageUrl ?? prompt.result_image_url,
+            (Array.isArray(body.exampleImages) || body.exampleImageUrl !== undefined || body.resultImageUrl !== undefined) ? promptImagesText(body) : prompt.result_image_url,
             Number(body.sortOrder ?? prompt.sort_order),
             body.isActive === false ? 0 : 1,
             nextVersion,
@@ -1741,7 +2022,7 @@ const routeApi = async (req, res, url) => {
       if (!test) return json(res, 404, { message: "测试结果不存在。" });
       const imageUrl = jsonParse(test.result_image_urls_json, [])[0] || "";
       if (!imageUrl) return json(res, 400, { message: "测试结果没有图片。" });
-      await db.exec("UPDATE prompt_templates SET result_image_url = ?, updated_at = NOW() WHERE id = ?", [imageUrl, test.prompt_template_id]);
+      await db.exec("UPDATE prompt_templates SET result_image_url = ?, updated_at = NOW() WHERE id = ?", [promptImagesText({ exampleImages: [{ originalUrl: imageUrl, compressedUrl: imageUrl }] }), test.prompt_template_id]);
       return json(res, 200, { message: "已设为示例图。", exampleImageUrl: imageUrl });
     }
   }
@@ -1837,28 +2118,61 @@ const createZip = (files) => {
 };
 
 const imageExtension = (url, contentType = "") => {
-  const ext = path.extname(new URL(url).pathname).toLowerCase();
+  const ext = path.extname(new URL(url, "http://localhost").pathname).toLowerCase();
   if ([".jpg", ".jpeg", ".png", ".webp"].includes(ext)) return ext === ".jpeg" ? ".jpg" : ext;
   if (contentType.includes("png")) return ".png";
   if (contentType.includes("webp")) return ".webp";
   return ".jpg";
 };
 
-const loadDownloadImage = async (req, rawUrl, index) => {
-  const imageUrl = new URL(String(rawUrl || ""), publicUrl(req, "/"));
+const loadImageBuffer = async (rawUrl, req = null) => {
+  const value = String(rawUrl || "");
+  if (value.startsWith("data:")) {
+    const { mime, buffer } = decodeImageDataUrl(value);
+    return { data: buffer, contentType: mime, href: value };
+  }
+  const imageUrl = new URL(value, req ? publicUrl(req, "/") : undefined);
   if (!["http:", "https:"].includes(imageUrl.protocol)) throw new Error("图片地址无效。");
-  const sameHost = imageUrl.host === (req.headers.host || `localhost:${PORT}`);
+  const apiStorageKey = objectStorageKeyFromApiPath(imageUrl.pathname);
+  if (apiStorageKey) {
+    const image = await loadObjectStorageImage(apiStorageKey);
+    return { ...image, href: imageUrl.href };
+  }
+  const storageKey = objectStorageKeyFromUrl(imageUrl.href);
+  if (storageKey) {
+    const image = await loadObjectStorageImage(storageKey);
+    return { ...image, href: imageUrl.href };
+  }
+  const sameHost = req && imageUrl.host === (req.headers.host || `localhost:${PORT}`);
   if (sameHost) {
     const pathname = decodeURIComponent(imageUrl.pathname);
     const filePath = path.join(ROOT, "web", pathname.replace(/^\/+/, ""));
     if (!filePath.startsWith(path.join(ROOT, "web")) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) throw new Error("图片文件不存在。");
     const data = await fs.promises.readFile(filePath);
-    return { name: `ai-photo-${index + 1}${imageExtension(imageUrl.href)}`, data };
+    return { data, contentType: "", href: imageUrl.href };
   }
   const response = await fetch(imageUrl, { signal: AbortSignal.timeout(20000) });
   if (!response.ok) throw new Error(`图片下载失败：${response.status}`);
   const data = Buffer.from(await response.arrayBuffer());
-  return { name: `ai-photo-${index + 1}${imageExtension(imageUrl.href, response.headers.get("content-type") || "")}`, data };
+  return { data, contentType: response.headers.get("content-type") || "", href: imageUrl.href };
+};
+
+const persistImageUrlsToObjectStorage = async (imageUrls, taskId) => {
+  if (!isObjectStorageConfigured()) return imageUrls;
+  const storedUrls = [];
+  for (const imageUrl of imageUrls) {
+    const image = await loadImageBuffer(imageUrl);
+    storedUrls.push(await uploadObjectStorageImage(image.data, image.contentType || "image/jpeg", `ai-results/${taskId}`, { stableUrl: true }));
+  }
+  return storedUrls;
+};
+
+const loadDownloadImage = async (req, rawUrl, index) => {
+  const image = await loadImageBuffer(rawUrl, req);
+  return {
+    name: `ai-photo-${index + 1}${imageExtension(image.href, image.contentType)}`,
+    data: image.data
+  };
 };
 
 const serveStatic = (req, res, url) => {

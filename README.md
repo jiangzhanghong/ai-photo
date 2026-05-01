@@ -1,6 +1,6 @@
 # ai-photo
 
-光影AI 当前包含静态官网、会员中心、管理后台和一个无外部依赖的 Node 后端原型。
+光影AI 当前包含静态官网、会员中心、管理后台和 Node 后端原型。
 
 ## 运行
 
@@ -23,9 +23,16 @@ redis_password=your_password
 jwt_secret=change_me
 admin_account=13342860028
 admin_password='Sk8er&boi'
+TENCENTCLOUD_SECRET_ID=your_secret_id
+TENCENTCLOUD_SECRET_KEY=your_secret_key
+LHCOS_BUCKET=your-bucket-1250000000
+LHCOS_REGION=ap-guangzhou
+LHCOS_UPLOAD_PREFIX=member-images
+LHCOS_SIGNED_URLS=true
 ```
 
 如果没有配置 `redis_addr`，后端会使用内存 refresh token 存储，仅适合本地开发。
+会员页图片上传会写入腾讯云轻量对象存储（Lighthouse 版）。轻量对象存储兼容 COS SDK，`LHCOS_BUCKET` 需要包含 APPID；私有桶建议保留 `LHCOS_SIGNED_URLS=true`。
 
 ## 已实现范围
 

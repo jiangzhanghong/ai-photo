@@ -507,6 +507,232 @@
         object-fit: cover;
       }
 
+      .prompt-image-list,
+      .prompt-table-images {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        min-height: 34px;
+        align-items: center;
+      }
+
+      .prompt-upload-zone {
+        min-height: 76px;
+        display: grid;
+        place-items: center;
+        border: 1px dashed #b9d9d2;
+        border-radius: 6px;
+        background: #f8fbf9;
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .prompt-upload-zone:hover,
+      .prompt-upload-zone.drag-over {
+        border-color: var(--green);
+        background: #eef8f5;
+      }
+
+      .prompt-upload-zone input {
+        display: none;
+      }
+
+      .admin-image-control {
+        position: relative;
+        display: grid;
+        gap: 5px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .admin-image-trigger {
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: #fff;
+        color: var(--text);
+      }
+
+      .admin-image-trigger i {
+        width: 1px;
+        height: 16px;
+        background: var(--line);
+      }
+
+      .admin-image-popover {
+        position: absolute;
+        top: 58px;
+        left: 0;
+        z-index: 30;
+        width: min(360px, calc(100vw - 48px));
+        display: grid;
+        gap: 14px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 14px 34px rgba(19, 32, 26, 0.14);
+      }
+
+      .admin-image-popover[hidden] {
+        display: none;
+      }
+
+      .admin-image-popover section {
+        display: grid;
+        gap: 9px;
+      }
+
+      .admin-image-popover h3 {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .admin-resolution-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      .admin-resolution-tabs button,
+      .admin-ratio-grid button {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--text);
+      }
+
+      .admin-resolution-tabs button {
+        height: 32px;
+      }
+
+      .admin-resolution-tabs button.active,
+      .admin-ratio-grid button.active {
+        border-color: var(--green);
+        background: #eef8f5;
+        color: var(--green-dark);
+      }
+
+      .admin-ratio-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .admin-ratio-grid button {
+        min-height: 62px;
+        display: grid;
+        justify-items: center;
+        align-content: center;
+        gap: 5px;
+        font-size: 12px;
+      }
+
+      .admin-ratio-grid button b {
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .admin-ratio-symbol {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 2px solid currentColor;
+        border-radius: 3px;
+      }
+
+      .admin-ratio-symbol.smart {
+        border-style: dashed;
+        border-radius: 50%;
+      }
+
+      .admin-ratio-symbol.portrait {
+        width: 15px;
+        height: 21px;
+      }
+
+      .admin-ratio-symbol.landscape {
+        width: 23px;
+        height: 16px;
+      }
+
+      .admin-ratio-symbol.wide {
+        width: 26px;
+        height: 14px;
+      }
+
+      .admin-ratio-symbol.tall {
+        width: 13px;
+        height: 25px;
+      }
+
+      .admin-ratio-symbol.ultra {
+        width: 28px;
+        height: 12px;
+      }
+
+      .admin-image-size {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .prompt-image-item {
+        width: 68px;
+        display: grid;
+        gap: 4px;
+      }
+
+      .prompt-image-item img {
+        width: 68px;
+        height: 68px;
+        display: block;
+        object-fit: cover;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: #f3f6f4;
+      }
+
+      .prompt-image-item button {
+        height: 24px;
+        padding: 0;
+        border: 1px solid #f1b5b8;
+        border-radius: 4px;
+        background: #fff;
+        color: var(--red);
+        font-size: 12px;
+      }
+
+      .prompt-table-images {
+        width: 72px;
+        display: grid;
+        grid-template-columns: repeat(2, 34px);
+        gap: 4px;
+      }
+
+      .prompt-table-images a {
+        width: 34px;
+        height: 34px;
+        display: block;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: #f3f6f4;
+      }
+
+      .prompt-table-images img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+
       .task-empty-image {
         color: var(--muted);
       }
@@ -833,14 +1059,18 @@
                 <div class="form-grid">
                   <label><span>标题</span><input data-prompt-title /></label>
                   <label><span>类型</span><select data-prompt-type><option value="generate">生成图片</option><option value="image_to_image">以图生图</option><option value="edit">修改图片</option></select></label>
-                  <label><span>场景</span><input data-prompt-scene /></label>
+                  <label><span>大类</span><select data-prompt-scene></select></label>
                   <label><span>积分</span><input type="number" min="0" value="8" data-prompt-cost /></label>
                   <label><span>排序</span><input type="number" min="0" value="10" data-prompt-sort /></label>
                   <button class="btn" type="button" data-create-prompt>新增提示词</button>
-                  <label class="wide"><span>用户可见描述</span><input placeholder="说明适合什么场景" data-prompt-description /></label>
-                  <label class="wide"><span>分类标签，逗号分隔</span><input placeholder="毕业季,校园,写真" data-prompt-tags /></label>
-                  <label class="wide"><span>示例图 URL</span><input placeholder="./assets/work-portrait.jpg" data-prompt-example /></label>
-                  <label class="wide"><span>变量，每行一个</span><textarea placeholder="style&#10;background&#10;lighting" data-prompt-variables></textarea></label>
+                  <label class="wide"><span>标签，逗号或换行分隔</span><textarea placeholder="毕业季&#10;校园&#10;写真" data-prompt-tags></textarea></label>
+                  <div class="wide" data-prompt-image-defaults></div>
+                  <label class="wide"><span>示例图片</span></label>
+                  <label class="full prompt-upload-zone" data-prompt-upload-zone>
+                    <input type="file" accept="image/*" multiple data-prompt-images />
+                    <span>点击上传，或粘贴 / 拖拽图片</span>
+                  </label>
+                  <div class="full prompt-image-list" data-prompt-image-list></div>
                   <label class="full"><span>核心 prompt</span><textarea data-prompt-content></textarea></label>
                   <label class="full"><span>反向 prompt</span><textarea data-prompt-negative></textarea></label>
                 </div>
@@ -850,7 +1080,7 @@
               <div class="panel-head">
                 <h2>提示词列表</h2>
                 <div class="list-tools">
-                  <input type="search" placeholder="查询标题、场景、prompt" data-prompt-query />
+                  <input type="search" placeholder="查询标题、大类、prompt" data-prompt-query />
                   <select data-prompt-filter-type>
                     <option value="">全部类型</option>
                     <option value="generate">生成图片</option>
@@ -867,7 +1097,7 @@
                   <input type="file" accept="application/json,.json" hidden data-prompt-import-file />
                 </div>
               </div>
-              <div class="table-wrap"><table><thead><tr><th>标题</th><th>类型</th><th>场景</th><th>标签</th><th>版本</th><th>积分</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody data-prompt-list></tbody></table></div>
+              <div class="table-wrap"><table><thead><tr><th>标题</th><th>示例图</th><th>类型</th><th>大类</th><th>标签</th><th>版本</th><th>积分</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody data-prompt-list></tbody></table></div>
             </section>
           </section>
 
@@ -954,9 +1184,44 @@
         const titles = { dashboard: "管理后台首页", tasks: "AI 任务", users: "会员管理", credits: "积分流水", prompts: "核心提示词", models: "生图模型", plans: "套餐管理", settings: "系统设置" };
         const statusText = { queued: "排队中", processing: "生成中", succeeded: "成功", failed: "失败", active: "启用", disabled: "禁用" };
         const taskTypeText = { generate: "生成图片", image_to_image: "以图生图", edit: "修改图片" };
+        const promptCategories = ["写真", "校园", "旅行", "胶片", "情绪", "证件", "修图"];
+        const promptImageSizes = {
+          "2K": {
+            "1:1": "2048x2048",
+            "4:3": "2304x1728",
+            "3:4": "1728x2304",
+            "16:9": "2848x1600",
+            "9:16": "1600x2848",
+            "3:2": "2496x1664",
+            "2:3": "1664x2496",
+            "21:9": "3136x1344"
+          },
+          "4K": {
+            "1:1": "4096x4096",
+            "3:4": "3520x4704",
+            "4:3": "4704x3520",
+            "16:9": "5504x3040",
+            "9:16": "3040x5504",
+            "2:3": "3328x4992",
+            "3:2": "4992x3328",
+            "21:9": "6240x2656"
+          }
+        };
+        const promptRatioOptions = [
+          { value: "adaptive", label: "智能", symbol: "smart" },
+          { value: "1:1", label: "1:1", symbol: "square" },
+          { value: "3:4", label: "3:4", symbol: "portrait" },
+          { value: "4:3", label: "4:3", symbol: "landscape" },
+          { value: "16:9", label: "16:9", symbol: "wide" },
+          { value: "9:16", label: "9:16", symbol: "tall" },
+          { value: "2:3", label: "2:3", symbol: "portrait" },
+          { value: "3:2", label: "3:2", symbol: "landscape" },
+          { value: "21:9", label: "21:9", symbol: "ultra" }
+        ];
         const cache = { models: [], prompts: [], plans: [] };
         const taskState = { page: 1, pageSize: 10, total: 0, totalPages: 1 };
         let editState = null;
+        let promptDraftImages = [];
 
         const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (s) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[s]);
         const fmtTime = (value) => value ? new Date(value).toLocaleString("zh-CN", { hour12: false }) : "";
@@ -974,6 +1239,152 @@
             const src = imageUrl(url);
             return `<a class="task-thumb" href="${esc(src)}" target="_blank" rel="noopener"><img src="${esc(src)}" alt="" loading="lazy" /></a>`;
           }).join("")}${list.length > 4 ? `<span class="task-empty-image">+${list.length - 4}</span>` : ""}</div>`;
+        };
+        const promptImageGrid = (images) => {
+          const list = (Array.isArray(images) ? images : []).filter(Boolean);
+          if (!list.length) return `<span class="task-empty-image">无</span>`;
+          return `<div class="prompt-table-images">${list.slice(0, 4).map((item) => {
+            const href = imageUrl(item.originalUrl || item.compressedUrl);
+            const src = imageUrl(item.compressedUrl || item.originalUrl);
+            return `<a href="${esc(href)}" target="_blank" rel="noopener"><img src="${esc(src)}" alt="" loading="lazy" /></a>`;
+          }).join("")}</div>${list.length > 4 ? `<span class="task-empty-image">+${list.length - 4}</span>` : ""}`;
+        };
+        const categoryOptions = (selected = "") => {
+          const value = String(selected || "").trim();
+          const options = value && !promptCategories.includes(value) ? [value, ...promptCategories] : promptCategories;
+          return options.map((item) => `<option value="${esc(item)}"${item === value ? " selected" : ""}>${esc(item)}</option>`).join("");
+        };
+        const promptRatioOption = (ratio) => promptRatioOptions.find((item) => item.value === ratio) || promptRatioOptions[1];
+        const normalizePromptImageSettings = (params = {}) => {
+          const ratio = promptRatioOptions.some((item) => item.value === params.ratio) ? params.ratio : "1:1";
+          const resolution = params.resolution === "4K" || params.size === "4K" ? "4K" : "2K";
+          return { resolution: ratio === "adaptive" ? "4K" : resolution, ratio };
+        };
+        const promptImageSize = (settings) => settings.ratio === "adaptive" ? "4K" : (promptImageSizes[settings.resolution]?.[settings.ratio] || "2048x2048");
+        const adminImageControlHtml = (params = {}) => {
+          const settings = normalizePromptImageSettings(params);
+          const ratio = promptRatioOption(settings.ratio);
+          return `
+            <div class="admin-image-control" data-admin-image-control>
+              <span>图片比例</span>
+              <button class="admin-image-trigger" type="button" data-admin-image-toggle>
+                <span data-admin-resolution-label>${esc(settings.resolution)}</span>
+                <i></i>
+                <span class="admin-ratio-symbol ${esc(ratio.symbol)}" data-admin-current-ratio-symbol></span>
+                <span data-admin-ratio-label>${esc(ratio.label)}</span>
+              </button>
+              <div class="admin-image-popover" data-admin-image-panel hidden>
+                <section>
+                  <h3>分辨率</h3>
+                  <div class="admin-resolution-tabs">
+                    <button class="${settings.resolution === "2K" ? "active" : ""}" type="button" data-admin-resolution-option="2K">2K</button>
+                    <button class="${settings.resolution === "4K" ? "active" : ""}" type="button" data-admin-resolution-option="4K">4K</button>
+                  </div>
+                </section>
+                <section>
+                  <h3>图片比例</h3>
+                  <div class="admin-ratio-grid">
+                    ${promptRatioOptions.map((item) => `<button class="${settings.ratio === item.value ? "active" : ""}" type="button" data-admin-ratio-option="${esc(item.value)}"><span class="admin-ratio-symbol ${esc(item.symbol)}"></span><b>${esc(item.label)}</b></button>`).join("")}
+                  </div>
+                </section>
+                <span class="admin-image-size" data-admin-image-size>尺寸 ${esc(promptImageSize(settings))}</span>
+              </div>
+            </div>
+          `;
+        };
+        const readAdminImageSettings = (control) => {
+          const resolution = control?.querySelector("[data-admin-resolution-option].active")?.dataset.adminResolutionOption || "2K";
+          const ratio = control?.querySelector("[data-admin-ratio-option].active")?.dataset.adminRatioOption || "1:1";
+          return normalizePromptImageSettings({ resolution, ratio });
+        };
+        const syncAdminImageControl = (control, settings) => {
+          if (!control) return;
+          const normalized = normalizePromptImageSettings(settings);
+          const ratio = promptRatioOption(normalized.ratio);
+          control.querySelector("[data-admin-resolution-label]").textContent = normalized.resolution;
+          control.querySelector("[data-admin-ratio-label]").textContent = ratio.label;
+          control.querySelector("[data-admin-current-ratio-symbol]").className = `admin-ratio-symbol ${ratio.symbol}`;
+          control.querySelector("[data-admin-image-size]").textContent = `尺寸 ${promptImageSize(normalized)}`;
+          $$("[data-admin-resolution-option]", control).forEach((btn) => btn.classList.toggle("active", btn.dataset.adminResolutionOption === normalized.resolution));
+          $$("[data-admin-ratio-option]", control).forEach((btn) => btn.classList.toggle("active", btn.dataset.adminRatioOption === normalized.ratio));
+        };
+        const promptDefaultParams = (baseParams = {}, control) => {
+          const settings = readAdminImageSettings(control);
+          return { ...baseParams, resolution: settings.resolution, ratio: settings.ratio, size: promptImageSize(settings) };
+        };
+        const promptImages = (prompt) => {
+          if (Array.isArray(prompt.exampleImages)) return prompt.exampleImages;
+          const url = prompt.exampleImageUrl || prompt.resultImageUrl || "";
+          return url ? [{ originalUrl: prompt.resultImageUrl || url, compressedUrl: prompt.exampleImageUrl || url }] : [];
+        };
+        const renderPromptImageList = (selector, images, removeAttr) => {
+          const el = $(selector);
+          if (!el) return;
+          el.innerHTML = images.length ? images.map((item, index) => {
+            const src = imageUrl(item.compressedUrl || item.originalUrl);
+            return `<span class="prompt-image-item"><img src="${esc(src)}" alt="" loading="lazy" /><button type="button" ${removeAttr}="${index}">移除</button></span>`;
+          }).join("") : `<span class="task-empty-image">未上传示例图片</span>`;
+        };
+        const readFileDataUrl = (file) => new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(new Error("图片读取失败。"));
+          reader.readAsDataURL(file);
+        });
+        const compressImageFile = (file) => new Promise((resolve, reject) => {
+          const img = new Image();
+          const objectUrl = URL.createObjectURL(file);
+          img.onload = () => {
+            URL.revokeObjectURL(objectUrl);
+            const maxSide = 720;
+            const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.round(img.width * scale));
+            canvas.height = Math.max(1, Math.round(img.height * scale));
+            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL("image/jpeg", 0.76));
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error("图片压缩失败。"));
+          };
+          img.src = objectUrl;
+        });
+        const uploadPromptImagePair = async (file) => {
+          const [originalData, compressedData] = await Promise.all([readFileDataUrl(file), compressImageFile(file)]);
+          const [original, compressed] = await Promise.all([
+            api("/api/admin/uploads/images", { method: "POST", body: JSON.stringify({ imageData: originalData, prefix: "prompt-images/original" }) }),
+            api("/api/admin/uploads/images", { method: "POST", body: JSON.stringify({ imageData: compressedData, prefix: "prompt-images/compressed" }) })
+          ]);
+          return { originalUrl: original.url, compressedUrl: compressed.url };
+        };
+        const uploadPromptImages = async (files) => {
+          const list = Array.from(files || []).filter((file) => file.type.startsWith("image/"));
+          const uploaded = [];
+          for (const file of list) uploaded.push(await uploadPromptImagePair(file));
+          return uploaded;
+        };
+        const pastedImageFiles = (clipboardData) => Array.from(clipboardData?.items || [])
+          .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+          .map((item) => item.getAsFile())
+          .filter(Boolean);
+        const addPromptDraftImages = async (files) => {
+          const list = Array.from(files || []).filter((file) => file?.type?.startsWith("image/"));
+          if (!list.length) return;
+          setText("[data-prompt-message]", "正在上传示例图片...");
+          promptDraftImages.push(...await uploadPromptImages(list));
+          renderPromptImageList("[data-prompt-image-list]", promptDraftImages, "data-remove-prompt-image");
+          setText("[data-prompt-message]", "示例图片已上传。");
+        };
+        const addEditPromptImages = async (files) => {
+          if (editState?.type !== "prompt") return;
+          const list = Array.from(files || []).filter((file) => file?.type?.startsWith("image/"));
+          if (!list.length) return;
+          setText("[data-edit-message]", "正在上传示例图片...");
+          editState.item.exampleImages = promptImages(editState.item);
+          editState.item.exampleImages.push(...await uploadPromptImages(list));
+          renderPromptImageList("[data-edit-prompt-image-list]", editState.item.exampleImages, "data-remove-edit-prompt-image");
+          setText("[data-edit-message]", "示例图片已上传。");
         };
 
         const adminHeaders = () => ({
@@ -1022,14 +1433,14 @@
           title: prompt.title || "新提示词",
           taskType: prompt.taskType || "generate",
           scene: prompt.scene || "",
-          userDescription: prompt.userDescription || "",
+          userDescription: "",
           categoryTags: splitList(prompt.categoryTags || prompt.tags || ""),
-          variables: variableNames(prompt.variables || ""),
+          variables: [],
           promptContent: prompt.promptContent || "",
           negativePrompt: prompt.negativePrompt || "",
           defaultParams: prompt.defaultParams || {},
           creditCost: Number(prompt.creditCost || 0),
-          exampleImageUrl: prompt.exampleImageUrl || prompt.resultImageUrl || "",
+          exampleImages: promptImages(prompt),
           sortOrder: Number(prompt.sortOrder || 0),
           isActive: boolValue(prompt.isActive, true),
           version: prompt.version || "v1"
@@ -1050,6 +1461,7 @@
               defaultParams: item.defaultParams || item.default_params,
               creditCost: item.creditCost ?? item.credit_cost,
               exampleImageUrl: item.exampleImageUrl || item.resultImageUrl || item.result_image_url,
+              exampleImages: item.exampleImages || item.example_images,
               sortOrder: item.sortOrder ?? item.sort_order,
               isActive: boolValue(item.isActive ?? item.is_active, true),
               version: item.version
@@ -1072,20 +1484,26 @@
             form.innerHTML = `
               <label><span>标题</span><input data-edit-field="title" value="${esc(item.title)}" /></label>
               <label><span>类型</span><select data-edit-field="taskType"><option value="generate">生成图片</option><option value="image_to_image">以图生图</option><option value="edit">修改图片</option></select></label>
-              <label><span>场景</span><input data-edit-field="scene" value="${esc(item.scene)}" /></label>
+              <label><span>大类</span><select data-edit-field="scene">${categoryOptions(item.scene)}</select></label>
               <label><span>积分</span><input type="number" min="0" data-edit-field="creditCost" value="${item.creditCost}" /></label>
               <label><span>排序</span><input type="number" min="0" data-edit-field="sortOrder" value="${item.sortOrder}" /></label>
               <label><span>状态</span><select data-edit-field="isActive"><option value="1">上架</option><option value="0">下架</option></select></label>
               <label class="wide"><span>版本</span><input value="${esc(item.version)}" disabled /></label>
-              <label class="wide"><span>示例图 URL</span><input data-edit-field="exampleImageUrl" value="${esc(item.exampleImageUrl || item.resultImageUrl || "")}" /></label>
-              <label class="full"><span>用户可见描述</span><textarea data-edit-field="userDescription">${esc(item.userDescription || "")}</textarea></label>
-              <label class="wide"><span>分类标签，逗号分隔</span><textarea data-edit-field="categoryTags">${esc((item.categoryTags || []).join(", "))}</textarea></label>
-              <label class="wide"><span>变量，每行一个</span><textarea data-edit-field="variables">${esc((item.variables || []).map((v) => v.name || v).join("\n"))}</textarea></label>
+              <label class="wide"><span>标签，逗号或换行分隔</span><textarea data-edit-field="categoryTags">${esc((item.categoryTags || []).join("\n"))}</textarea></label>
+              <div class="wide">${adminImageControlHtml(item.defaultParams || {})}</div>
+              <label class="wide"><span>追加示例图片</span></label>
+              <label class="full prompt-upload-zone" data-edit-prompt-upload-zone>
+                <input type="file" accept="image/*" multiple data-edit-prompt-images />
+                <span>点击上传，或粘贴 / 拖拽图片</span>
+              </label>
+              <div class="full prompt-image-list" data-edit-prompt-image-list></div>
               <label class="full"><span>核心 prompt</span><textarea data-edit-field="promptContent">${esc(item.promptContent)}</textarea></label>
               <label class="full"><span>反向 prompt</span><textarea data-edit-field="negativePrompt">${esc(item.negativePrompt || "")}</textarea></label>
             `;
             field("taskType").value = item.taskType;
             field("isActive").value = item.isActive ? "1" : "0";
+            item.exampleImages = promptImages(item);
+            renderPromptImageList("[data-edit-prompt-image-list]", item.exampleImages, "data-remove-edit-prompt-image");
           }
           if (type === "model") {
             setText("[data-edit-title]", "编辑生图模型");
@@ -1138,13 +1556,14 @@
                   title: field("title").value,
                   taskType: field("taskType").value,
                   scene: field("scene").value,
-                  userDescription: field("userDescription").value,
+                  userDescription: "",
                   categoryTags: splitList(field("categoryTags").value),
-                  variables: variableNames(field("variables").value),
+                  variables: [],
+                  defaultParams: promptDefaultParams(editState.item.defaultParams || {}, $("[data-edit-form] [data-admin-image-control]")),
                   creditCost: Number(field("creditCost").value || 0),
                   sortOrder: Number(field("sortOrder").value || 0),
                   isActive: field("isActive").value === "1",
-                  exampleImageUrl: field("exampleImageUrl").value,
+                  exampleImages: promptImages(editState.item),
                   promptContent: field("promptContent").value,
                   negativePrompt: field("negativePrompt").value
                 })
@@ -1327,7 +1746,8 @@
           const prompts = filteredPrompts();
           $("[data-prompt-list]").innerHTML = prompts.map((prompt) => `
             <tr>
-              <td>${esc(prompt.title)}<br><small>${esc(prompt.userDescription || "")}</small></td>
+              <td>${esc(prompt.title)}</td>
+              <td>${promptImageGrid(promptImages(prompt))}</td>
               <td>${badge(taskTypeText[prompt.taskType] || prompt.taskType, "blue")}</td>
               <td>${esc(prompt.scene)}</td>
               <td>${(prompt.categoryTags || []).map((tag) => badge(tag)).join(" ")}</td>
@@ -1337,7 +1757,7 @@
               <td>${fmtTime(prompt.updatedAt)}</td>
               <td><div class="table-actions"><button class="btn secondary" type="button" data-edit-prompt="${prompt.id}">编辑</button><button class="btn secondary" type="button" data-test-prompt="${prompt.id}">测试</button><button class="btn danger" type="button" data-delete-prompt="${prompt.id}">删除</button></div></td>
             </tr>
-          `).join("") || `<tr><td colspan="9">暂无数据</td></tr>`;
+          `).join("") || `<tr><td colspan="10">暂无数据</td></tr>`;
         };
 
         const loadPrompts = async () => {
@@ -1365,6 +1785,9 @@
         };
 
         const initEvents = () => {
+          $("[data-prompt-scene]").innerHTML = categoryOptions("写真");
+          $("[data-prompt-image-defaults]").innerHTML = adminImageControlHtml();
+          renderPromptImageList("[data-prompt-image-list]", promptDraftImages, "data-remove-prompt-image");
           $("[data-login-form]").addEventListener("submit", async (event) => {
             event.preventDefault();
             setLoginMessage("");
@@ -1417,6 +1840,44 @@
           $("[data-edit-close-secondary]").addEventListener("click", closeEdit);
           $("[data-edit-backdrop]").addEventListener("click", (event) => { if (event.target === $("[data-edit-backdrop]")) closeEdit(); });
           $("[data-edit-save]").addEventListener("click", saveEdit);
+          $("[data-edit-form]").addEventListener("change", async (event) => {
+            if (!event.target.matches("[data-edit-prompt-images]") || editState?.type !== "prompt") return;
+            try {
+              await addEditPromptImages(event.target.files);
+            } catch (error) {
+              setText("[data-edit-message]", error.message);
+            } finally {
+              event.target.value = "";
+            }
+          });
+          $("[data-edit-form]").addEventListener("dragover", (event) => {
+            const zone = event.target.closest("[data-edit-prompt-upload-zone]");
+            if (!zone) return;
+            event.preventDefault();
+            zone.classList.add("drag-over");
+          });
+          $("[data-edit-form]").addEventListener("dragleave", (event) => {
+            const zone = event.target.closest("[data-edit-prompt-upload-zone]");
+            if (zone) zone.classList.remove("drag-over");
+          });
+          $("[data-edit-form]").addEventListener("drop", async (event) => {
+            const zone = event.target.closest("[data-edit-prompt-upload-zone]");
+            if (!zone) return;
+            event.preventDefault();
+            zone.classList.remove("drag-over");
+            try {
+              await addEditPromptImages(event.dataTransfer.files);
+            } catch (error) {
+              setText("[data-edit-message]", error.message);
+            }
+          });
+          $("[data-edit-form]").addEventListener("click", (event) => {
+            const button = event.target.closest("[data-remove-edit-prompt-image]");
+            if (!button || editState?.type !== "prompt") return;
+            editState.item.exampleImages = promptImages(editState.item);
+            editState.item.exampleImages.splice(Number(button.dataset.removeEditPromptImage), 1);
+            renderPromptImageList("[data-edit-prompt-image-list]", editState.item.exampleImages, "data-remove-edit-prompt-image");
+          });
 
           $("[data-create-model]").addEventListener("click", async () => {
             try {
@@ -1486,21 +1947,101 @@
                   title: $("[data-prompt-title]").value,
                   taskType: $("[data-prompt-type]").value,
                   scene: $("[data-prompt-scene]").value,
-                  userDescription: $("[data-prompt-description]").value,
+                  userDescription: "",
                   categoryTags: splitList($("[data-prompt-tags]").value),
-                  variables: variableNames($("[data-prompt-variables]").value),
+                  variables: [],
+                  defaultParams: promptDefaultParams({}, $("[data-prompt-image-defaults] [data-admin-image-control]")),
                   creditCost: Number($("[data-prompt-cost]").value || 0),
                   sortOrder: Number($("[data-prompt-sort]").value || 0),
-                  exampleImageUrl: $("[data-prompt-example]").value,
+                  exampleImages: promptDraftImages,
                   promptContent: $("[data-prompt-content]").value,
                   negativePrompt: $("[data-prompt-negative]").value
                 })
               });
               setText("[data-prompt-message]", "提示词已新增。");
+              promptDraftImages = [];
+              renderPromptImageList("[data-prompt-image-list]", promptDraftImages, "data-remove-prompt-image");
+              $("[data-prompt-images]").value = "";
               await loadPrompts();
             } catch (error) {
               setText("[data-prompt-message]", error.message);
             }
+          });
+          $("[data-prompt-images]").addEventListener("change", async (event) => {
+            try {
+              await addPromptDraftImages(event.target.files);
+            } catch (error) {
+              setText("[data-prompt-message]", error.message);
+            } finally {
+              event.target.value = "";
+            }
+          });
+          const promptUploadZone = $("[data-prompt-upload-zone]");
+          promptUploadZone.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            promptUploadZone.classList.add("drag-over");
+          });
+          promptUploadZone.addEventListener("dragleave", () => promptUploadZone.classList.remove("drag-over"));
+          promptUploadZone.addEventListener("drop", async (event) => {
+            event.preventDefault();
+            promptUploadZone.classList.remove("drag-over");
+            try {
+              await addPromptDraftImages(event.dataTransfer.files);
+            } catch (error) {
+              setText("[data-prompt-message]", error.message);
+            }
+          });
+          document.addEventListener("paste", async (event) => {
+            const files = pastedImageFiles(event.clipboardData);
+            if (!files.length) return;
+            const editOpen = $("[data-edit-backdrop]").classList.contains("open") && editState?.type === "prompt";
+            const promptViewOpen = $("[data-view=\"prompts\"]").classList.contains("active");
+            if (!editOpen && !promptViewOpen) return;
+            event.preventDefault();
+            try {
+              if (editOpen) await addEditPromptImages(files);
+              else await addPromptDraftImages(files);
+            } catch (error) {
+              setText(editOpen ? "[data-edit-message]" : "[data-prompt-message]", error.message);
+            }
+          });
+          document.addEventListener("click", (event) => {
+            const toggle = event.target.closest("[data-admin-image-toggle]");
+            if (toggle) {
+              event.stopPropagation();
+              const control = toggle.closest("[data-admin-image-control]");
+              $$("[data-admin-image-panel]").forEach((panel) => {
+                if (panel !== control.querySelector("[data-admin-image-panel]")) panel.hidden = true;
+              });
+              const panel = control.querySelector("[data-admin-image-panel]");
+              panel.hidden = !panel.hidden;
+              return;
+            }
+            const resolution = event.target.closest("[data-admin-resolution-option]");
+            if (resolution) {
+              event.stopPropagation();
+              const control = resolution.closest("[data-admin-image-control]");
+              const current = readAdminImageSettings(control);
+              syncAdminImageControl(control, { ...current, resolution: resolution.dataset.adminResolutionOption });
+              return;
+            }
+            const ratio = event.target.closest("[data-admin-ratio-option]");
+            if (ratio) {
+              event.stopPropagation();
+              const control = ratio.closest("[data-admin-image-control]");
+              const current = readAdminImageSettings(control);
+              syncAdminImageControl(control, { ...current, ratio: ratio.dataset.adminRatioOption });
+              return;
+            }
+            if (!event.target.closest("[data-admin-image-control]")) {
+              $$("[data-admin-image-panel]").forEach((panel) => { panel.hidden = true; });
+            }
+          });
+          $("[data-prompt-image-list]").addEventListener("click", (event) => {
+            const button = event.target.closest("[data-remove-prompt-image]");
+            if (!button) return;
+            promptDraftImages.splice(Number(button.dataset.removePromptImage), 1);
+            renderPromptImageList("[data-prompt-image-list]", promptDraftImages, "data-remove-prompt-image");
           });
           ["[data-prompt-query]", "[data-prompt-filter-type]", "[data-prompt-filter-status]"].forEach((selector) => {
             $(selector).addEventListener("input", renderPrompts);
