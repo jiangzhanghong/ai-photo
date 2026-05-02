@@ -89,14 +89,9 @@
         <text class="upload-title">上传图片</text>
         <text class="upload-desc">支持 JPG / PNG</text>
       </button>
-      <view wx:for="{{referencePreviewItems}}" wx:key="id" class="reference-tile">
+      <view wx:for="{{uploadedImages}}" wx:key="id" class="reference-tile">
         <image class="reference-image" mode="aspectFill" src="{{item.previewUrl}}" />
-        <button
-          wx:if="{{!item.placeholder}}"
-          class="remove-btn"
-          data-id="{{item.id}}"
-          bindtap="removeImage"
-        >
+        <button class="remove-btn" data-id="{{item.id}}" bindtap="removeImage">
           ×
         </button>
       </view>

@@ -26,12 +26,6 @@ interface PromptChip {
   creditCost: number;
 }
 
-interface ReferencePreviewItem {
-  id: string;
-  previewUrl: string;
-  placeholder: boolean;
-}
-
 interface RecentTaskCard {
   id: string;
   coverUrl: string;
@@ -81,12 +75,6 @@ const recommendedImageSizes = {
 } as const;
 
 const knownRatios = ratioOptions.filter((item) => item.value !== "adaptive");
-
-const placeholderReferenceUrls = [
-  "/assets/demo/ref-1.jpg",
-  "/assets/demo/ref-2.jpg",
-  "/assets/demo/ref-3.jpg"
-];
 
 const demoRecentTasks: RecentTaskCard[] = [
   {
@@ -248,11 +236,6 @@ Page({
     models: [] as Model[],
     tasks: [] as Task[],
     uploadedImages: [] as UploadItem[],
-    referencePreviewItems: placeholderReferenceUrls.map((url, index) => ({
-      id: `placeholder-${index}`,
-      previewUrl: url,
-      placeholder: true
-    })) as ReferencePreviewItem[],
     historyImages: [] as HistoryItem[],
     recentTasks: demoRecentTasks,
     historyVisible: false,
@@ -290,7 +273,6 @@ Page({
     const safeTop = (windowInfo?.statusBarHeight || 24) + 18;
     const navRightWidth = menuRect && windowInfo ? windowInfo.windowWidth - menuRect.left + 24 : 210;
     this.setData({ safeTop, navRightWidth });
-    this.syncReferencePreview();
   },
 
   async onShow() {
@@ -433,22 +415,6 @@ Page({
     this.setData({ historyImages: history });
   },
 
-  syncReferencePreview() {
-    const actualItems: ReferencePreviewItem[] = this.data.uploadedImages.slice(0, 3).map((item) => ({
-      id: item.id,
-      previewUrl: item.previewUrl,
-      placeholder: false
-    }));
-    const placeholders = placeholderReferenceUrls
-      .slice(0, Math.max(0, 3 - actualItems.length))
-      .map((url, index) => ({
-        id: `placeholder-${index}`,
-        previewUrl: url,
-        placeholder: true
-      }));
-    this.setData({ referencePreviewItems: [...actualItems, ...placeholders] });
-  },
-
   syncCost() {
     const model = this.data.models[this.data.selectedModelIndex];
     const prompt = this.data.prompts.find((item) => item.id === this.data.selectedPromptId);
@@ -532,13 +498,11 @@ Page({
       tempFilePath: file.tempFilePath
     }));
     this.setData({ uploadedImages: [...this.data.uploadedImages, ...items], message: "" });
-    this.syncReferencePreview();
   },
 
   removeImage(event: WechatMiniprogram.TouchEvent) {
     const id = String(event.currentTarget.dataset.id || "");
     this.setData({ uploadedImages: this.data.uploadedImages.filter((item) => item.id !== id) });
-    this.syncReferencePreview();
   },
 
   openHistory() {
@@ -599,7 +563,6 @@ Page({
       historyVisible: false,
       message: items.length ? `已添加 ${items.length} 张历史参考图。` : "没有可添加的历史参考图。"
     });
-    this.syncReferencePreview();
   },
 
   fileToDataUrl(filePath: string) {
@@ -763,7 +726,6 @@ Page({
       latestTaskRelative: "2分钟前",
       message: "已退出。"
     });
-    this.syncReferencePreview();
   },
 
   openTask(event: WechatMiniprogram.TouchEvent) {
