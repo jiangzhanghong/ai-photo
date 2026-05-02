@@ -1,0 +1,53 @@
+<view class="page home-page">
+  <view class="member-card">
+    <view class="member-top">
+      <view class="avatar">{{avatarText}}</view>
+      <view class="member-info">
+        <view class="name">{{displayName}}</view>
+        <view class="phone">{{displayPhone}}</view>
+      </view>
+      <view class="plan-pill">{{planName}}</view>
+    </view>
+    <view class="credit-row">
+      <view>
+        <text>可用积分</text>
+        <text class="value">{{creditBalance}}</text>
+      </view>
+      <view>
+        <text>最近任务</text>
+        <text class="value">{{latestTaskStatus}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{!user}}" class="card login-card">
+    <view class="section-title">手机号登录</view>
+    <input class="field" type="number" maxlength="11" placeholder="请输入手机号" value="{{phone}}" bindinput="onPhoneInput" />
+    <view class="code-row">
+      <input class="field" type="number" maxlength="6" placeholder="验证码" value="{{code}}" bindinput="onCodeInput" />
+      <button class="ghost-btn" bindtap="sendCode">{{sending ? '发送中' : '获取验证码'}}</button>
+    </view>
+    <button class="primary-btn" bindtap="login">登录 / 注册</button>
+    <view class="muted">{{message}}</view>
+  </view>
+
+  <view wx:else class="quick-actions">
+    <button class="primary-btn" bindtap="goCreate">开始创作</button>
+    <button class="ghost-btn" bindtap="logout">退出登录</button>
+  </view>
+
+  <view class="section-title plan-title">
+    <text>积分套餐</text>
+    <text class="muted">模拟支付开通</text>
+  </view>
+  <view class="plan-list">
+    <view wx:for="{{plans}}" wx:key="id" class="card plan-card">
+      <view>
+        <view class="plan-name">{{item.name}}</view>
+        <view class="muted">{{item.credits}} 积分 / {{item.quota}} 张</view>
+      </view>
+      <view class="price">¥{{item.price}}</view>
+      <button class="ghost-btn" data-code="{{item.code}}" bindtap="subscribePlan">{{user ? '购买' : '登录后购买'}}</button>
+    </view>
+  </view>
+</view>

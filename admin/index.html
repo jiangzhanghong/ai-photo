@@ -429,7 +429,7 @@
       }
 
       .task-table {
-        min-width: 1160px;
+        min-width: 1250px;
         table-layout: fixed;
       }
 
@@ -460,6 +460,10 @@
 
       .task-table col:nth-child(8) {
         width: 184px;
+      }
+
+      .task-table col:nth-child(9) {
+        width: 96px;
       }
 
       .task-table th,
@@ -997,6 +1001,7 @@
             <section class="panel">
               <div class="panel-head">
                 <h2>AI 任务</h2>
+                <p class="message" data-task-message></p>
               </div>
               <div class="panel-body">
                 <div class="task-filters">
@@ -1026,7 +1031,7 @@
                   <button class="btn secondary" type="button" data-task-reset>重置</button>
                 </div>
               </div>
-              <div class="table-wrap"><table class="task-table"><colgroup><col /><col /><col /><col /><col /><col /><col /><col /></colgroup><thead><tr><th>任务/用户</th><th>提示词</th><th>输入图片</th><th>输出图片</th><th>模型/类型</th><th>状态/积分</th><th>失败原因</th><th>时间</th></tr></thead><tbody data-task-list></tbody></table></div>
+              <div class="table-wrap"><table class="task-table"><colgroup><col /><col /><col /><col /><col /><col /><col /><col /><col /></colgroup><thead><tr><th>任务/用户</th><th>提示词</th><th>输入图片</th><th>输出图片</th><th>模型/类型</th><th>状态/积分</th><th>失败原因</th><th>时间</th><th>操作</th></tr></thead><tbody data-task-list></tbody></table></div>
               <div class="pager">
                 <span data-task-page-info>共 0 条</span>
                 <div class="pager-actions">
@@ -1225,6 +1230,15 @@
 
         const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (s) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[s]);
         const fmtTime = (value) => value ? new Date(value).toLocaleString("zh-CN", { hour12: false }) : "";
+        const fmtLatency = (value) => {
+          const ms = Number(value || 0);
+          if (!Number.isFinite(ms) || ms <= 0) return "";
+          if (ms < 1000) return `${ms}ms`;
+          if (ms < 60000) return `${(ms / 1000).toFixed(ms >= 10000 ? 0 : 1).replace(/\.0$/, "")}秒`;
+          const minutes = Math.floor(ms / 60000);
+          const seconds = Math.round((ms % 60000) / 1000);
+          return `${minutes}分${seconds}秒`;
+        };
         const badge = (text, type = "") => `<span class="badge ${type}">${esc(text)}</span>`;
         const imageUrl = (value) => {
           const url = String(value || "").trim();
@@ -1402,6 +1416,7 @@
 
         const setText = (selector, text) => { const el = $(selector); if (el) el.textContent = text ?? ""; };
         const setModelMessage = (text) => setText("[data-model-message]", text);
+        const setTaskMessage = (text) => setText("[data-task-message]", text);
         const setLoginMessage = (text) => setText("[data-login-message]", text);
         const field = (name) => $(`[data-edit-field="${name}"]`);
         const showLogin = () => {
@@ -1422,6 +1437,21 @@
           link.download = filename;
           link.click();
           URL.revokeObjectURL(url);
+        };
+        const copyText = async (text) => {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+            return;
+          }
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.style.position = "fixed";
+          textarea.style.left = "-9999px";
+          document.body.appendChild(textarea);
+          textarea.focus();
+          textarea.select();
+          document.execCommand("copy");
+          textarea.remove();
         };
         const boolValue = (value, fallback = true) => {
           if (value === undefined || value === null || value === "") return fallback;
@@ -1647,11 +1677,12 @@
               <td>${taskImageList(inputUrls)}</td>
               <td>${taskImageList(task.resultImageUrls)}</td>
               <td>${esc(task.aiModelName)}<br>${badge(taskTypeText[task.taskType] || task.taskType, "blue")}</td>
-              <td>${status}<br><small>${task.creditCost} 积分</small></td>
+              <td>${status}<br><small>${task.creditCost} 积分${task.providerLatencyMs ? ` · 耗时 ${esc(fmtLatency(task.providerLatencyMs))}` : ""}</small></td>
               <td>${esc(task.failureReason || "")}</td>
               <td>${fmtTime(task.createdAt)}<br><small>${fmtTime(task.updatedAt)}</small></td>
+              <td><div class="table-actions"><button class="btn secondary" type="button" data-copy-task-curl="${task.id}">复制 curl</button></div></td>
             </tr>`;
-          }).join("") || `<tr><td colspan="${compact ? 7 : 8}">暂无数据</td></tr>`;
+          }).join("") || `<tr><td colspan="${compact ? 7 : 9}">暂无数据</td></tr>`;
         };
 
         const loadStats = async () => {
@@ -1835,6 +1866,18 @@
             if (taskState.page >= taskState.totalPages) return;
             taskState.page += 1;
             loadTasks().catch((error) => setModelMessage(error.message));
+          });
+          $("[data-task-list]").addEventListener("click", async (event) => {
+            const button = event.target.closest("[data-copy-task-curl]");
+            if (!button) return;
+            try {
+              setTaskMessage("正在生成 curl...");
+              const data = await api(`/api/admin/ai-image-tasks/${button.dataset.copyTaskCurl}/curl`);
+              await copyText(data.curl || "");
+              setTaskMessage("curl 已复制。");
+            } catch (error) {
+              setTaskMessage(error.message);
+            }
           });
           $("[data-edit-close]").addEventListener("click", closeEdit);
           $("[data-edit-close-secondary]").addEventListener("click", closeEdit);

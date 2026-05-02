@@ -700,7 +700,7 @@ const modelDto = (model, includeSensitive = false) => {
     creditCost: jsonParse(model.credit_cost_config_json, {}),
     creditCostConfig: jsonParse(model.credit_cost_config_json, {}),
     costConfig: includeSensitive ? jsonParse(model.cost_config_json, {}) : undefined,
-    timeoutSeconds: Number(model.timeout_seconds || 60),
+    timeoutSeconds: Math.max(300, Number(model.timeout_seconds || 300)),
     retryLimit: Number(model.retry_limit || 0),
     lastTestStatus: model.last_test_status || "",
     lastTestMessage: model.last_test_message || "",
@@ -892,7 +892,7 @@ const promptWithImageCount = (prompt, count) => {
   return imageCount > 1 ? `${prompt}\n请生成 ${imageCount} 张不同结果。` : prompt;
 };
 
-const callImageModel = async ({ model, taskType, prompt, inputImageUrl, inputImageUrls = [], ratio, size, count, overrideParams = {} }) => {
+const buildImageModelRequest = ({ model, taskType, prompt, inputImageUrl, inputImageUrls = [], ratio, size, count, overrideParams = {} }) => {
   const baseUrl = String(model.base_url || "").replace(/\/+$/, "");
   if (!/^https:\/\//.test(baseUrl) && !/^http:\/\/127\.0\.0\.1/.test(baseUrl)) throw new Error("模型 baseUrl 必须是 https 地址。");
   const apiKey = decrypt(model.api_key_ciphertext);
@@ -932,17 +932,37 @@ const callImageModel = async ({ model, taskType, prompt, inputImageUrl, inputIma
   if (["edit", "image_to_image"].includes(taskType) && uniqueReferenceImages.length) {
     body.image = uniqueReferenceImages.length === 1 ? uniqueReferenceImages[0] : uniqueReferenceImages;
   }
+  return {
+    url: `${baseUrl}/images/generations`,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...modelAuthHeaders(model, apiKey)
+    },
+    body
+  };
+};
+
+const shellQuote = (value) => `'${String(value).replace(/'/g, "'\\''")}'`;
+
+const imageModelCurl = (request) => [
+  `curl -X ${request.method} ${shellQuote(request.url)}`,
+  ...Object.entries(request.headers).map(([key, value]) => `  -H ${shellQuote(`${key}: ${value}`)}`),
+  `  --data-raw ${shellQuote(JSON.stringify(request.body, null, 2))}`
+].join(" \\\n");
+
+const callImageModel = async (payload) => {
+  const request = buildImageModelRequest(payload);
+  const { model } = payload;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Number(model.timeout_seconds || 60) * 1000);
+  const timeoutSeconds = Math.max(300, Number(model.timeout_seconds || 300));
+  const timeout = setTimeout(() => controller.abort(), timeoutSeconds * 1000);
   const started = Date.now();
   try {
-    const response = await fetch(`${baseUrl}/images/generations`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...modelAuthHeaders(model, apiKey)
-      },
-      body: JSON.stringify(body),
+    const response = await fetch(request.url, {
+      method: request.method,
+      headers: request.headers,
+      body: JSON.stringify(request.body),
       signal: controller.signal
     });
     const data = await response.json().catch(() => ({}));
@@ -1172,7 +1192,7 @@ const ensureSchema = async () => {
       credit_cost_config_json TEXT NOT NULL,
       cost_config_json TEXT NOT NULL,
       test_payload_json TEXT,
-      timeout_seconds INT NOT NULL DEFAULT 60,
+      timeout_seconds INT NOT NULL DEFAULT 300,
       retry_limit INT NOT NULL DEFAULT 0,
       concurrency_limit INT NOT NULL DEFAULT 4,
       last_test_status VARCHAR(40),
@@ -1267,6 +1287,7 @@ const ensureSchema = async () => {
   await addColumnIfMissing("prompt_templates", "default_params_json", "TEXT");
   await addColumnIfMissing("ai_image_tasks", "prompt_snapshot_json", "TEXT");
   await addColumnIfMissing("ai_image_tasks", "input_image_urls_json", "TEXT");
+  await db.exec("UPDATE ai_models SET timeout_seconds = 300 WHERE timeout_seconds IS NULL OR timeout_seconds < 300");
   await db.exec("ALTER TABLE prompt_templates MODIFY COLUMN result_image_url TEXT");
   await db.exec("ALTER TABLE prompt_versions MODIFY COLUMN result_image_url TEXT");
 };
@@ -1332,7 +1353,7 @@ const seedData = async () => {
   const modelKey = process.env.default_model_api_key || "";
   await db.exec(`INSERT INTO ai_models
     (id, provider, name, model_code, base_url, api_key_ciphertext, api_key_masked, auth_type, supported_task_types_json, default_size, default_params_json, credit_cost_config_json, cost_config_json, test_payload_json, timeout_seconds, retry_limit, concurrency_limit, version, is_default, is_active, remark, created_at, updated_at)
-    VALUES ('model_doubao', ?, ?, ?, ?, ?, ?, ?, ?, '2048x2048', ?, ?, ?, ?, 90, 0, 4, '2026.04', 1, 1, '默认生图模型', NOW(), NOW())
+    VALUES ('model_doubao', ?, ?, ?, ?, ?, ?, ?, ?, '2048x2048', ?, ?, ?, ?, 300, 0, 4, '2026.04', 1, 1, '默认生图模型', NOW(), NOW())
     ON DUPLICATE KEY UPDATE provider = VALUES(provider), name = VALUES(name), model_code = VALUES(model_code), base_url = VALUES(base_url), api_key_ciphertext = IF(VALUES(api_key_ciphertext) = '', api_key_ciphertext, VALUES(api_key_ciphertext)), api_key_masked = IF(VALUES(api_key_masked) = '', api_key_masked, VALUES(api_key_masked)), auth_type = VALUES(auth_type), supported_task_types_json = VALUES(supported_task_types_json), default_size = VALUES(default_size), default_params_json = VALUES(default_params_json), credit_cost_config_json = VALUES(credit_cost_config_json), cost_config_json = VALUES(cost_config_json), test_payload_json = VALUES(test_payload_json), updated_at = NOW()`,
     [
       process.env.default_model_provider || "doubao",
@@ -1705,7 +1726,7 @@ const routeApi = async (req, res, url) => {
           id, body.provider || "custom", body.name || "未命名模型", body.modelCode || "custom-model", body.baseUrl || "",
           encrypt(apiKey), maskSecret(apiKey), body.authType || "bearer", jsonText(body.supportedTaskTypes || ["generate"]),
           body.defaultSize || "1:1", jsonText(defaultParams), jsonText(body.creditCostConfig || { generate: 5, edit: 8 }),
-          jsonText(body.costConfig || {}), jsonText(body.testPayload || {}), Number(body.timeoutSeconds || 60), Number(body.retryLimit || 0), Number(body.concurrencyLimit || 4), body.version || "2026.04", body.remark || ""
+          jsonText(body.costConfig || {}), jsonText(body.testPayload || {}), Math.max(300, Number(body.timeoutSeconds || 300)), Number(body.retryLimit || 0), Number(body.concurrencyLimit || 4), body.version || "2026.04", body.remark || ""
         ]
       );
       return json(res, 201, { model: modelDto((await db.query("SELECT * FROM ai_models WHERE id = ?", [id]))[0], true) });
@@ -1723,7 +1744,7 @@ const routeApi = async (req, res, url) => {
           jsonText(body.supportedTaskTypes || jsonParse(model.supported_task_types_json, [])), body.defaultSize ?? model.default_size,
           jsonText(sanitizeImageParams(nextModel, body.defaultParams || jsonParse(model.default_params_json, {}))), jsonText(body.creditCostConfig || jsonParse(model.credit_cost_config_json, {})),
           jsonText(body.costConfig || jsonParse(model.cost_config_json, {})), jsonText(body.testPayload || jsonParse(model.test_payload_json, {})),
-          Number(body.timeoutSeconds || model.timeout_seconds), Number(body.retryLimit || model.retry_limit), Number(body.concurrencyLimit || model.concurrency_limit),
+          Math.max(300, Number(body.timeoutSeconds || model.timeout_seconds || 300)), Number(body.retryLimit || model.retry_limit), Number(body.concurrencyLimit || model.concurrency_limit),
           body.version ?? model.version, body.remark ?? model.remark, model.id
         ]);
         return json(res, 200, { model: modelDto((await db.query("SELECT * FROM ai_models WHERE id = ?", [model.id]))[0], true) });
@@ -1762,6 +1783,36 @@ const routeApi = async (req, res, url) => {
           return json(res, 400, { success: false, message: error.message });
         }
       }
+    }
+    const taskCurlMatch = url.pathname.match(/^\/api\/admin\/ai-image-tasks\/([^/]+)\/curl$/);
+    if (req.method === "GET" && taskCurlMatch) {
+      const task = (await db.query("SELECT * FROM ai_image_tasks WHERE id = ? LIMIT 1", [taskCurlMatch[1]]))[0];
+      if (!task) return json(res, 404, { message: "任务不存在。" });
+      const model = (await db.query("SELECT * FROM ai_models WHERE id = ? LIMIT 1", [task.ai_model_id]))[0];
+      if (!model) return json(res, 404, { message: "任务模型不存在。" });
+      const snapshot = jsonParse(task.prompt_snapshot_json, {});
+      let text = snapshot.renderedPrompt || "";
+      if (!text && task.prompt_template_id !== "custom") {
+        const prompt = (await db.query("SELECT * FROM prompt_templates WHERE id = ? LIMIT 1", [task.prompt_template_id]))[0];
+        text = [prompt?.prompt_content, task.user_instruction].filter(Boolean).join("\n");
+      }
+      if (!text) text = task.user_instruction || "";
+      const count = Math.max(1, Math.min(9, Number(task.count || 1)));
+      const inputImageUrl = task.input_image_url ? await directImageUrl(task.input_image_url, req) : "";
+      const storedInputImageUrls = jsonParse(task.input_image_urls_json, []);
+      const inputImageUrls = await Promise.all((Array.isArray(storedInputImageUrls) ? storedInputImageUrls : []).map((item) => directImageUrl(item, req)));
+      const request = buildImageModelRequest({
+        model,
+        taskType: task.task_type,
+        prompt: promptWithImageCount(text, count),
+        inputImageUrl,
+        inputImageUrls,
+        ratio: snapshot.ratio,
+        size: task.size,
+        count,
+        overrideParams: snapshot.defaultParams || {}
+      });
+      return json(res, 200, { curl: imageModelCurl(request) });
     }
     if (req.method === "GET" && url.pathname === "/api/admin/ai-image-tasks") {
       const status = url.searchParams.get("status") || "";

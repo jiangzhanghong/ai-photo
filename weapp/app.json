@@ -1,0 +1,35 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/create/index",
+    "pages/records/index",
+    "pages/result/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "光影AI",
+    "navigationBarBackgroundColor": "#f3f5f2",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f3f5f2"
+  },
+  "tabBar": {
+    "color": "#7b8580",
+    "selectedColor": "#103b2c",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "会员"
+      },
+      {
+        "pagePath": "pages/create/index",
+        "text": "创作"
+      },
+      {
+        "pagePath": "pages/records/index",
+        "text": "记录"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json"
+}

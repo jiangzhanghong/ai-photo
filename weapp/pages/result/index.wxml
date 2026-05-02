@@ -1,0 +1,60 @@
+<view class="page result-page">
+  <view class="result-head">
+    <view>
+      <view class="title">{{task ? task.promptTitle : '生成结果'}}</view>
+      <view class="muted">{{createdLabel}}</view>
+    </view>
+    <view class="pill">{{statusLabel}}</view>
+  </view>
+
+  <view wx:if="{{message}}" class="card message-card">{{message}}</view>
+
+  <view wx:if="{{currentUrl}}" class="result-view">
+    <image class="result-image" mode="widthFix" src="{{currentUrl}}" bindtap="previewCurrent" />
+  </view>
+  <view wx:elif="{{isPending}}" class="card pending-card">
+    <view>{{statusLabel}}</view>
+    <view class="muted">生成完成后会自动刷新</view>
+  </view>
+
+  <scroll-view wx:if="{{images.length > 1}}" scroll-x class="thumb-scroll">
+    <button wx:for="{{images}}" wx:key="url" class="thumb {{index === currentIndex ? 'active' : ''}}" data-index="{{index}}" bindtap="selectImage">
+      <image mode="aspectFill" src="{{item.previewUrl}}" />
+    </button>
+  </scroll-view>
+
+  <view class="action-row">
+    <button class="primary-btn" bindtap="saveCurrent" disabled="{{!currentUrl}}">保存图片</button>
+    <button class="ghost-btn" bindtap="goCreate">再生成</button>
+  </view>
+
+  <view class="card info-card">
+    <view class="info-line">
+      <text>生成完成</text>
+      <text>{{statusLabel}}</text>
+    </view>
+    <view class="info-line">
+      <text>生成张数</text>
+      <text>{{taskCount}} 张</text>
+    </view>
+    <view class="info-line">
+      <text>消耗积分</text>
+      <text>{{creditCost}}</text>
+    </view>
+    <view wx:if="{{latencyLabel}}" class="info-line">
+      <text>生成耗时</text>
+      <text>{{latencyLabel}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{references.length}}" class="reference-section">
+    <view class="section-title">参考图</view>
+    <scroll-view scroll-x class="reference-scroll">
+      <button wx:for="{{references}}" wx:key="url" class="reference-thumb" data-url="{{item.previewUrl}}" bindtap="previewReference">
+        <image mode="aspectFill" src="{{item.previewUrl}}" />
+      </button>
+    </scroll-view>
+  </view>
+
+  <button class="ghost-btn record-btn" bindtap="goRecords">查看全部记录</button>
+</view>

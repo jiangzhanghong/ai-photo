@@ -1,0 +1,108 @@
+.result-page {
+  padding-bottom: 120rpx;
+}
+
+.result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-bottom: 20rpx;
+}
+
+.title {
+  color: #1d2823;
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.message-card,
+.pending-card {
+  display: grid;
+  gap: 12rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  color: #53615b;
+  text-align: center;
+}
+
+.result-view {
+  overflow: hidden;
+  border-radius: 16rpx;
+  background: #e8eeea;
+}
+
+.result-image {
+  display: block;
+  width: 100%;
+}
+
+.thumb-scroll,
+.reference-scroll {
+  margin-top: 18rpx;
+  white-space: nowrap;
+}
+
+.thumb,
+.reference-thumb {
+  display: inline-block;
+  margin-right: 12rpx;
+  overflow: hidden;
+  border-radius: 12rpx;
+  background: #e7eeea;
+}
+
+.thumb {
+  width: 132rpx;
+  height: 132rpx;
+  border: 3rpx solid transparent;
+}
+
+.thumb.active {
+  border-color: #103b2c;
+}
+
+.thumb image,
+.reference-thumb image {
+  width: 100%;
+  height: 100%;
+}
+
+.action-row {
+  display: grid;
+  grid-template-columns: 1fr 180rpx;
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.info-card {
+  display: grid;
+  gap: 16rpx;
+  margin-top: 22rpx;
+  padding: 24rpx;
+}
+
+.info-line {
+  display: flex;
+  justify-content: space-between;
+  color: #40504a;
+  font-size: 26rpx;
+}
+
+.info-line text:first-child {
+  color: #7b8580;
+}
+
+.reference-section {
+  margin-top: 28rpx;
+}
+
+.reference-thumb {
+  width: 144rpx;
+  height: 144rpx;
+}
+
+.record-btn {
+  width: 100%;
+  margin-top: 28rpx;
+}

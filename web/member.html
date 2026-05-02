@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>会员中心 - 光影AI</title>
-    <link rel="stylesheet" href="./styles.css?v=20260430-modal-ratio-fix" />
+    <link rel="stylesheet" href="./styles.css?v=20260502-gallery-preview-fix" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -247,7 +247,10 @@
           </div>
 
           <div class="upload-field" data-upload-field>
-            <span class="upload-title">上传参考图 <em class="upload-size-hint">支持点击上传、拖拽或粘贴图片</em></span>
+            <div class="upload-title-row">
+              <span class="upload-title">上传参考图 <em class="upload-size-hint">支持点击上传、拖拽或粘贴图片</em></span>
+              <button class="upload-history-trigger" type="button" data-open-upload-history hidden>从历史选择</button>
+            </div>
             <label class="upload-zone" for="image-upload-input" data-upload-zone tabindex="0">
               <span class="upload-zone-placeholder" data-upload-placeholder>点击上传，或粘贴 / 拖拽图片</span>
               <div class="upload-preview-list" data-upload-preview-list></div>
@@ -318,6 +321,21 @@
         </div>
       </div>
 
+      <div class="upload-history-backdrop" data-upload-history-backdrop aria-hidden="true">
+        <div class="upload-history-modal" role="dialog" aria-modal="true" aria-label="历史参考图">
+          <button class="upload-history-close" type="button" data-upload-history-close aria-label="关闭">✕</button>
+          <div class="upload-history-head">
+            <h2>历史参考图</h2>
+            <span data-upload-history-count></span>
+          </div>
+          <div class="upload-history-grid" data-upload-history-grid></div>
+          <div class="upload-history-actions">
+            <button type="button" data-upload-history-cancel>取消</button>
+            <button type="button" data-upload-history-apply>添加选中</button>
+          </div>
+        </div>
+      </div>
+
       <div class="generation-modal-backdrop" data-generation-backdrop aria-hidden="true">
         <div class="generation-modal current-generation-card" role="dialog" aria-modal="true" aria-label="生成结果预览">
           <button class="generation-modal-close" type="button" data-generation-close aria-label="关闭">✕</button>
@@ -325,22 +343,24 @@
             <div>
               <h2>生成结果</h2>
               <span data-generation-count>共 4 张</span>
+              <span data-generation-image-meta></span>
+            </div>
+            <div class="generation-actions" data-generation-actions>
+              <button type="button" data-open-original>⌂ 查看原图</button>
+              <button type="button" data-download-current>⌄ 下载当前</button>
+              <button type="button" data-download-all>⌄ 全部下载</button>
+              <button type="button" data-share-current>⌯ 分享</button>
             </div>
             <strong data-generation-status>生成完成 ●</strong>
           </div>
           <div class="generation-preview">
             <img src="./assets/hero-slide-3.webp" alt="校园阳光少女当前生成图" data-current-image />
-            <div class="generation-thumbs" aria-label="当前生成缩略图">
-              <button class="active" type="button" data-thumb="./assets/hero-slide-3.webp"><img src="./assets/hero-slide-3.webp" alt="" /></button>
-              <button type="button" data-thumb="./assets/hero-slide-1.webp"><img src="./assets/hero-slide-1.webp" alt="" /></button>
-              <button type="button" data-thumb="./assets/hero-slide-2.webp"><img src="./assets/hero-slide-2.webp" alt="" /></button>
-              <button type="button" data-thumb="./assets/hero-slide-4.webp"><img src="./assets/hero-slide-4.webp" alt="" /></button>
-            </div>
           </div>
-          <div class="generation-actions" data-generation-actions>
-            <button type="button" data-download-current>⌄ 下载当前</button>
-            <button type="button" data-download-all>⌄ 全部下载</button>
-            <button type="button" data-share-current>⌯ 分享</button>
+          <div class="generation-thumbs" aria-label="当前生成缩略图">
+            <button class="active" type="button" data-thumb="./assets/hero-slide-3.webp"><img src="./assets/hero-slide-3.webp" alt="" /></button>
+            <button type="button" data-thumb="./assets/hero-slide-1.webp"><img src="./assets/hero-slide-1.webp" alt="" /></button>
+            <button type="button" data-thumb="./assets/hero-slide-2.webp"><img src="./assets/hero-slide-2.webp" alt="" /></button>
+            <button type="button" data-thumb="./assets/hero-slide-4.webp"><img src="./assets/hero-slide-4.webp" alt="" /></button>
           </div>
         </div>
       </div>
@@ -372,6 +392,7 @@
           tasks: [],
           localTasks: [],
           uploadedImages: [],
+          selectedUploadHistoryUrls: [],
           imageResolution: "2K",
           imageRatio: "1:1",
           promptCategory: "",
@@ -424,7 +445,6 @@
           "./assets/style-cinematic.jpg"
         ];
         const generationImageMetrics = new Map();
-        let generationImageToken = 0;
 
         const fallbackPlans = [
           { id: "plan_trial", code: "trial", version: "Lite", name: "轻量体验包", price: 19, suffix: "/次", credits: 80, quota: 10, features: ["适合少量出图", "基础模板库", "标准队列"] },
@@ -483,6 +503,7 @@
           localStorage.removeItem(refreshKey);
           state.user = null;
           state.tasks = [];
+          state.selectedUploadHistoryUrls = [];
         };
 
         const setMessage = (text) => {
@@ -593,50 +614,22 @@
           backdrop.setAttribute("aria-hidden", "true");
         };
 
-        const setGenerationImageFrame = (width, height) => {
-          const modal = $(".generation-modal");
-          const safeWidth = Math.max(1, Number(width) || 16);
-          const safeHeight = Math.max(1, Number(height) || 9);
-          const ratio = safeWidth / safeHeight;
-          const compact = window.innerWidth <= 1180;
-          const medium = window.innerWidth <= 1600;
-          const backdropPad = compact ? 28 : 48;
-          const modalPadding = compact ? 28 : 32;
-          const maxPreviewHeight = Math.min(
-            window.innerHeight * (compact ? 0.58 : medium ? 0.62 : 0.64),
-            compact || medium ? 520 : 620
-          );
-          const availablePreviewWidth = Math.max(220, window.innerWidth - backdropPad - modalPadding);
-          const previewWidth = Math.min(availablePreviewWidth, maxPreviewHeight * ratio);
-          modal.style.setProperty("--generation-ratio", `${safeWidth} / ${safeHeight}`);
-          modal.style.setProperty("--generation-modal-width", `${Math.ceil(previewWidth + modalPadding)}px`);
-        };
-
-        const updateGenerationImageFrame = (src) => {
-          const cached = generationImageMetrics.get(src);
-          const token = ++generationImageToken;
-          if (cached) {
-            setGenerationImageFrame(cached.width, cached.height);
+        const updateGenerationMeta = (src, width = 0, height = 0) => {
+          const safeWidth = Number(width) || 0;
+          const safeHeight = Number(height) || 0;
+          if (src && safeWidth > 0 && safeHeight > 0) {
+            generationImageMetrics.set(src, { width: safeWidth, height: safeHeight });
+            $("[data-generation-image-meta]").textContent = `${safeWidth} × ${safeHeight}`;
             return;
           }
-          const probe = new Image();
-          probe.onload = () => {
-            if (token !== generationImageToken) return;
-            const metrics = { width: probe.naturalWidth, height: probe.naturalHeight };
-            generationImageMetrics.set(src, metrics);
-            setGenerationImageFrame(metrics.width, metrics.height);
-          };
-          probe.onerror = () => {
-            if (token !== generationImageToken) return;
-            setGenerationImageFrame(16, 9);
-          };
-          probe.src = src;
+          const cached = src ? generationImageMetrics.get(src) : null;
+          $("[data-generation-image-meta]").textContent = cached ? `${cached.width} × ${cached.height}` : "";
         };
 
         const setCurrentImage = (src) => {
           const main = $("[data-current-image]");
           main.src = src;
-          updateGenerationImageFrame(src);
+          updateGenerationMeta(src);
           $$(".generation-thumbs button").forEach((btn) => btn.classList.toggle("active", btn.dataset.thumb === src));
         };
 
@@ -648,7 +641,7 @@
           $("[data-generation-status]").textContent = statusText;
           $("[data-generation-count]").textContent = `共 ${safeImages.length} 张`;
           $(".generation-thumbs").innerHTML = safeImages.map((src, index) => `
-            <button class="${index === 0 ? "active" : ""}" type="button" data-thumb="${esc(src)}"><img src="${esc(src)}" alt="" /></button>
+            <button class="${index === 0 ? "active" : ""}" type="button" data-thumb="${esc(src)}"><img src="${esc(src)}" alt="" loading="lazy" decoding="async" /></button>
           `).join("");
           setCurrentImage(safeImages[0]);
           if (shouldOpen) openGenerationModal();
@@ -669,7 +662,7 @@
           $("[data-generation-status]").textContent = "模板已套用，待生成";
           $("[data-generation-count]").textContent = `共 ${safeImages.length} 张`;
           $(".generation-thumbs").innerHTML = safeImages.map((src, index) => `
-            <button class="${index === 0 ? "active" : ""}" type="button" data-thumb="${esc(src)}"><img src="${esc(src)}" alt="" /></button>
+            <button class="${index === 0 ? "active" : ""}" type="button" data-thumb="${esc(src)}"><img src="${esc(src)}" alt="" loading="lazy" decoding="async" /></button>
           `).join("");
           setCurrentImage(safeImages[0]);
         };
@@ -690,7 +683,7 @@
           const safeImages = images.length ? images : ["./assets/work-portrait.jpg"];
           return `
             <div class="history-thumb-grid count-${Math.min(safeImages.length, 4)}">
-              ${safeImages.slice(0, 4).map((src, index) => `<img src="${esc(src)}" alt="${esc(title)}${index + 1}" />`).join("")}
+              ${safeImages.slice(0, 4).map((src, index) => `<img src="${esc(src)}" alt="${esc(title)}${index + 1}" loading="lazy" decoding="async" />`).join("")}
               ${safeImages.length > 4 ? `<span>+${safeImages.length - 4}</span>` : ""}
             </div>
           `;
@@ -789,6 +782,15 @@
           });
         };
 
+        const openCurrentImageOriginal = () => {
+          const imageUrl = $("[data-current-image]").getAttribute("src");
+          if (!imageUrl) {
+            setMessage("当前没有可查看的图片。");
+            return;
+          }
+          window.open(imageUrl, "_blank", "noopener");
+        };
+
         const setAuthMessage = (text) => {
           $("[data-auth-message]").textContent = text || "";
         };
@@ -837,6 +839,7 @@
             btn.textContent = isCurrent ? "当前方案" : (loggedIn ? "购买积分" : "开通会员");
             btn.disabled = isCurrent;
           });
+          renderUploadHistoryPicker();
         };
 
         const refreshMe = async () => {
@@ -960,14 +963,77 @@
           zone.classList.toggle("has-preview", hasImages);
         };
 
+        const uploadItemKey = (item) => item.uploadedUrl || item.dataUrl || item.id;
+
+        const historicalReferenceImages = () => {
+          const seen = new Set();
+          return state.tasks.flatMap((task) => {
+            const urls = Array.isArray(task.inputImageUrls) && task.inputImageUrls.length
+              ? task.inputImageUrls
+              : (task.inputImageUrl ? [task.inputImageUrl] : []);
+            return urls.map((url, index) => ({ url, taskId: task.id, promptTitle: task.promptTitle, createdAt: task.createdAt, index }));
+          }).filter((item) => {
+            const key = String(item.url || "").trim();
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        };
+
+        const renderUploadHistoryPicker = () => {
+          const trigger = $("[data-open-upload-history]");
+          if (!trigger) return;
+          const items = historicalReferenceImages();
+          trigger.hidden = !state.user || !items.length;
+          trigger.disabled = !items.length;
+          $("[data-upload-history-count]").textContent = items.length ? `共 ${items.length} 张` : "暂无可复用参考图";
+          $("[data-upload-history-grid]").innerHTML = items.length ? items.map((item) => {
+            const selected = state.selectedUploadHistoryUrls.includes(item.url);
+            return `
+              <button class="upload-history-item${selected ? " is-selected" : ""}" type="button" data-upload-history-url="${esc(item.url)}">
+                <img src="${esc(item.url)}" alt="${esc(item.promptTitle || "历史参考图")}" loading="lazy" decoding="async" />
+                <span>${esc(item.promptTitle || "历史参考图")}</span>
+                <small>${esc(item.createdAt ? new Date(item.createdAt).toLocaleDateString("zh-CN") : "")}</small>
+              </button>
+            `;
+          }).join("") : `<p class="upload-history-empty">还没有历史参考图。</p>`;
+        };
+
+        const openUploadHistoryPicker = () => {
+          const available = new Set(historicalReferenceImages().map((item) => item.url));
+          state.selectedUploadHistoryUrls = state.uploadedImages
+            .map((item) => item.uploadedUrl)
+            .filter((url) => available.has(url));
+          renderUploadHistoryPicker();
+          const backdrop = $("[data-upload-history-backdrop]");
+          backdrop.classList.add("is-open");
+          backdrop.setAttribute("aria-hidden", "false");
+        };
+
+        const closeUploadHistoryPicker = () => {
+          const backdrop = $("[data-upload-history-backdrop]");
+          backdrop.classList.remove("is-open");
+          backdrop.setAttribute("aria-hidden", "true");
+        };
+
         const addUploadPreviews = (items) => {
-          state.uploadedImages.push(...items);
+          const existing = new Set(state.uploadedImages.map(uploadItemKey));
+          const next = [];
+          for (const item of items) {
+            const key = uploadItemKey(item);
+            if (!key || existing.has(key)) continue;
+            existing.add(key);
+            next.push(item);
+            if (state.uploadedImages.length + next.length >= MAX_REFERENCE_IMAGES) break;
+          }
+          state.uploadedImages.push(...next);
           renderUploadPreviews();
         };
 
         const clearUpload = () => {
           $("[data-image-upload]").value = "";
           state.uploadedImages = [];
+          state.selectedUploadHistoryUrls = [];
           renderUploadPreviews();
         };
 
@@ -1359,6 +1425,15 @@
         };
 
         const statusText = (s) => ({ queued: "排队中", processing: "生成中", succeeded: "已完成", failed: "失败", refunded: "已退款" })[s] || s;
+        const formatLatency = (ms) => {
+          const value = Number(ms || 0);
+          if (!Number.isFinite(value) || value <= 0) return "";
+          if (value < 1000) return `${value}ms`;
+          if (value < 60000) return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1).replace(/\.0$/, "")}秒`;
+          const minutes = Math.floor(value / 60000);
+          const seconds = Math.round((value % 60000) / 1000);
+          return `${minutes}分${seconds}秒`;
+        };
 
         const renderTasks = () => {
           const list = $("[data-task-list]");
@@ -1371,7 +1446,7 @@
           const serverItems = state.tasks.map((task) => {
             const resultImages = task.resultImageUrls || [];
             const firstImage = resultImages[0] || "./assets/work-portrait.jpg";
-            const tags = [statusText(task.status), `${task.count} 张`, `${task.creditCost} 积分`].filter(Boolean);
+            const tags = [statusText(task.status), `${task.count} 张`, `${task.creditCost} 积分`, task.providerLatencyMs ? `耗时 ${formatLatency(task.providerLatencyMs)}` : ""].filter(Boolean);
             return historyCardHtml({ images: resultImages.length ? resultImages : [firstImage], title: task.promptTitle, time: task.createdAt || task.updatedAt || task.promptTitle, tags });
           });
           const items = [...localItems, ...serverItems];
@@ -1389,10 +1464,15 @@
         };
 
         const loadTasks = async () => {
-          if (!state.user) { renderTasks(); return; }
+          if (!state.user) {
+            renderTasks();
+            renderUploadHistoryPicker();
+            return;
+          }
           const data = await api("/api/ai-image-tasks");
           state.tasks = data.tasks;
           renderTasks();
+          renderUploadHistoryPicker();
         };
 
         const watchTaskUntilDone = async (taskId) => {
@@ -1402,9 +1482,12 @@
             const task = state.tasks.find((t) => t.id === taskId);
             if (!task || task.status === "succeeded" || task.status === "failed") {
               if (task?.status === "succeeded" && task.resultImageUrls?.length) {
-                setGenerationImages(task.resultImageUrls);
+                const latencyText = formatLatency(task.providerLatencyMs);
+                setGenerationImages(task.resultImageUrls, latencyText ? `生成完成 · 耗时 ${latencyText}` : "生成完成 ●");
               }
-              setMessage(task?.status === "succeeded" ? "任务已完成，已打开结果预览。" : (task?.failureReason || "任务处理结束。"));
+              setMessage(task?.status === "succeeded"
+                ? `任务已完成${task?.providerLatencyMs ? `，耗时 ${formatLatency(task.providerLatencyMs)}` : ""}，已打开结果预览。`
+                : (task?.failureReason || "任务处理结束。"));
               return;
             }
           }
@@ -1660,7 +1743,10 @@
               state.tasks.unshift(data.task);
               updateMemberState();
               renderTasks();
-              if (data.task.resultImageUrls?.length) setGenerationImages(data.task.resultImageUrls);
+              if (data.task.resultImageUrls?.length) {
+                const latencyText = formatLatency(data.task.providerLatencyMs);
+                setGenerationImages(data.task.resultImageUrls, latencyText ? `生成完成 · 耗时 ${latencyText}` : "生成完成 ●");
+              }
               setMessage("任务已提交，正在生成中…");
               watchTaskUntilDone(data.task.id);
             } catch (e) {
@@ -1678,14 +1764,19 @@
           });
           document.addEventListener("keydown", (e) => {
             if (e.key !== "Escape") return;
+            if ($("[data-upload-history-backdrop]").classList.contains("is-open")) closeUploadHistoryPicker();
             if ($("[data-template-modal-backdrop]").classList.contains("is-open")) closeTemplateModal();
             if ($("[data-generation-backdrop]").classList.contains("is-open")) closeGenerationModal();
           });
-          window.addEventListener("resize", () => {
-            if ($("[data-generation-backdrop]").classList.contains("is-open")) {
-              updateGenerationImageFrame($("[data-current-image]").getAttribute("src"));
-            }
+          $("[data-current-image]").addEventListener("load", (event) => {
+            const img = event.currentTarget;
+            updateGenerationMeta(img.currentSrc || img.getAttribute("src"), img.naturalWidth, img.naturalHeight);
           });
+          if ($("[data-current-image]").complete) {
+            const img = $("[data-current-image]");
+            updateGenerationMeta(img.currentSrc || img.getAttribute("src"), img.naturalWidth, img.naturalHeight);
+          }
+          $("[data-current-image]").addEventListener("click", openCurrentImageOriginal);
 
           $(".generation-thumbs").addEventListener("click", (e) => {
             const btn = e.target.closest("[data-thumb]");
@@ -1708,6 +1799,10 @@
             } catch (error) {
               setMessage(error.message);
             }
+          });
+          $("[data-open-original]").addEventListener("click", () => {
+            openCurrentImageOriginal();
+            setMessage("已打开原图。");
           });
 
           $("[data-download-all]").addEventListener("click", async () => {
@@ -1785,6 +1880,44 @@
           $("[data-template-modal-apply]").addEventListener("click", () => {
             applyTemplateCard(selectedTemplateCard());
             closeTemplateModal();
+          });
+          $("[data-open-upload-history]").addEventListener("click", () => {
+            if (!historicalReferenceImages().length) {
+              setMessage("还没有历史参考图可选。");
+              return;
+            }
+            openUploadHistoryPicker();
+          });
+          $("[data-upload-history-close]").addEventListener("click", closeUploadHistoryPicker);
+          $("[data-upload-history-cancel]").addEventListener("click", closeUploadHistoryPicker);
+          $("[data-upload-history-backdrop]").addEventListener("click", (e) => {
+            if (e.target === $("[data-upload-history-backdrop]")) closeUploadHistoryPicker();
+          });
+          $("[data-upload-history-grid]").addEventListener("click", (e) => {
+            const button = e.target.closest("[data-upload-history-url]");
+            if (!button) return;
+            const url = button.dataset.uploadHistoryUrl;
+            state.selectedUploadHistoryUrls = state.selectedUploadHistoryUrls.includes(url)
+              ? state.selectedUploadHistoryUrls.filter((item) => item !== url)
+              : [...state.selectedUploadHistoryUrls, url];
+            renderUploadHistoryPicker();
+          });
+          $("[data-upload-history-apply]").addEventListener("click", () => {
+            const urls = state.selectedUploadHistoryUrls.filter(Boolean);
+            if (!urls.length) {
+              setMessage("请先选择历史参考图。");
+              return;
+            }
+            const before = state.uploadedImages.length;
+            addUploadPreviews(urls.map((url, index) => ({
+              id: `history-${Date.now()}-${index}`,
+              name: "历史参考图",
+              dataUrl: url,
+              uploadedUrl: url
+            })));
+            const added = state.uploadedImages.length - before;
+            closeUploadHistoryPicker();
+            setMessage(added > 0 ? `已添加 ${added} 张历史参考图。` : "这些历史参考图已经在当前列表中了。");
           });
 
           const filterTemplates = () => {

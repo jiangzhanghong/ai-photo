@@ -1,0 +1,31 @@
+<view class="page records-page">
+  <view class="section-title">
+    <text>生成记录</text>
+    <button class="ghost-btn" bindtap="goCreate">去创作</button>
+  </view>
+
+  <view wx:if="{{message}}" class="card empty-card">{{message}}</view>
+
+  <view wx:elif="{{!tasks.length && !loading}}" class="card empty-card">
+    <view>还没有生成记录</view>
+    <button class="primary-btn" bindtap="goCreate">开始生成</button>
+  </view>
+
+  <view class="task-grid">
+    <button wx:for="{{tasks}}" wx:key="id" class="card task-card" data-id="{{item.id}}" bindtap="openTask">
+      <image wx:if="{{item.coverUrl}}" class="task-cover" mode="aspectFill" src="{{item.coverUrl}}" />
+      <view wx:else class="task-cover placeholder">生成中</view>
+      <view class="task-body">
+        <view class="task-title">{{item.promptTitle}}</view>
+        <view class="task-meta">
+          <text>{{item.statusLabel}}</text>
+          <text>{{item.count}} 张</text>
+        </view>
+        <view class="task-meta">
+          <text>{{item.createdLabel}}</text>
+          <text wx:if="{{item.latencyLabel}}">耗时 {{item.latencyLabel}}</text>
+        </view>
+      </view>
+    </button>
+  </view>
+</view>
