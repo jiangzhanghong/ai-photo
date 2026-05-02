@@ -1163,6 +1163,25 @@ blockquote em {
   pointer-events: auto;
 }
 
+.pay-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 910;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 20, 16, 0.55);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.pay-modal-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .auth-modal {
   position: relative;
   width: 400px;
@@ -1172,6 +1191,15 @@ blockquote em {
   box-shadow: 0 20px 60px rgba(10, 20, 16, 0.22);
   transform: translateY(12px);
   transition: transform 0.2s;
+}
+
+.pay-modal {
+  position: relative;
+  width: 400px;
+  padding: 32px 28px 28px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(10, 20, 16, 0.22);
 }
 
 .auth-modal-backdrop.is-open .auth-modal {
@@ -1266,6 +1294,33 @@ blockquote em {
   width: 100%;
   height: 40px;
   border-radius: 8px;
+}
+
+.pay-plan-card {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #dde3df;
+  border-radius: 12px;
+  background: #f8faf9;
+}
+
+.pay-plan-name {
+  color: #1a2620;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.pay-plan-price {
+  margin-top: 8px;
+  color: var(--green);
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.pay-plan-desc {
+  margin-top: 6px;
+  color: #6f7a75;
+  font-size: 13px;
 }
 
 .auth-modal-fields input {
@@ -3821,6 +3876,11 @@ blockquote em {
   }
 
   .auth-modal {
+    width: calc(100vw - 32px);
+    padding: 24px 20px 20px;
+  }
+
+  .pay-modal {
     width: calc(100vw - 32px);
     padding: 24px 20px 20px;
   }

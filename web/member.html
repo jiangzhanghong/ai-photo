@@ -56,6 +56,25 @@
       </div>
     </div>
 
+    <div class="pay-modal-backdrop" data-pay-backdrop aria-hidden="true">
+      <div class="pay-modal" role="dialog" aria-modal="true" aria-label="付款页面">
+        <button class="auth-modal-close" type="button" data-pay-close aria-label="关闭">✕</button>
+        <div class="auth-modal-header">
+          <h2>付款页面</h2>
+          <p>当前不会直接发积分，支付成功后再由支付回调开通套餐。</p>
+        </div>
+        <div class="pay-plan-card">
+          <div class="pay-plan-name" data-pay-plan-name>待支付套餐</div>
+          <div class="pay-plan-price" data-pay-plan-price>¥0</div>
+          <div class="pay-plan-desc" data-pay-plan-desc>支付成功后发放积分</div>
+        </div>
+        <div class="auth-wechat-qr-frame">
+          <img src="./assets/qr.jpg" alt="支付二维码" data-pay-qr />
+        </div>
+        <p class="auth-wechat-tip" data-pay-message>请扫码完成付款。</p>
+      </div>
+    </div>
+
     <header class="site-header">
       <div class="shell header-inner">
         <a class="brand" href="./index.html" aria-label="光影AI 首页">
@@ -398,6 +417,7 @@
           authAction: "login",
           wechatQrUrl: "./assets/qr.jpg",
           captcha: { left: 0, right: 0, op: "+", result: 0 },
+          paymentPlan: null,
           tasks: [],
           localTasks: [],
           uploadedImages: [],
@@ -838,6 +858,24 @@
           setAuthMessage("");
         };
 
+        const openPaymentModal = (payload = {}) => {
+          state.paymentPlan = payload.plan || null;
+          $("[data-pay-plan-name]").textContent = payload.plan?.name || "待支付套餐";
+          $("[data-pay-plan-price]").textContent = `¥${payload.plan?.price ?? 0}`;
+          $("[data-pay-plan-desc]").textContent = payload.plan
+            ? `${payload.plan.credits} 积分 · 可生成 ${payload.plan.quota} 张`
+            : "支付成功后发放积分";
+          $("[data-pay-qr]").src = payload.paymentQrUrl || "./assets/qr.jpg";
+          $("[data-pay-message]").textContent = payload.message || "请扫码完成付款。";
+          $("[data-pay-backdrop]").classList.add("is-open");
+          $("[data-pay-backdrop]").removeAttribute("aria-hidden");
+        };
+
+        const closePaymentModal = () => {
+          $("[data-pay-backdrop]").classList.remove("is-open");
+          $("[data-pay-backdrop]").setAttribute("aria-hidden", "true");
+        };
+
         const updateMemberState = () => {
           const membership = state.user?.membership;
           const credits = state.user?.credits || 0;
@@ -860,7 +898,7 @@
 
           // Plans section: title changes based on login state
           $("[data-plans-title]").textContent = loggedIn ? "购买积分" : "会员套餐";
-          $("[data-plans-subtitle]").textContent = loggedIn ? "选择套餐，积分即时到账" : "开通会员，解锁 AI 创作能力";
+          $("[data-plans-subtitle]").textContent = loggedIn ? "选择套餐后进入付款页，支付成功再到账" : "开通会员，解锁 AI 创作能力";
 
           $$("[data-open-plan]").forEach((btn) => {
             const isCurrent = membership?.planId === btn.dataset.planId;
@@ -1608,6 +1646,10 @@
           });
 
           $("[data-refresh-wechat-qr]").addEventListener("click", loadWechatQr);
+          $("[data-pay-close]").addEventListener("click", closePaymentModal);
+          $("[data-pay-backdrop]").addEventListener("click", (e) => {
+            if (e.target === $("[data-pay-backdrop]")) closePaymentModal();
+          });
 
           $$("[data-logout]").forEach((btn) => btn.addEventListener("click", async () => {
             try {
@@ -1994,9 +2036,8 @@
             }
             try {
               const data = await api("/api/memberships/subscribe", { method: "POST", body: JSON.stringify({ planCode: btn.dataset.openPlan }) });
-              state.user = data.user;
-              updateMemberState();
-              setMessage("积分已到账。");
+              openPaymentModal(data);
+              setMessage(data.message || "请先完成付款。");
             } catch (e) {
               setMessage(e.message);
             }

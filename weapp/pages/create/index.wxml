@@ -1,68 +1,145 @@
 <view class="page create-page">
-  <view class="status-card">
+  <view class="create-top-card">
     <view>
-      <text class="muted">当前积分</text>
-      <text class="credit-value">{{user ? user.credits : 0}}</text>
+      <view class="create-title">AI 创作</view>
+      <view class="create-subtitle">{{headerSubtitle}}</view>
     </view>
-    <button class="ghost-btn" bindtap="goHome">{{user ? '会员中心' : '去登录'}}</button>
+    <button class="create-top-action" bindtap="goHome">{{user ? '会员中心' : '去登录'}}</button>
   </view>
 
-  <view class="card form-card">
-    <view class="section-title">创作设置</view>
-
-    <view class="field-block">
-      <view class="label">模板</view>
-      <scroll-view scroll-x class="chip-scroll">
-        <button wx:for="{{prompts}}" wx:key="id" class="chip {{item.id === selectedPromptId ? 'active' : ''}}" data-id="{{item.id}}" bindtap="selectPrompt">{{item.title}}</button>
-      </scroll-view>
-    </view>
-
-    <view class="field-block">
-      <view class="label">模型</view>
-      <picker mode="selector" range="{{modelNames}}" value="{{selectedModelIndex}}" bindchange="selectModel">
-        <view class="select-box">{{modelNames[selectedModelIndex] || '选择模型'}}</view>
-      </picker>
-    </view>
-
-    <view class="field-block">
-      <view class="label-row">
-        <text>参考图</text>
-        <button class="link-btn" bindtap="openHistory" hidden="{{!historyImages.length}}">从历史选择</button>
+  <view class="card create-card">
+    <view class="section-line">
+      <view class="section-heading">
+        <text class="section-index">1</text>
+        <text class="section-title">真实模板</text>
       </view>
-      <view class="upload-grid">
-        <button class="upload-tile" bindtap="chooseImages">+</button>
-        <view wx:for="{{uploadedImages}}" wx:key="id" class="upload-image-wrap">
-          <image class="upload-image" mode="aspectFill" src="{{item.previewUrl}}" />
-          <button class="remove-btn" data-id="{{item.id}}" bindtap="removeImage">×</button>
+      <text class="section-caption">{{promptCards.length ? `${promptCards.length} 个模板` : '暂无模板'}}</text>
+    </view>
+
+    <scroll-view wx:if="{{promptCards.length}}" scroll-x class="template-scroll">
+      <view class="template-track">
+        <button
+          wx:for="{{promptCards}}"
+          wx:key="id"
+          class="template-card {{item.id === selectedPromptId ? 'active' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="selectPrompt"
+        >
+          <image wx:if="{{item.previewUrl}}" class="template-image" mode="aspectFill" src="{{item.previewUrl}}" />
+          <view wx:else class="template-image placeholder"></view>
+          <view class="template-body">
+            <text class="template-title">{{item.title}}</text>
+            <text class="template-meta">{{item.sceneLabel}} · {{item.creditCost}} 积分/张</text>
+          </view>
+        </button>
+      </view>
+    </scroll-view>
+
+    <view wx:if="{{selectedPromptId}}" class="selected-template-panel">
+      <image wx:if="{{selectedPromptPreviewUrl}}" class="selected-template-image" mode="aspectFill" src="{{selectedPromptPreviewUrl}}" />
+      <view class="selected-template-copy">
+        <text class="selected-template-title">{{selectedPromptTitle}}</text>
+        <text class="selected-template-meta">{{selectedPromptScene}} · 默认替换为 {{selectedRatioValue === 'adaptive' ? '智能比例' : selectedRatioValue}} · {{selectedResolution}}</text>
+      </view>
+    </view>
+
+    <view class="section-line section-gap">
+      <view class="section-heading">
+        <text class="section-index">2</text>
+        <text class="section-title">参考图</text>
+      </view>
+      <button class="mini-action" bindtap="openHistory">从历史选择</button>
+    </view>
+
+    <view class="upload-grid">
+      <button class="upload-tile" bindtap="chooseImages">
+        <text class="upload-plus">+</text>
+        <text class="upload-text">上传图片</text>
+        <text class="upload-hint">最多 {{maxReferenceImages}} 张</text>
+      </button>
+      <view wx:for="{{uploadedImages}}" wx:key="id" class="upload-item">
+        <image class="upload-image" mode="aspectFill" src="{{item.previewUrl}}" />
+        <button class="remove-btn" data-id="{{item.id}}" bindtap="removeImage">×</button>
+      </view>
+    </view>
+
+    <view class="section-line section-gap">
+      <view class="section-heading">
+        <text class="section-index">3</text>
+        <text class="section-title">描述词</text>
+      </view>
+      <button class="mini-action" bindtap="clearPrompt">清空</button>
+    </view>
+
+    <view class="prompt-panel">
+      <textarea
+        class="prompt-input"
+        maxlength="500"
+        placeholder="补充你想要的画面描述，例如：阳光校园、浅景深、人物自然微笑、干净高级..."
+        value="{{customPrompt}}"
+        bindinput="onPromptInput"
+      />
+      <view class="prompt-footer">
+        <text>模板会优先应用数据库默认参数</text>
+        <text>{{customPrompt.length}}/500</text>
+      </view>
+    </view>
+
+    <view class="section-line section-gap">
+      <view class="section-heading">
+        <text class="section-index">4</text>
+        <text class="section-title">画面设置</text>
+      </view>
+      <text class="section-caption">{{currentSizeLabel}}</text>
+    </view>
+
+    <view class="settings-panel">
+      <view class="sub-block">
+        <text class="sub-title">清晰度</text>
+        <view class="toggle-row">
+          <button
+            wx:for="{{resolutionOptions}}"
+            wx:key="*this"
+            class="toggle-chip {{item === selectedResolution ? 'active' : ''}}"
+            data-value="{{item}}"
+            bindtap="selectResolution"
+            disabled="{{selectedRatioValue === 'adaptive' && item === '2K'}}"
+          >
+            {{item}}
+          </button>
+        </view>
+      </view>
+
+      <view class="sub-block">
+        <text class="sub-title">画面比例</text>
+        <view class="ratio-grid">
+          <button
+            wx:for="{{ratioOptions}}"
+            wx:key="value"
+            class="ratio-chip {{item.value === selectedRatioValue ? 'active' : ''}}"
+            data-value="{{item.value}}"
+            bindtap="selectRatio"
+          >
+            {{item.label}}
+          </button>
         </view>
       </view>
     </view>
 
-    <view class="field-block">
-      <view class="label">提示词</view>
-      <textarea class="prompt-input" maxlength="500" placeholder="描述你想要的风格、场景和保留要求" value="{{customPrompt}}" bindinput="onPromptInput" />
-    </view>
-
-    <view class="setting-row">
+    <view class="count-row">
       <view>
-        <view class="label">比例</view>
-        <picker mode="selector" range="{{ratioLabels}}" value="{{selectedRatioIndex}}" bindchange="selectRatio">
-          <view class="select-box">{{ratioLabels[selectedRatioIndex]}}</view>
-        </picker>
+        <text class="sub-title">生成数量</text>
+        <text class="count-cost">预计消耗 {{creditCost}} 积分</text>
       </view>
-      <view>
-        <view class="label">张数</view>
-        <view class="stepper">
-          <button bindtap="decreaseCount">-</button>
-          <text>{{count}}</text>
-          <button bindtap="increaseCount">+</button>
-        </view>
+      <view class="count-stepper">
+        <button class="step-btn" bindtap="decreaseCount">−</button>
+        <text class="step-value">{{count}}</text>
+        <button class="step-btn" bindtap="increaseCount">＋</button>
       </view>
     </view>
 
-    <view class="cost-line">预计消耗 {{creditCost}} 积分</view>
-    <button class="primary-btn submit-btn" loading="{{submitting}}" bindtap="submitTask">{{submitting ? '提交中' : '立即生成'}}</button>
-    <view class="muted message">{{message}}</view>
+    <button class="submit-btn" loading="{{submitting}}" bindtap="submitTask">{{submitting ? '生成中...' : '立即生成'}}</button>
+    <view wx:if="{{message}}" class="message-line">{{message}}</view>
   </view>
 
   <view class="history-sheet {{historyVisible ? 'open' : ''}}">
@@ -77,7 +154,7 @@
           <text>{{item.title}}</text>
         </button>
       </view>
-      <button class="primary-btn" bindtap="applyHistoryImages">添加选中</button>
+      <button class="sheet-submit-btn" bindtap="applyHistoryImages">添加选中</button>
     </view>
   </view>
 </view>

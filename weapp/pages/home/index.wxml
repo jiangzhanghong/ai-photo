@@ -46,24 +46,32 @@
       </view>
       <button class="section-link" bindtap="openTemplateSheet">全部模板</button>
     </view>
-    <scroll-view scroll-x class="template-scroll">
-      <view class="template-list">
+    <scroll-view wx:if="{{promptChips.length}}" scroll-x class="template-scroll">
+      <view class="template-card-list">
         <button
           wx:for="{{promptChips}}"
           wx:key="id"
-          class="template-chip {{item.id === selectedPromptId ? 'active' : ''}}"
+          class="template-card-mini {{item.id === selectedPromptId ? 'active' : ''}}"
           data-id="{{item.id}}"
           bindtap="selectPrompt"
         >
-          <view class="template-icon"></view>
-          <text>{{item.sceneLabel}}</text>
-        </button>
-        <button wx:if="{{hasMorePrompts}}" class="template-chip" bindtap="openTemplateSheet">
-          <view class="template-icon template-icon-more"></view>
-          <text>更多</text>
+          <image wx:if="{{item.previewUrl}}" class="template-card-image" mode="aspectFill" src="{{item.previewUrl}}" />
+          <view wx:else class="template-card-image template-card-image-placeholder"></view>
+          <view class="template-card-copy">
+            <text class="template-card-title">{{item.title}}</text>
+            <text class="template-card-meta">{{item.sceneLabel}} · {{item.creditCost}} 积分</text>
+          </view>
         </button>
       </view>
     </scroll-view>
+    <view wx:else class="empty-inline">暂无数据库模板</view>
+    <view wx:if="{{selectedPromptId}}" class="selected-template-row">
+      <image wx:if="{{selectedPromptPreviewUrl}}" class="selected-template-image" mode="aspectFill" src="{{selectedPromptPreviewUrl}}" />
+      <view class="selected-template-copy">
+        <text class="selected-template-title">{{selectedPromptTitle}}</text>
+        <text class="selected-template-meta">{{selectedPromptScene}} · 默认 {{selectedRatioValue === 'adaptive' ? '智能比例' : selectedRatioValue}} · {{selectedResolution}}</text>
+      </view>
+    </view>
 
     <view class="section-row section-gap">
       <view class="section-heading">
@@ -117,21 +125,40 @@
       </view>
     </view>
 
-    <view class="setting-layout">
+    <view class="section-row section-gap">
+      <view class="section-heading">
+        <text class="section-index">4</text>
+        <text class="section-title-text">画面设置</text>
+      </view>
+      <text class="section-subtle">{{currentSizeLabel}}</text>
+    </view>
+    <view class="setting-layout settings-grid">
       <view class="setting-block">
-        <view class="section-heading">
-          <text class="section-index">4</text>
-          <text class="section-title-text">画面比例</text>
+        <text class="setting-label">清晰度</text>
+        <view class="resolution-list">
+          <button
+            wx:for="{{resolutionOptions}}"
+            wx:key="*this"
+            class="resolution-chip {{item === selectedResolution ? 'active' : ''}}"
+            data-value="{{item}}"
+            bindtap="selectResolution"
+            disabled="{{selectedRatioValue === 'adaptive' && item === '2K'}}"
+          >
+            {{item}}
+          </button>
         </view>
+      </view>
+
+      <view class="setting-block">
+        <text class="setting-label">画面比例</text>
         <view class="ratio-list">
           <button
             wx:for="{{ratioOptions}}"
             wx:key="value"
-            class="ratio-chip {{index === selectedRatioIndex ? 'active' : ''}}"
-            data-index="{{index}}"
+            class="ratio-chip {{item.value === selectedRatioValue ? 'active' : ''}}"
+            data-value="{{item.value}}"
             bindtap="selectRatio"
           >
-            <view class="ratio-icon"></view>
             <text>{{item.label}}</text>
           </button>
         </view>
@@ -214,13 +241,15 @@
       </view>
       <view class="template-sheet-grid">
         <button
-          wx:for="{{prompts}}"
+          wx:for="{{promptChips}}"
           wx:key="id"
           class="template-sheet-card {{item.id === selectedPromptId ? 'selected' : ''}}"
           data-id="{{item.id}}"
           bindtap="selectPromptFromSheet"
         >
-          <text class="template-sheet-scene">{{item.scene || item.title}}</text>
+          <image wx:if="{{item.previewUrl}}" class="template-sheet-image" mode="aspectFill" src="{{item.previewUrl}}" />
+          <view wx:else class="template-sheet-image template-sheet-image-placeholder"></view>
+          <text class="template-sheet-scene">{{item.sceneLabel}}</text>
           <text class="template-sheet-title">{{item.title}}</text>
         </button>
       </view>
@@ -265,6 +294,22 @@
 
       <button wx:if="{{user}}" class="logout-btn" bindtap="logout">退出登录</button>
       <view wx:if="{{message}}" class="sheet-message">{{message}}</view>
+    </view>
+  </view>
+
+  <view class="sheet-mask {{paymentVisible ? 'show' : ''}}" bindtap="closePaymentSheet">
+    <view class="sheet-panel member-sheet" catchtap="noop">
+      <view class="sheet-head">
+        <text class="sheet-title">付款页面</text>
+        <button class="sheet-close" bindtap="closePaymentSheet">关闭</button>
+      </view>
+      <view class="pay-sheet-card">
+        <view class="pay-sheet-name">{{selectedPaymentPlan ? selectedPaymentPlan.name : '待支付套餐'}}</view>
+        <view class="pay-sheet-price">¥{{selectedPaymentPlan ? selectedPaymentPlan.price : 0}}</view>
+        <view class="pay-sheet-desc">{{selectedPaymentPlan ? `${selectedPaymentPlan.credits} 积分 / ${selectedPaymentPlan.quota} 张` : '支付成功后发放积分'}}</view>
+      </view>
+      <view class="wechat-auth-desc">当前不会直接加积分。支付成功后，需由正式支付回调确认到账。</view>
+      <button class="sheet-submit" bindtap="closePaymentSheet">我知道了</button>
     </view>
   </view>
 </view>

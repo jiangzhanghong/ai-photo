@@ -17,18 +17,96 @@ interface HistoryItem {
   selected: boolean;
 }
 
+interface PromptCard {
+  id: string;
+  title: string;
+  sceneLabel: string;
+  previewUrl: string;
+  creditCost: number;
+}
+
+const resolutionOptions = ["2K", "4K"] as const;
+
 const ratioOptions = [
+  { label: "智能", value: "adaptive" },
   { label: "1:1", value: "1:1" },
   { label: "3:4", value: "3:4" },
   { label: "4:3", value: "4:3" },
+  { label: "9:16", value: "9:16" },
   { label: "16:9", value: "16:9" },
-  { label: "9:16", value: "9:16" }
+  { label: "2:3", value: "2:3" },
+  { label: "3:2", value: "3:2" },
+  { label: "21:9", value: "21:9" }
 ];
+
+const recommendedImageSizes = {
+  "2K": {
+    "1:1": "2048x2048",
+    "4:3": "2304x1728",
+    "3:4": "1728x2304",
+    "16:9": "2848x1600",
+    "9:16": "1600x2848",
+    "3:2": "2496x1664",
+    "2:3": "1664x2496",
+    "21:9": "3136x1344"
+  },
+  "4K": {
+    "1:1": "4096x4096",
+    "3:4": "3520x4704",
+    "4:3": "4704x3520",
+    "16:9": "5504x3040",
+    "9:16": "3040x5504",
+    "2:3": "3328x4992",
+    "3:2": "4992x3328",
+    "21:9": "6240x2656"
+  }
+} as const;
+
+const knownRatios = ratioOptions.filter((item) => item.value !== "adaptive");
+
+const splitImageSize = (size = "") => {
+  const match = String(size).trim().match(/^(\d+)x(\d+)$/);
+  return match ? { width: Number(match[1]), height: Number(match[2]) } : null;
+};
+
+const ratioFromSize = (size = "") => {
+  if (size === "4K") return "adaptive";
+  if (ratioOptions.some((item) => item.value === size)) return size;
+  const parsed = splitImageSize(size);
+  if (!parsed) return "";
+  const value = parsed.width / parsed.height;
+  return knownRatios.reduce((best, item) => {
+    const [w, h] = item.value.split(":").map(Number);
+    const diff = Math.abs(value - (w / h));
+    return diff < best.diff ? { ratio: item.value, diff } : best;
+  }, { ratio: "", diff: Infinity }).ratio;
+};
+
+const resolutionFromSize = (size = ""): "2K" | "4K" => {
+  if (size === "4K") return "4K";
+  const parsed = splitImageSize(size);
+  if (!parsed) return "2K";
+  return parsed.width * parsed.height > 9000000 ? "4K" : "2K";
+};
+
+const promptPreviewUrl = (prompt?: Prompt | null) => {
+  const url = prompt?.exampleImages?.[0]?.compressedUrl || prompt?.exampleImageUrl || prompt?.resultImageUrl || "";
+  return url ? absoluteUrl(url) : "";
+};
+
+const toPromptCards = (prompts: Prompt[]): PromptCard[] => prompts.map((prompt) => ({
+  id: prompt.id,
+  title: prompt.title,
+  sceneLabel: prompt.scene || prompt.categoryTags?.[0] || "通用",
+  previewUrl: promptPreviewUrl(prompt),
+  creditCost: prompt.creditCost || 0
+}));
 
 Page({
   data: {
     user: null as User | null,
     prompts: [] as Prompt[],
+    promptCards: [] as PromptCard[],
     models: [] as Model[],
     tasks: [] as Task[],
     uploadedImages: [] as UploadItem[],
@@ -36,9 +114,17 @@ Page({
     historyVisible: false,
     selectedPromptId: "",
     selectedModelIndex: 0,
-    selectedRatioIndex: 1,
-    ratioLabels: ratioOptions.map((item) => item.label),
-    modelNames: [] as string[],
+    selectedResolution: "2K",
+    selectedRatioValue: "1:1",
+    currentSizeLabel: "2048x2048",
+    selectedPromptPreviewUrl: "",
+    selectedPromptScene: "",
+    selectedPromptTitle: "",
+    selectedPromptCost: 0,
+    headerSubtitle: "登录后开始创作",
+    resolutionOptions: [...resolutionOptions],
+    ratioOptions,
+    maxReferenceImages: MAX_REFERENCE_IMAGES,
     customPrompt: "",
     count: 1,
     creditCost: 0,
@@ -47,20 +133,71 @@ Page({
   },
 
   async onShow() {
-    this.setData({ user: getStoredUser() });
-    await Promise.all([this.loadPrompts(), this.loadModels(), this.loadTasks()]);
+    const user = getStoredUser();
+    this.setData({
+      user,
+      headerSubtitle: user ? `剩余积分 ${user.credits}` : "登录后开始创作"
+    });
+    await Promise.allSettled([this.loadPrompts(), this.loadModels(), this.loadTasks()]);
     this.syncCost();
   },
 
+  currentRequestSize() {
+    if (this.data.selectedRatioValue === "adaptive") return "4K";
+    const size = recommendedImageSizes[this.data.selectedResolution as "2K" | "4K"][this.data.selectedRatioValue as keyof typeof recommendedImageSizes["2K"]];
+    return size || "2048x2048";
+  },
+
+  updateCurrentSizeLabel() {
+    this.setData({
+      currentSizeLabel: this.data.selectedRatioValue === "adaptive" ? "4K 智能比例" : this.currentRequestSize()
+    });
+  },
+
+  applyPromptDefaults(prompt?: Prompt | null) {
+    const params = prompt?.defaultParams || {};
+    const ratioCandidate = String(params.ratio || ratioFromSize(String(params.size || "")) || "1:1");
+    const selectedRatioValue = ratioOptions.some((item) => item.value === ratioCandidate) ? ratioCandidate : "1:1";
+    const selectedResolution = params.resolution === "4K" || resolutionFromSize(String(params.size || "")) === "4K" ? "4K" : "2K";
+    this.setData({
+      selectedResolution,
+      selectedRatioValue,
+      selectedPromptPreviewUrl: promptPreviewUrl(prompt),
+      selectedPromptScene: prompt?.scene || prompt?.categoryTags?.[0] || "通用",
+      selectedPromptTitle: prompt?.title || "",
+      selectedPromptCost: prompt?.creditCost || 0
+    });
+    this.updateCurrentSizeLabel();
+  },
+
+  syncCost() {
+    const model = this.data.models[this.data.selectedModelIndex];
+    const prompt = this.data.prompts.find((item) => item.id === this.data.selectedPromptId);
+    const unitCost = Number(model?.creditCost?.image_to_image || model?.creditCost?.edit || prompt?.creditCost || 0);
+    this.updateCurrentSizeLabel();
+    this.setData({ creditCost: unitCost * this.data.count });
+  },
+
   async loadPrompts() {
-    const data = await request<{ prompts: Prompt[] }>("/api/prompts?taskType=image_to_image", { auth: false });
-    const selectedPromptId = this.data.selectedPromptId || data.prompts[0]?.id || "";
-    this.setData({ prompts: data.prompts, selectedPromptId });
+    try {
+      const data = await request<{ prompts: Prompt[] }>("/api/prompts?taskType=image_to_image", { auth: false });
+      const prompts = data.prompts || [];
+      const selectedPromptId = prompts.some((item) => item.id === this.data.selectedPromptId) ? this.data.selectedPromptId : (prompts[0]?.id || "");
+      const selectedPrompt = prompts.find((item) => item.id === selectedPromptId) || null;
+      this.setData({
+        prompts,
+        promptCards: toPromptCards(prompts),
+        selectedPromptId
+      });
+      this.applyPromptDefaults(selectedPrompt);
+    } catch (error) {
+      this.setData({ prompts: [], promptCards: [], selectedPromptId: "", message: (error as Error).message });
+    }
   },
 
   async loadModels() {
     const data = await request<{ models: Model[] }>("/api/ai-models?taskType=image_to_image", { auth: false });
-    this.setData({ models: data.models, modelNames: data.models.map((item) => item.name), selectedModelIndex: 0 });
+    this.setData({ models: data.models, selectedModelIndex: 0 });
   },
 
   async loadTasks() {
@@ -88,21 +225,36 @@ Page({
   },
 
   selectPrompt(event: WechatMiniprogram.TouchEvent) {
-    this.setData({ selectedPromptId: String(event.currentTarget.dataset.id || "") });
+    const id = String(event.currentTarget.dataset.id || "");
+    const prompt = this.data.prompts.find((item) => item.id === id);
+    if (!prompt) return;
+    this.setData({ selectedPromptId: id });
+    this.applyPromptDefaults(prompt);
     this.syncCost();
   },
 
-  selectModel(event: WechatMiniprogram.PickerChange) {
-    this.setData({ selectedModelIndex: Number(event.detail.value || 0) });
+  selectResolution(event: WechatMiniprogram.TouchEvent) {
+    const value = String(event.currentTarget.dataset.value || "2K");
+    this.setData({ selectedResolution: value === "4K" ? "4K" : "2K" });
     this.syncCost();
   },
 
-  selectRatio(event: WechatMiniprogram.PickerChange) {
-    this.setData({ selectedRatioIndex: Number(event.detail.value || 0) });
+  selectRatio(event: WechatMiniprogram.TouchEvent) {
+    const value = String(event.currentTarget.dataset.value || "1:1");
+    if (!ratioOptions.some((item) => item.value === value)) return;
+    this.setData({
+      selectedRatioValue: value,
+      selectedResolution: value === "adaptive" ? "4K" : this.data.selectedResolution
+    });
+    this.syncCost();
   },
 
   onPromptInput(event: WechatMiniprogram.Input) {
     this.setData({ customPrompt: String(event.detail.value || "") });
+  },
+
+  clearPrompt() {
+    this.setData({ customPrompt: "" });
   },
 
   increaseCount() {
@@ -113,12 +265,6 @@ Page({
   decreaseCount() {
     this.setData({ count: Math.max(1, this.data.count - 1) });
     this.syncCost();
-  },
-
-  syncCost() {
-    const model = this.data.models[this.data.selectedModelIndex];
-    const cost = Number(model?.creditCost?.image_to_image || 0) * this.data.count;
-    this.setData({ creditCost: cost });
   },
 
   async chooseImages() {
@@ -144,6 +290,7 @@ Page({
   },
 
   openHistory() {
+    if (!this.data.historyImages.length) return this.setData({ message: "暂无可用的历史参考图。" });
     this.setData({ historyVisible: true });
   },
 
@@ -170,7 +317,11 @@ Page({
         previewUrl: item.previewUrl,
         uploadedUrl: item.url
       }));
-    this.setData({ uploadedImages: [...this.data.uploadedImages, ...items], historyVisible: false, message: items.length ? `已添加 ${items.length} 张历史参考图。` : "没有可添加的历史参考图。" });
+    this.setData({
+      uploadedImages: [...this.data.uploadedImages, ...items],
+      historyVisible: false,
+      message: items.length ? `已添加 ${items.length} 张历史参考图。` : "没有可添加的历史参考图。"
+    });
   },
 
   fileToDataUrl(filePath: string) {
@@ -201,13 +352,19 @@ Page({
   },
 
   async submitTask() {
-    if (!this.data.user) return wx.switchTab({ url: "/pages/home/index" });
-    if (!this.data.user.membership) return this.setData({ message: "请先开通会员套餐。" });
-    if (!this.data.uploadedImages.length) return this.setData({ message: "请先选择参考图。" });
+    if (!this.data.user) {
+      wx.showToast({ title: "请先登录", icon: "none" });
+      return wx.switchTab({ url: "/pages/home/index" });
+    }
+    if (!this.data.user.membership) {
+      wx.showToast({ title: "请先购买积分套餐", icon: "none" });
+      return wx.switchTab({ url: "/pages/home/index" });
+    }
+    if (!this.data.selectedPromptId) return this.setData({ message: "请先选择模板。" });
+    if (!this.data.uploadedImages.length) return this.setData({ message: "请先上传参考图。" });
     this.setData({ submitting: true, message: "" });
     try {
       const inputImageUrls = await this.uploadReferences();
-      const selectedPrompt = this.data.prompts.find((item) => item.id === this.data.selectedPromptId);
       const model = this.data.models[this.data.selectedModelIndex];
       const response = await request<{ task: Task; user: User }>("/api/ai-image-tasks", {
         method: "POST",
@@ -216,16 +373,17 @@ Page({
           promptTemplateId: this.data.selectedPromptId,
           customPrompt: this.data.customPrompt,
           aiModelId: model?.id || "",
-          ratio: ratioOptions[this.data.selectedRatioIndex].value,
-          size: selectedPrompt?.defaultParams?.size || ratioOptions[this.data.selectedRatioIndex].value,
+          ratio: this.data.selectedRatioValue,
+          size: this.currentRequestSize(),
           count: this.data.count,
           inputImageUrl: inputImageUrls[0] || "",
           inputImageUrls,
-          userInstruction: ""
+          userInstruction: this.data.customPrompt
         }
       });
       saveSession({ user: response.user });
       getApp<{ globalData: { user: User | null } }>().globalData.user = response.user;
+      this.setData({ user: response.user, headerSubtitle: `剩余积分 ${response.user.credits}` });
       wx.navigateTo({ url: `/pages/result/index?id=${response.task.id}` });
     } catch (error) {
       this.setData({ message: (error as Error).message });

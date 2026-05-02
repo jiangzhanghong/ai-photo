@@ -22,6 +22,8 @@ interface PromptChip {
   id: string;
   title: string;
   sceneLabel: string;
+  previewUrl: string;
+  creditCost: number;
 }
 
 interface ReferencePreviewItem {
@@ -41,20 +43,44 @@ interface RecentTaskCard {
   disabled: boolean;
 }
 
+const resolutionOptions = ["2K", "4K"] as const;
+
 const ratioOptions = [
+  { label: "智能", value: "adaptive" },
   { label: "1:1", value: "1:1" },
   { label: "3:4", value: "3:4" },
   { label: "4:3", value: "4:3" },
   { label: "9:16", value: "9:16" },
-  { label: "16:9", value: "16:9" }
-];
+  { label: "16:9", value: "16:9" },
+  { label: "2:3", value: "2:3" },
+  { label: "3:2", value: "3:2" },
+  { label: "21:9", value: "21:9" }
+] as const;
 
-const fallbackPromptChips: PromptChip[] = [
-  { id: "fallback-portrait", title: "写真摄影", sceneLabel: "写真摄影" },
-  { id: "fallback-chinese", title: "国风古韵", sceneLabel: "国风古韵" },
-  { id: "fallback-anime", title: "动漫游戏", sceneLabel: "动漫游戏" },
-  { id: "fallback-interior", title: "室内设计", sceneLabel: "室内设计" }
-];
+const recommendedImageSizes = {
+  "2K": {
+    "1:1": "2048x2048",
+    "4:3": "2304x1728",
+    "3:4": "1728x2304",
+    "16:9": "2848x1600",
+    "9:16": "1600x2848",
+    "3:2": "2496x1664",
+    "2:3": "1664x2496",
+    "21:9": "3136x1344"
+  },
+  "4K": {
+    "1:1": "4096x4096",
+    "3:4": "3520x4704",
+    "4:3": "4704x3520",
+    "16:9": "5504x3040",
+    "9:16": "3040x5504",
+    "2:3": "3328x4992",
+    "3:2": "4992x3328",
+    "21:9": "6240x2656"
+  }
+} as const;
+
+const knownRatios = ratioOptions.filter((item) => item.value !== "adaptive");
 
 const placeholderReferenceUrls = [
   "/assets/demo/ref-1.jpg",
@@ -151,16 +177,45 @@ const formatLatestRelative = (value?: string) => {
   return formatTaskDate(value);
 };
 
-const normalizeSceneLabel = (prompt: Prompt) => {
-  return prompt.scene || prompt.categoryTags?.[0] || prompt.title;
+const splitImageSize = (size = "") => {
+  const match = String(size).trim().match(/^(\d+)x(\d+)$/);
+  return match ? { width: Number(match[1]), height: Number(match[2]) } : null;
 };
 
+const ratioFromSize = (size = "") => {
+  if (size === "4K") return "adaptive";
+  if (ratioOptions.some((item) => item.value === size)) return size;
+  const parsed = splitImageSize(size);
+  if (!parsed) return "";
+  const value = parsed.width / parsed.height;
+  return knownRatios.reduce((best, item) => {
+    const [width, height] = item.value.split(":").map(Number);
+    const diff = Math.abs(value - (width / height));
+    return diff < best.diff ? { ratio: item.value, diff } : best;
+  }, { ratio: "", diff: Infinity }).ratio;
+};
+
+const resolutionFromSize = (size = ""): "2K" | "4K" => {
+  if (size === "4K") return "4K";
+  const parsed = splitImageSize(size);
+  if (!parsed) return "2K";
+  return parsed.width * parsed.height > 9000000 ? "4K" : "2K";
+};
+
+const promptPreviewUrl = (prompt?: Prompt | null) => {
+  const url = prompt?.exampleImages?.[0]?.compressedUrl || prompt?.exampleImageUrl || prompt?.resultImageUrl || "";
+  return url ? absoluteUrl(url) : "";
+};
+
+const normalizeSceneLabel = (prompt: Prompt) => prompt.scene || prompt.categoryTags?.[0] || prompt.title;
+
 const toPromptChips = (prompts: Prompt[]) => {
-  if (!prompts.length) return fallbackPromptChips;
-  return prompts.slice(0, 4).map((prompt) => ({
+  return prompts.map((prompt) => ({
     id: prompt.id,
     title: prompt.title,
-    sceneLabel: normalizeSceneLabel(prompt)
+    sceneLabel: normalizeSceneLabel(prompt),
+    previewUrl: promptPreviewUrl(prompt),
+    creditCost: prompt.creditCost || 0
   }));
 };
 
@@ -184,11 +239,12 @@ Page({
   data: {
     safeTop: 36,
     navRightWidth: 210,
+    resolutionOptions: [...resolutionOptions],
     ratioOptions,
     user: null as User | null,
     plans: [] as Plan[],
     prompts: [] as Prompt[],
-    promptChips: fallbackPromptChips,
+    promptChips: [] as PromptChip[],
     models: [] as Model[],
     tasks: [] as Task[],
     uploadedImages: [] as UploadItem[],
@@ -201,10 +257,17 @@ Page({
     recentTasks: demoRecentTasks,
     historyVisible: false,
     memberVisible: false,
+    paymentVisible: false,
     templateVisible: false,
+    selectedPaymentPlan: null as Plan | null,
     selectedPromptId: "",
     selectedModelIndex: 0,
-    selectedRatioIndex: 0,
+    selectedResolution: "2K",
+    selectedRatioValue: "1:1",
+    currentSizeLabel: "2048x2048",
+    selectedPromptPreviewUrl: "",
+    selectedPromptScene: "",
+    selectedPromptTitle: "",
     customPrompt: "",
     count: 2,
     creditCost: 4,
@@ -217,8 +280,7 @@ Page({
     creditBalance: 286,
     latestTaskStatus: "已完成",
     latestTaskRelative: "2分钟前",
-    memberButtonText: "会员中心",
-    hasMorePrompts: false
+    memberButtonText: "会员中心"
   },
 
   async onLoad() {
@@ -234,6 +296,33 @@ Page({
     this.applyUser(getStoredUser());
     await Promise.allSettled([this.loadPlans(), this.loadPrompts(), this.loadModels(), this.loadTasks()]);
     this.syncCost();
+  },
+
+  currentRequestSize() {
+    if (this.data.selectedRatioValue === "adaptive") return "4K";
+    const size = recommendedImageSizes[this.data.selectedResolution as "2K" | "4K"][this.data.selectedRatioValue as keyof typeof recommendedImageSizes["2K"]];
+    return size || "2048x2048";
+  },
+
+  updateCurrentSizeLabel() {
+    this.setData({
+      currentSizeLabel: this.data.selectedRatioValue === "adaptive" ? "4K 智能比例" : this.currentRequestSize()
+    });
+  },
+
+  applyPromptDefaults(prompt?: Prompt | null) {
+    const params = prompt?.defaultParams || {};
+    const ratioCandidate = String(params.ratio || ratioFromSize(String(params.size || "")) || "1:1");
+    const selectedRatioValue = ratioOptions.some((item) => item.value === ratioCandidate) ? ratioCandidate : "1:1";
+    const selectedResolution = params.resolution === "4K" || resolutionFromSize(String(params.size || "")) === "4K" ? "4K" : "2K";
+    this.setData({
+      selectedResolution,
+      selectedRatioValue,
+      selectedPromptPreviewUrl: promptPreviewUrl(prompt),
+      selectedPromptScene: prompt?.scene || prompt?.categoryTags?.[0] || "通用",
+      selectedPromptTitle: prompt?.title || ""
+    });
+    this.updateCurrentSizeLabel();
   },
 
   applyUser(user: User | null) {
@@ -261,17 +350,24 @@ Page({
   async loadPrompts() {
     try {
       const data = await request<{ prompts: Prompt[] }>("/api/prompts?taskType=image_to_image", { auth: false });
-      const selectedPromptId = this.data.selectedPromptId || data.prompts[0]?.id || "";
+      const selectedPromptId = data.prompts.some((item) => item.id === this.data.selectedPromptId)
+        ? this.data.selectedPromptId
+        : (data.prompts[0]?.id || "");
+      const selectedPrompt = data.prompts.find((item) => item.id === selectedPromptId) || null;
       this.setData({
         prompts: data.prompts,
         selectedPromptId,
-        promptChips: toPromptChips(data.prompts),
-        hasMorePrompts: data.prompts.length > 4
+        promptChips: toPromptChips(data.prompts)
       });
+      this.applyPromptDefaults(selectedPrompt);
     } catch (error) {
       this.setData({
-        promptChips: fallbackPromptChips,
-        hasMorePrompts: false,
+        prompts: [],
+        promptChips: [],
+        selectedPromptId: "",
+        selectedPromptPreviewUrl: "",
+        selectedPromptScene: "",
+        selectedPromptTitle: "",
         message: this.data.message || (error as Error).message
       });
     }
@@ -361,26 +457,42 @@ Page({
       prompt?.creditCost ||
       2
     );
+    this.updateCurrentSizeLabel();
     this.setData({ creditCost: unitCost * this.data.count });
   },
 
   selectPrompt(event: WechatMiniprogram.TouchEvent) {
     const id = String(event.currentTarget.dataset.id || "");
-    if (!this.data.prompts.find((item) => item.id === id)) return;
+    const prompt = this.data.prompts.find((item) => item.id === id);
+    if (!prompt) return;
     this.setData({ selectedPromptId: id });
+    this.applyPromptDefaults(prompt);
     this.syncCost();
   },
 
   selectPromptFromSheet(event: WechatMiniprogram.TouchEvent) {
     const id = String(event.currentTarget.dataset.id || "");
-    if (!this.data.prompts.find((item) => item.id === id)) return;
+    const prompt = this.data.prompts.find((item) => item.id === id);
+    if (!prompt) return;
     this.setData({ selectedPromptId: id, templateVisible: false });
+    this.applyPromptDefaults(prompt);
+    this.syncCost();
+  },
+
+  selectResolution(event: WechatMiniprogram.TouchEvent) {
+    const value = String(event.currentTarget.dataset.value || "2K");
+    this.setData({ selectedResolution: value === "4K" ? "4K" : "2K" });
     this.syncCost();
   },
 
   selectRatio(event: WechatMiniprogram.TouchEvent) {
-    const index = Number(event.currentTarget.dataset.index || 0);
-    this.setData({ selectedRatioIndex: index });
+    const value = String(event.currentTarget.dataset.value || "1:1");
+    if (!ratioOptions.some((item) => item.value === value)) return;
+    this.setData({
+      selectedRatioValue: value,
+      selectedResolution: value === "adaptive" ? "4K" : this.data.selectedResolution
+    });
+    this.syncCost();
   },
 
   onPromptInput(event: WechatMiniprogram.Input) {
@@ -525,7 +637,7 @@ Page({
       return;
     }
     if (!this.data.user.membership) {
-      this.setData({ memberVisible: true, message: "请先开通会员套餐。" });
+      this.setData({ memberVisible: true, message: "请先购买积分套餐。" });
       return;
     }
     if (!this.data.prompts.find((item) => item.id === this.data.selectedPromptId)) {
@@ -539,7 +651,6 @@ Page({
     this.setData({ submitting: true, message: "" });
     try {
       const inputImageUrls = await this.uploadReferences();
-      const selectedPrompt = this.data.prompts.find((item) => item.id === this.data.selectedPromptId);
       const model = this.data.models[this.data.selectedModelIndex];
       const response = await request<{ task: Task; user: User }>("/api/ai-image-tasks", {
         method: "POST",
@@ -548,8 +659,8 @@ Page({
           promptTemplateId: this.data.selectedPromptId,
           customPrompt: this.data.customPrompt,
           aiModelId: model?.id || "",
-          ratio: ratioOptions[this.data.selectedRatioIndex].value,
-          size: selectedPrompt?.defaultParams?.size || ratioOptions[this.data.selectedRatioIndex].value,
+          ratio: this.data.selectedRatioValue,
+          size: this.currentRequestSize(),
           count: this.data.count,
           inputImageUrl: inputImageUrls[0] || "",
           inputImageUrls,
@@ -614,17 +725,22 @@ Page({
     }
     try {
       const planCode = String(event.currentTarget.dataset.code || "");
-      const data = await request<{ user: User }>("/api/memberships/subscribe", {
+      const data = await request<{ paymentStatus: string; message: string; paymentQrUrl?: string; plan: Plan }>("/api/memberships/subscribe", {
         method: "POST",
         data: { planCode }
       });
-      saveSession({ user: data.user });
-      getApp<{ globalData: { user: User | null } }>().globalData.user = data.user;
-      this.applyUser(data.user);
-      this.setData({ message: "套餐已开通。" });
+      this.setData({
+        paymentVisible: true,
+        selectedPaymentPlan: data.plan,
+        message: data.message || "请先完成付款。"
+      });
     } catch (error) {
       this.setData({ message: (error as Error).message });
     }
+  },
+
+  closePaymentSheet() {
+    this.setData({ paymentVisible: false, selectedPaymentPlan: null });
   },
 
   logout() {

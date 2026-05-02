@@ -122,6 +122,28 @@ const recommended2kSizes = {
   "2:3": "1664x2496",
   "21:9": "3136x1344"
 };
+const recommended4kSizes = {
+  "1:1": "4096x4096",
+  "3:4": "3520x4704",
+  "4:3": "4704x3520",
+  "16:9": "5504x3040",
+  "9:16": "3040x5504",
+  "2:3": "3328x4992",
+  "3:2": "4992x3328",
+  "21:9": "6240x2656"
+};
+const imagePromptDefaultParams = {
+  "img2img-campus-comic": { styleStrength: 0.65, ratio: "3:4", resolution: "2K", size: recommended2kSizes["3:4"] },
+  "img2img-campus-romance": { styleStrength: 0.55, ratio: "3:4", resolution: "4K", size: recommended4kSizes["3:4"] },
+  "img2img-campus-portrait": { styleStrength: 0.5, ratio: "3:4", resolution: "2K", size: recommended2kSizes["3:4"] },
+  "img2img-campus-id": { styleStrength: 0.45, ratio: "1:1", resolution: "2K", size: recommended2kSizes["1:1"] },
+  "img2img-campus-group": { styleStrength: 0.5, ratio: "16:9", resolution: "4K", size: recommended4kSizes["16:9"] },
+  "img2img-campus-film": { styleStrength: 0.6, ratio: "2:3", resolution: "2K", size: recommended2kSizes["2:3"] },
+  "img2img-campus-uniform": { styleStrength: 0.5, ratio: "3:4", resolution: "2K", size: recommended2kSizes["3:4"] },
+  "img2img-campus-night": { styleStrength: 0.55, ratio: "16:9", resolution: "4K", size: recommended4kSizes["16:9"] },
+  "img2img-campus-polaroid": { styleStrength: 0.6, ratio: "1:1", resolution: "2K", size: recommended2kSizes["1:1"] },
+  "img2img-campus-future": { styleStrength: 0.5, ratio: "3:2", resolution: "4K", size: recommended4kSizes["3:2"] }
+};
 const normalizeImageSize = (size, model) => {
   const requestedSize = String(size || "").trim();
   if (isGptImageModel(model)) {
@@ -157,6 +179,14 @@ const sanitizeImageParams = (model, params) => {
   const sanitized = { ...(params || {}) };
   if (isGptImageModel(model)) delete sanitized.response_format;
   return sanitized;
+};
+const syncImagePromptDefaults = async () => {
+  for (const [id, params] of Object.entries(imagePromptDefaultParams)) {
+    await db.exec(
+      "UPDATE prompt_templates SET default_params_json = ?, updated_at = NOW() WHERE id = ? AND task_type = 'image_to_image'",
+      [jsonText(params), id]
+    );
+  }
 };
 
 const encrypt = (value) => {
@@ -1383,16 +1413,16 @@ const seedData = async () => {
     ["edit-color-grade", "高级调色增强", "edit", "调色", "适合提升通透感、对比度和整体影调。", "保持原图内容和构图，进行高级调色，提升通透感、对比度和质感，避免过饱和。", "过饱和，肤色偏色，失真", ["color_style", "contrast"], ["调色", "修图"], {}, 7, "./assets/work-bw.jpg", 4],
     ["edit-remove-clutter", "杂物清理修图", "edit", "修图", "适合清理干扰物和画面污点。", "清理画面中影响观感的杂物、污点和多余元素，保持原始场景自然真实。", "场景结构改变，主体缺失，明显涂抹痕迹", ["cleanup_target"], ["清理", "修图"], {}, 8, "./assets/work-landscape.jpg", 5],
     ["edit-social-cover", "社媒封面优化", "edit", "社媒", "适合小红书、公众号和朋友圈封面。", "基于上传图片优化为适合小红书、公众号或朋友圈封面的视觉效果，主体突出，文字区域留白充足。", "文字乱码，主体被裁切，过度锐化", ["platform", "layout"], ["社媒", "封面"], {}, 8, "./assets/work-tram.jpg", 6],
-    ["img2img-campus-comic", "校园漫画毕业季", "image_to_image", "校园漫画风", "把参考图转成清爽校园漫画感，适合毕业纪念头像和班级海报。", "参考上传图片的人物身份、姿态和主要构图，生成校园毕业季主题漫画插画：阳光教学楼、飘动学士服、干净线条、明亮色彩、青春感强，画面像高质量青春校园漫画封面，保留人物主要特征。", "低清晰度，五官崩坏，过度夸张，文字乱码，手指畸形", ["campus_scene", "style_strength", "ratio"], ["毕业季", "漫画", "校园"], { styleStrength: 0.65 }, 8, "./assets/style-korean.jpg", 1],
-    ["img2img-campus-romance", "校园恋爱毕业照", "image_to_image", "校园恋爱风", "适合双人毕业照、情侣头像和青春感社媒图。", "参考上传图片的人物关系、姿态和面部特征，生成校园毕业季恋爱写真：操场跑道或林荫道，傍晚金色逆光，轻微胶片颗粒，互动自然含蓄，氛围温柔但不夸张，真实摄影质感。", "脸部变形，过度亲密，低俗，过曝，背景杂乱", ["campus_scene", "lighting", "mood"], ["毕业季", "恋爱", "写真"], { styleStrength: 0.55 }, 8, "./assets/work-sunset.jpg", 2],
-    ["img2img-campus-portrait", "校园毕业写真", "image_to_image", "校园写真", "适合单人毕业季写真、头像和纪念相册。", "参考上传人像的五官、发型、姿态和服装轮廓，生成高级校园毕业写真：教学楼长廊、自然柔光、浅景深、皮肤真实通透、构图干净，加入毕业季氛围但不过度堆砌。", "过度磨皮，五官改变，服装异常，背景失真", ["campus_scene", "clothing", "camera"], ["毕业季", "写真", "人像"], { styleStrength: 0.5 }, 8, "./assets/work-portrait.jpg", 3],
-    ["img2img-campus-id", "青春证件毕业风", "image_to_image", "证件照", "适合毕业证件风头像、简历头像和清爽形象照。", "参考上传人像生成清爽校园毕业证件风照片：正面自然微笑，干净浅色背景，可保留白衬衫或学士服元素，光线均匀，面部真实清晰，适合毕业资料和社交头像。", "证件不规范，脸部变形，浓妆，背景脏乱", ["background", "clothing", "ratio"], ["毕业季", "证件照", "头像"], { styleStrength: 0.45 }, 8, "./assets/style-minimal.jpg", 4],
-    ["img2img-campus-group", "班级合照电影感", "image_to_image", "毕业合照", "适合多人合照增强、毕业纪念海报和班级宣传图。", "参考上传合照的人物数量和站位，生成电影感校园毕业合照：校门或主教学楼前，统一但自然的毕业季氛围，人物清晰，光线柔和，色彩高级，画面有纪念册封面感。", "人物缺失，脸部替换，站位混乱，文字乱码", ["campus_scene", "lighting", "composition"], ["毕业季", "合照", "电影感"], { styleStrength: 0.5 }, 9, "./assets/cta-bg.jpg", 5],
-    ["img2img-campus-film", "胶片校园回忆", "image_to_image", "胶片风", "适合怀旧毕业纪念、相册封面和社媒长图。", "参考上传图片主体生成胶片校园回忆风：老教学楼、树影、操场、暖色胶片颗粒、轻微漏光、自然抓拍感，像毕业多年后翻出的珍贵照片，保留人物身份特征。", "噪点过重，脸部模糊，颜色脏，年代感过度", ["campus_scene", "film_tone", "mood"], ["毕业季", "胶片", "怀旧"], { styleStrength: 0.6 }, 8, "./assets/style-vintage.jpg", 6],
-    ["img2img-campus-uniform", "校服青春大片", "image_to_image", "校服风", "适合校服主题写真、青春感头像和毕业纪念图。", "参考上传人像生成校服青春大片：干净校服或白衬衫造型，校园楼梯、走廊或操场背景，阳光自然，表情松弛，画面真实有青春电影剧照感。", "服装错乱，过度成熟，姿态僵硬，脸部失真", ["clothing", "campus_scene", "lighting"], ["毕业季", "校服", "青春"], { styleStrength: 0.5 }, 8, "./assets/work-girl.jpg", 7],
-    ["img2img-campus-night", "毕业晚会氛围照", "image_to_image", "晚会氛围", "适合毕业晚会、社团活动和舞台纪念照。", "参考上传图片主体生成毕业晚会氛围照：校园礼堂或露天舞台，暖色灯串、轻微舞台光、真实摄影质感，人物突出，背景有庆祝毕业的氛围但不过度拥挤。", "灯光脏乱，脸部过暗，文字乱码，低清晰度", ["event_scene", "lighting", "mood"], ["毕业季", "晚会", "活动"], { styleStrength: 0.55 }, 8, "./assets/style-cinematic.jpg", 8],
-    ["img2img-campus-polaroid", "拍立得毕业纪念", "image_to_image", "拍立得", "适合社媒九宫格、毕业纪念卡和头像合集。", "参考上传图片主体生成拍立得毕业纪念照：白色相纸边框感、校园背景、自然抓拍、色彩清新，保留人物主要特征，画面像毕业留言册里的精致照片。", "边框文字乱码，人脸模糊，过曝，低质滤镜", ["campus_scene", "color_tone", "ratio"], ["毕业季", "拍立得", "纪念"], { styleStrength: 0.6 }, 8, "./assets/work-tram.jpg", 9],
-    ["img2img-campus-future", "毕业启程商务风", "image_to_image", "商务毕业照", "适合求职头像、毕业形象照和个人主页封面。", "参考上传人像生成毕业启程商务风照片：校园与城市天际线自然融合，穿搭干净得体，光线明亮，姿态自信，表达从校园走向职场的感觉，真实摄影质感。", "过度商务，年龄失真，背景拼贴感，五官改变", ["background", "clothing", "mood"], ["毕业季", "商务", "头像"], { styleStrength: 0.5 }, 8, "./assets/creator-chen.jpg", 10]
+    ["img2img-campus-comic", "校园漫画毕业季", "image_to_image", "校园漫画风", "把参考图转成清爽校园漫画感，适合毕业纪念头像和班级海报。", "参考上传图片的人物身份、姿态和主要构图，生成校园毕业季主题漫画插画：阳光教学楼、飘动学士服、干净线条、明亮色彩、青春感强，画面像高质量青春校园漫画封面，保留人物主要特征。", "低清晰度，五官崩坏，过度夸张，文字乱码，手指畸形", ["campus_scene", "style_strength", "ratio"], ["毕业季", "漫画", "校园"], imagePromptDefaultParams["img2img-campus-comic"], 8, "./assets/style-korean.jpg", 1],
+    ["img2img-campus-romance", "校园恋爱毕业照", "image_to_image", "校园恋爱风", "适合双人毕业照、情侣头像和青春感社媒图。", "参考上传图片的人物关系、姿态和面部特征，生成校园毕业季恋爱写真：操场跑道或林荫道，傍晚金色逆光，轻微胶片颗粒，互动自然含蓄，氛围温柔但不夸张，真实摄影质感。", "脸部变形，过度亲密，低俗，过曝，背景杂乱", ["campus_scene", "lighting", "mood"], ["毕业季", "恋爱", "写真"], imagePromptDefaultParams["img2img-campus-romance"], 8, "./assets/work-sunset.jpg", 2],
+    ["img2img-campus-portrait", "校园毕业写真", "image_to_image", "校园写真", "适合单人毕业季写真、头像和纪念相册。", "参考上传人像的五官、发型、姿态和服装轮廓，生成高级校园毕业写真：教学楼长廊、自然柔光、浅景深、皮肤真实通透、构图干净，加入毕业季氛围但不过度堆砌。", "过度磨皮，五官改变，服装异常，背景失真", ["campus_scene", "clothing", "camera"], ["毕业季", "写真", "人像"], imagePromptDefaultParams["img2img-campus-portrait"], 8, "./assets/work-portrait.jpg", 3],
+    ["img2img-campus-id", "青春证件毕业风", "image_to_image", "证件照", "适合毕业证件风头像、简历头像和清爽形象照。", "参考上传人像生成清爽校园毕业证件风照片：正面自然微笑，干净浅色背景，可保留白衬衫或学士服元素，光线均匀，面部真实清晰，适合毕业资料和社交头像。", "证件不规范，脸部变形，浓妆，背景脏乱", ["background", "clothing", "ratio"], ["毕业季", "证件照", "头像"], imagePromptDefaultParams["img2img-campus-id"], 8, "./assets/style-minimal.jpg", 4],
+    ["img2img-campus-group", "班级合照电影感", "image_to_image", "毕业合照", "适合多人合照增强、毕业纪念海报和班级宣传图。", "参考上传合照的人物数量和站位，生成电影感校园毕业合照：校门或主教学楼前，统一但自然的毕业季氛围，人物清晰，光线柔和，色彩高级，画面有纪念册封面感。", "人物缺失，脸部替换，站位混乱，文字乱码", ["campus_scene", "lighting", "composition"], ["毕业季", "合照", "电影感"], imagePromptDefaultParams["img2img-campus-group"], 9, "./assets/cta-bg.jpg", 5],
+    ["img2img-campus-film", "胶片校园回忆", "image_to_image", "胶片风", "适合怀旧毕业纪念、相册封面和社媒长图。", "参考上传图片主体生成胶片校园回忆风：老教学楼、树影、操场、暖色胶片颗粒、轻微漏光、自然抓拍感，像毕业多年后翻出的珍贵照片，保留人物身份特征。", "噪点过重，脸部模糊，颜色脏，年代感过度", ["campus_scene", "film_tone", "mood"], ["毕业季", "胶片", "怀旧"], imagePromptDefaultParams["img2img-campus-film"], 8, "./assets/style-vintage.jpg", 6],
+    ["img2img-campus-uniform", "校服青春大片", "image_to_image", "校服风", "适合校服主题写真、青春感头像和毕业纪念图。", "参考上传人像生成校服青春大片：干净校服或白衬衫造型，校园楼梯、走廊或操场背景，阳光自然，表情松弛，画面真实有青春电影剧照感。", "服装错乱，过度成熟，姿态僵硬，脸部失真", ["clothing", "campus_scene", "lighting"], ["毕业季", "校服", "青春"], imagePromptDefaultParams["img2img-campus-uniform"], 8, "./assets/work-girl.jpg", 7],
+    ["img2img-campus-night", "毕业晚会氛围照", "image_to_image", "晚会氛围", "适合毕业晚会、社团活动和舞台纪念照。", "参考上传图片主体生成毕业晚会氛围照：校园礼堂或露天舞台，暖色灯串、轻微舞台光、真实摄影质感，人物突出，背景有庆祝毕业的氛围但不过度拥挤。", "灯光脏乱，脸部过暗，文字乱码，低清晰度", ["event_scene", "lighting", "mood"], ["毕业季", "晚会", "活动"], imagePromptDefaultParams["img2img-campus-night"], 8, "./assets/style-cinematic.jpg", 8],
+    ["img2img-campus-polaroid", "拍立得毕业纪念", "image_to_image", "拍立得", "适合社媒九宫格、毕业纪念卡和头像合集。", "参考上传图片主体生成拍立得毕业纪念照：白色相纸边框感、校园背景、自然抓拍、色彩清新，保留人物主要特征，画面像毕业留言册里的精致照片。", "边框文字乱码，人脸模糊，过曝，低质滤镜", ["campus_scene", "color_tone", "ratio"], ["毕业季", "拍立得", "纪念"], imagePromptDefaultParams["img2img-campus-polaroid"], 8, "./assets/work-tram.jpg", 9],
+    ["img2img-campus-future", "毕业启程商务风", "image_to_image", "商务毕业照", "适合求职头像、毕业形象照和个人主页封面。", "参考上传人像生成毕业启程商务风照片：校园与城市天际线自然融合，穿搭干净得体，光线明亮，姿态自信，表达从校园走向职场的感觉，真实摄影质感。", "过度商务，年龄失真，背景拼贴感，五官改变", ["background", "clothing", "mood"], ["毕业季", "商务", "头像"], imagePromptDefaultParams["img2img-campus-future"], 8, "./assets/creator-chen.jpg", 10]
   ];
   const campusImagePromptIds = prompts.filter((prompt) => prompt[2] === "image_to_image").map((prompt) => prompt[0]);
   if (campusImagePromptIds.length) {
@@ -1410,6 +1440,7 @@ const seedData = async () => {
     );
   }
   }
+  await syncImagePromptDefaults();
 
   const modelKey = process.env.default_model_api_key || "";
   await db.exec(`INSERT INTO ai_models
@@ -1595,27 +1626,12 @@ const routeApi = async (req, res, url) => {
     const rows = await db.query("SELECT * FROM membership_plans WHERE code = ? AND is_active = 1 LIMIT 1", [body.planCode]);
     const plan = rows[0];
     if (!plan) return json(res, 404, { message: "会员方案不存在。" });
-    const conn = await pool.getConnection();
-    try {
-      await conn.beginTransaction();
-      await conn.execute("UPDATE user_memberships SET status = 'cancelled', updated_at = NOW() WHERE user_id = ? AND status = 'active'", [user.id]);
-      const membershipId = uid("membership");
-      await conn.execute("INSERT INTO user_memberships (id, user_id, plan_id, plan_name, status, started_at, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, 'active', NOW(), DATE_ADD(NOW(), INTERVAL ? DAY), NOW(), NOW())", [
-        membershipId, user.id, plan.id, plan.name, plan.duration_days
-      ]);
-      await conn.execute("UPDATE users SET credits = credits + ?, updated_at = NOW() WHERE id = ?", [plan.credits, user.id]);
-      await conn.execute("INSERT INTO credit_transactions (id, user_id, amount, transaction_type, related_type, related_id, remark, created_at) VALUES (?, ?, ?, 'subscription_grant', 'membership', ?, ?, NOW())", [
-        uid("credit"), user.id, plan.credits, membershipId, `${plan.name} 模拟支付开通`
-      ]);
-      await conn.commit();
-    } catch (error) {
-      await conn.rollback();
-      throw error;
-    } finally {
-      conn.release();
-    }
-    const fresh = (await db.query("SELECT * FROM users WHERE id = ?", [user.id]))[0];
-    return json(res, 200, { user: await publicUser(fresh), paymentStatus: "simulated_paid" });
+    return json(res, 202, {
+      paymentStatus: "pending",
+      message: "请先完成付款，支付回调成功后才会发放积分。",
+      paymentQrUrl: "/assets/qr.jpg",
+      plan: planDto(plan)
+    });
   }
 
   if (req.method === "GET" && url.pathname === "/api/prompts") {
@@ -1692,7 +1708,7 @@ const routeApi = async (req, res, url) => {
     const user = await requireUser(req);
     if (!user) return json(res, 401, { message: "请先登录。" });
     const membership = (await db.query("SELECT * FROM user_memberships WHERE user_id = ? AND status = 'active' LIMIT 1", [user.id]))[0];
-    if (!membership) return json(res, 403, { message: "请先开通会员方案。" });
+    if (!membership) return json(res, 403, { message: "请先购买积分套餐。" });
     const taskType = ["generate", "edit", "image_to_image"].includes(body.taskType) ? body.taskType : "generate";
     const customPrompt = String(body.customPrompt || "").trim();
     const prompt = body.promptTemplateId
