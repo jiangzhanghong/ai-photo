@@ -209,10 +209,8 @@ Page({
     count: 2,
     creditCost: 4,
     submitting: false,
-    sending: false,
+    wechatLoading: false,
     message: "",
-    phone: "",
-    code: "",
     displayName: "138****5678",
     membershipLine: "高级会员 · 有效期至 2025-06-18",
     avatarUrl: "/assets/demo/avatar.jpg",
@@ -570,53 +568,42 @@ Page({
     }
   },
 
-  onPhoneInput(event: WechatMiniprogram.Input) {
-    this.setData({ phone: String(event.detail.value || "") });
-  },
-
-  onCodeInput(event: WechatMiniprogram.Input) {
-    this.setData({ code: String(event.detail.value || "") });
-  },
-
-  async sendCode() {
-    if (!this.data.phone) {
-      this.setData({ message: "请输入手机号。" });
-      return;
-    }
-    this.setData({ sending: true, message: "" });
+  async loginWithWechat() {
+    this.setData({ wechatLoading: true, message: "" });
     try {
-      await request("/api/auth/verification-codes", {
-        method: "POST",
-        auth: false,
-        data: { targetType: "phone", target: this.data.phone, scene: "login" }
+      const loginResult = await new Promise<{ code?: string }>((resolve, reject) => {
+        wx.login({
+          success: (res: { code?: string }) => resolve(res || {}),
+          fail: reject
+        });
       });
-      this.setData({ message: "验证码已发送，开发环境默认 867530。" });
-    } catch (error) {
-      this.setData({ message: (error as Error).message });
-    } finally {
-      this.setData({ sending: false });
-    }
-  },
-
-  async login() {
-    try {
-      const data = await request<LoginResponse>("/api/auth/login/phone-code", {
+      if (!loginResult.code) throw new Error("微信授权未返回登录凭证。");
+      const profile = await new Promise<{ nickName?: string; avatarUrl?: string }>((resolve) => {
+        if (typeof wx.getUserProfile !== "function") return resolve({});
+        wx.getUserProfile({
+          desc: "用于完善会员资料",
+          success: (res: { userInfo?: { nickName?: string; avatarUrl?: string } }) => resolve(res.userInfo || {}),
+          fail: () => resolve({})
+        });
+      });
+      const data = await request<LoginResponse>("/api/auth/wechat/miniapp-login", {
         method: "POST",
         auth: false,
-        data: { phone: this.data.phone, code: this.data.code }
+        data: {
+          code: loginResult.code,
+          nickname: profile.nickName || "",
+          avatarUrl: profile.avatarUrl || ""
+        }
       });
       saveSession(data);
       getApp<{ globalData: { user: User | null } }>().globalData.user = data.user;
       this.applyUser(data.user);
-      this.setData({
-        memberVisible: false,
-        phone: "",
-        code: "",
-        message: "登录成功。"
-      });
+      this.setData({ memberVisible: false, message: "微信授权登录成功。" });
       await this.loadTasks();
     } catch (error) {
-      this.setData({ message: (error as Error).message });
+      this.setData({ message: (error as Error).message || "微信授权登录失败。" });
+    } finally {
+      this.setData({ wechatLoading: false });
     }
   },
 
@@ -646,8 +633,6 @@ Page({
     this.applyUser(null);
     this.setData({
       memberVisible: false,
-      phone: "",
-      code: "",
       tasks: [],
       uploadedImages: [],
       historyImages: [],

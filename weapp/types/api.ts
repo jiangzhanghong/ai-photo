@@ -8,6 +8,7 @@ export interface Membership {
 
 export interface User {
   id: string;
+  username?: string;
   phone: string;
   nickname: string;
   avatarUrl: string;

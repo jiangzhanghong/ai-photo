@@ -16,37 +16,43 @@
       <div class="auth-modal" role="dialog" aria-modal="true" aria-label="登录注册">
         <button class="auth-modal-close" type="button" data-auth-close aria-label="关闭">✕</button>
         <div class="auth-modal-header">
-          <h2>登录 / 注册</h2>
-          <p>手机号验证码登录，未注册自动创建账号</p>
+          <h2>账号登录 / 微信授权</h2>
+          <p data-auth-subtitle>使用账号和密码登录，或通过微信扫码授权登录</p>
         </div>
         <div class="segmented auth-tabs" data-auth-mode>
-          <button class="active" type="button" data-mode="phone-login">手机号登录</button>
-          <button type="button" data-mode="reset">忘记密码</button>
+          <button class="active" type="button" data-mode="account">账号登录</button>
           <button type="button" data-mode="wechat">微信扫码</button>
         </div>
-        <div class="auth-modal-fields">
+        <div class="segmented auth-subtabs" data-auth-action>
+          <button class="active" type="button" data-action="login">登录</button>
+          <button type="button" data-action="register">注册</button>
+        </div>
+        <div class="auth-modal-fields" data-account-panel>
           <label class="mc-label">
-            <span>手机号</span>
-            <input type="tel" inputmode="numeric" maxlength="11" placeholder="请输入手机号" data-auth-phone />
-          </label>
-          <label class="mc-label" data-code-row>
-            <span>验证码</span>
-            <span class="inline-field">
-              <input type="text" inputmode="numeric" maxlength="6" placeholder="请输入 6 位验证码" data-auth-code />
-              <button type="button" data-send-code>获取验证码</button>
-            </span>
+            <span>账号</span>
+            <input type="text" maxlength="32" placeholder="请输入账号，至少 3 位" data-auth-account />
           </label>
           <label class="mc-label" data-password-row>
-            <span>新密码</span>
-            <input type="password" placeholder="8-32 位，至少 3 类字符" data-auth-password />
+            <span>密码</span>
+            <input type="password" placeholder="请输入密码，至少 6 位" data-auth-password />
           </label>
-          <label class="mc-label" data-confirm-row>
-            <span>确认密码</span>
-            <input type="password" placeholder="再次输入密码" data-auth-confirm />
+          <label class="mc-label" data-captcha-row>
+            <span>验证码</span>
+            <span class="inline-field captcha-field">
+              <input type="text" inputmode="numeric" maxlength="8" placeholder="请输入结果" data-auth-captcha />
+              <button type="button" data-refresh-captcha>3 + 2 = ?</button>
+            </span>
           </label>
           <button class="mc-btn mc-btn-primary auth-submit-btn" type="button" data-auth-submit>登录</button>
-          <p class="form-message" data-auth-message role="status"></p>
         </div>
+        <div class="auth-wechat-panel" data-wechat-panel hidden>
+          <div class="auth-wechat-qr-frame">
+            <img src="./assets/qr.jpg" alt="微信登录二维码" data-wechat-qr />
+          </div>
+          <p class="auth-wechat-tip">请使用微信扫一扫完成授权登录</p>
+          <button class="mc-btn mc-btn-primary auth-wechat-refresh" type="button" data-refresh-wechat-qr>刷新二维码</button>
+        </div>
+        <p class="form-message" data-auth-message role="status"></p>
       </div>
     </div>
 
@@ -388,7 +394,10 @@
           prompts: [],
           models: [],
           taskType: "image_to_image",
-          authMode: "phone-login",
+          authMode: "account",
+          authAction: "login",
+          wechatQrUrl: "./assets/qr.jpg",
+          captcha: { left: 0, right: 0, op: "+", result: 0 },
           tasks: [],
           localTasks: [],
           uploadedImages: [],
@@ -795,12 +804,30 @@
           $("[data-auth-message]").textContent = text || "";
         };
 
+        const refreshCaptcha = () => {
+          const left = Math.floor(Math.random() * 9) + 1;
+          const right = Math.floor(Math.random() * 9) + 1;
+          const op = Math.random() > 0.5 ? "+" : "-";
+          const safeLeft = op === "-" && left < right ? right : left;
+          const safeRight = op === "-" && left < right ? left : right;
+          const result = op === "+" ? safeLeft + safeRight : safeLeft - safeRight;
+          state.captcha = { left: safeLeft, right: safeRight, op, result };
+          $("[data-refresh-captcha]").textContent = `${safeLeft} ${op} ${safeRight} = ?`;
+          if ($("[data-auth-captcha]")) $("[data-auth-captcha]").value = "";
+        };
+
         // Modal open/close
         const openModal = () => {
           $("[data-auth-backdrop]").classList.add("is-open");
           $("[data-auth-backdrop]").classList.toggle("auth-required", !state.user);
           $("[data-auth-backdrop]").removeAttribute("aria-hidden");
-          $("[data-auth-phone]").focus();
+          refreshCaptcha();
+          if (state.authMode === "wechat") {
+            loadWechatQr();
+            $("[data-refresh-wechat-qr]").focus();
+          } else {
+            $("[data-auth-account]").focus();
+          }
         };
 
         const closeModal = () => {
@@ -815,17 +842,18 @@
           const membership = state.user?.membership;
           const credits = state.user?.credits || 0;
           const loggedIn = !!state.user;
+          const accountLabel = state.user?.username || state.user?.phone || state.user?.nickname || "微信用户";
 
           $$("[data-login-state]").forEach((node) => { node.textContent = loggedIn ? "已登录" : "未登录"; });
           $$("[data-current-plan]").forEach((node) => { node.textContent = membership ? membership.planName : "未开通"; });
           $$("[data-credit-balance]").forEach((node) => { node.textContent = credits; });
           $$("[data-form-credit]").forEach((node) => { node.textContent = credits; });
           $$("[data-member-state]").forEach((node) => { node.textContent = loggedIn
-            ? (membership ? `${membership.planName} · ${state.user.phone}` : `已登录 · ${state.user.phone}`)
+            ? (membership ? `${membership.planName} · ${accountLabel}` : `已登录 · ${accountLabel}`)
             : "未登录"; });
 
           $$(".member-login-toggle[data-login-toggle]").forEach((btn) => {
-            btn.textContent = loggedIn ? "账号信息" : "登录 / 注册";
+            btn.textContent = loggedIn ? "账号信息" : "账号登录";
             btn.style.display = loggedIn ? "none" : "";
           });
           $$("[data-logout]").forEach((btn) => { btn.style.display = loggedIn ? "" : "none"; });
@@ -1496,10 +1524,29 @@
 
         const updateAuthMode = () => {
           $$("[data-auth-mode] button").forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === state.authMode));
-          $("[data-code-row]").style.display = state.authMode !== "wechat" ? "grid" : "none";
-          $("[data-password-row]").style.display = state.authMode === "reset" ? "grid" : "none";
-          $("[data-confirm-row]").style.display = state.authMode === "reset" ? "grid" : "none";
-          $("[data-auth-submit]").textContent = state.authMode === "reset" ? "重置密码" : "登录";
+          $$("[data-auth-action] button").forEach((btn) => btn.classList.toggle("active", btn.dataset.action === state.authAction));
+          const isAccount = state.authMode === "account";
+          const isRegister = isAccount && state.authAction === "register";
+          $("[data-auth-action]").hidden = !isAccount;
+          $("[data-account-panel]").hidden = !isAccount;
+          $("[data-wechat-panel]").hidden = isAccount;
+          $("[data-captcha-row]").style.display = isRegister ? "grid" : "none";
+          $("[data-auth-submit]").textContent = isRegister ? "注册并登录" : "登录";
+          $("[data-auth-subtitle]").textContent = isAccount
+            ? (isRegister ? "账号至少 3 位，密码至少 6 位，注册成功后直接登录" : "使用账号和密码直接登录")
+            : "网站微信扫码登录需要先完成微信开放平台配置";
+        };
+
+        const loadWechatQr = async () => {
+          try {
+            const qr = await api("/api/auth/wechat/qr/create", { method: "POST" });
+            state.wechatQrUrl = qr.qrUrl || "./assets/qr.jpg";
+            $("[data-wechat-qr]").src = state.wechatQrUrl;
+            setAuthMessage(qr.message || "请使用微信扫一扫完成授权登录。");
+          } catch (e) {
+            $("[data-wechat-qr]").src = "./assets/qr.jpg";
+            setAuthMessage(e.message);
+          }
         };
 
         const initAuth = () => {
@@ -1520,47 +1567,47 @@
             const btn = e.target.closest("[data-mode]");
             if (!btn) return;
             state.authMode = btn.dataset.mode;
+            if (state.authMode === "account") state.authAction = "login";
             updateAuthMode();
+            if (state.authMode === "wechat") loadWechatQr();
           });
 
-          $("[data-send-code]").addEventListener("click", async () => {
-            try {
-              const sceneMap = { "phone-login": "login", reset: "reset_password" };
-              await api("/api/auth/verification-codes", {
-                method: "POST",
-                body: JSON.stringify({ targetType: "phone", target: $("[data-auth-phone]").value, scene: sceneMap[state.authMode] || "login" })
-              });
-              setAuthMessage("验证码已发送。");
-            } catch (e) {
-              setAuthMessage(e.message);
-            }
+          $("[data-auth-action]").addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-action]");
+            if (!btn) return;
+            state.authAction = btn.dataset.action;
+            updateAuthMode();
+            if (state.authAction === "register") refreshCaptcha();
           });
+
+          $("[data-refresh-captcha]").addEventListener("click", refreshCaptcha);
 
           $("[data-auth-submit]").addEventListener("click", async () => {
-            const phone = $("[data-auth-phone]").value;
-            const code = $("[data-auth-code]").value;
+            const account = $("[data-auth-account]").value;
             const password = $("[data-auth-password]").value;
-            const confirmPassword = $("[data-auth-confirm]").value;
+            const captcha = Number($("[data-auth-captcha]").value);
             try {
-              if (state.authMode === "phone-login") {
-                const data = await api("/api/auth/login/phone-code", { method: "POST", body: JSON.stringify({ phone, code }) });
+              if (state.authAction === "login") {
+                const data = await api("/api/auth/login/password", { method: "POST", body: JSON.stringify({ account, password }) });
                 saveSession(data);
                 await Promise.all([renderModels(), loadTasks()]);
                 updateMemberState();
                 closeModal();
-              } else if (state.authMode === "wechat") {
-                const qr = await api("/api/auth/wechat/qr/create", { method: "POST" });
-                setAuthMessage(qr.message || "微信扫码登录待接入。");
               } else {
-                await api("/api/auth/password/reset", { method: "POST", body: JSON.stringify({ phone, code, password, confirmPassword }) });
-                clearSession();
+                if (captcha !== state.captcha.result) throw new Error("算术验证码错误。");
+                const data = await api("/api/auth/register/password", { method: "POST", body: JSON.stringify({ account, password }) });
+                saveSession(data);
+                await Promise.all([renderModels(), loadTasks()]);
                 updateMemberState();
-                setAuthMessage("密码已重设，请重新登录。");
+                closeModal();
               }
             } catch (e) {
               setAuthMessage(e.message);
+              if (state.authAction === "register") refreshCaptcha();
             }
           });
+
+          $("[data-refresh-wechat-qr]").addEventListener("click", loadWechatQr);
 
           $$("[data-logout]").forEach((btn) => btn.addEventListener("click", async () => {
             try {

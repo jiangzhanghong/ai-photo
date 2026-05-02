@@ -612,6 +612,7 @@ const publicUser = async (user) => {
   const membership = memberships[0];
   return {
     id: user.id,
+    username: user.username || "",
     phone: user.phone,
     nickname: user.nickname,
     avatarUrl: user.avatar_url || "",
@@ -643,6 +644,9 @@ const issueTokens = async (user, req) => {
 
 const normalizePhone = (value) => String(value || "").replace(/\D/g, "");
 const validatePhone = (phone) => /^1[3-9]\d{9}$/.test(phone);
+const normalizeUsername = (value) => String(value || "").trim().replace(/\s+/g, "");
+const validateUsername = (username) => username.length >= 3 ? "" : "账号至少 3 位。";
+const validateSimplePassword = (password) => String(password || "").trim().length >= 6 ? "" : "密码至少 6 位。";
 
 const consumeCode = async (target, scene, code) => {
   const rows = await db.query("SELECT * FROM verification_codes WHERE target = ? AND scene = ? AND used_at IS NULL ORDER BY created_at DESC LIMIT 1", [target, scene]);
@@ -668,6 +672,50 @@ const getOrCreatePhoneUser = async (phone) => {
     [id, phone, `用户${phone.slice(-4)}`]
   );
   return (await db.query("SELECT * FROM users WHERE id = ?", [id]))[0];
+};
+
+const getUserByUsername = async (username) => {
+  const rows = await db.query("SELECT * FROM users WHERE username = ? LIMIT 1", [username]);
+  return rows[0] || null;
+};
+
+const getOrCreateWechatUser = async ({ openid, unionid = "", nickname = "", avatarUrl = "" }) => {
+  const cleanOpenid = String(openid || "").trim();
+  const cleanUnionid = String(unionid || "").trim();
+  const cleanNickname = String(nickname || "").trim().slice(0, 120);
+  const cleanAvatarUrl = String(avatarUrl || "").trim().slice(0, 500);
+  if (!cleanOpenid) throw new Error("微信用户标识缺失。");
+
+  const byOpenid = await db.query("SELECT * FROM users WHERE wechat_openid = ? LIMIT 1", [cleanOpenid]);
+  let user = byOpenid[0];
+
+  if (!user && cleanUnionid) {
+    const byUnionid = await db.query("SELECT * FROM users WHERE wechat_unionid = ? LIMIT 1", [cleanUnionid]);
+    user = byUnionid[0];
+  }
+
+  if (!user) {
+    const id = uid("user");
+    await db.exec(
+      `INSERT INTO users (id, nickname, wechat_openid, wechat_unionid, avatar_url, status, credits, created_at, updated_at, last_login_at)
+       VALUES (?, ?, ?, ?, ?, 'active', 0, NOW(), NOW(), NOW())`,
+      [id, cleanNickname || `微信用户${cleanOpenid.slice(-6)}`, cleanOpenid, cleanUnionid || null, cleanAvatarUrl || null]
+    );
+    return (await db.query("SELECT * FROM users WHERE id = ? LIMIT 1", [id]))[0];
+  }
+
+  await db.exec(
+    `UPDATE users
+     SET wechat_openid = ?,
+         wechat_unionid = CASE WHEN ? <> '' THEN ? ELSE wechat_unionid END,
+         nickname = CASE WHEN ? <> '' THEN ? ELSE nickname END,
+         avatar_url = CASE WHEN ? <> '' THEN ? ELSE avatar_url END,
+         last_login_at = NOW(),
+         updated_at = NOW()
+     WHERE id = ?`,
+    [cleanOpenid, cleanUnionid, cleanUnionid, cleanNickname, cleanNickname, cleanAvatarUrl, cleanAvatarUrl, user.id]
+  );
+  return (await db.query("SELECT * FROM users WHERE id = ? LIMIT 1", [user.id]))[0];
 };
 
 const planDto = (plan) => ({
@@ -1068,6 +1116,7 @@ const ensureSchema = async () => {
   const statements = [
     `CREATE TABLE IF NOT EXISTS users (
       id VARCHAR(40) PRIMARY KEY,
+      username VARCHAR(64) UNIQUE,
       phone VARCHAR(32) UNIQUE,
       email VARCHAR(191) UNIQUE,
       nickname VARCHAR(120) NOT NULL,
@@ -1287,6 +1336,18 @@ const ensureSchema = async () => {
   await addColumnIfMissing("prompt_templates", "default_params_json", "TEXT");
   await addColumnIfMissing("ai_image_tasks", "prompt_snapshot_json", "TEXT");
   await addColumnIfMissing("ai_image_tasks", "input_image_urls_json", "TEXT");
+  await addColumnIfMissing("users", "username", "VARCHAR(64) UNIQUE");
+  const usersWithoutUsername = await db.query("SELECT id, phone FROM users WHERE username IS NULL OR username = ''");
+  for (const user of usersWithoutUsername) {
+    const fallback = user.phone ? `u${String(user.phone).slice(-6)}` : `user_${String(user.id).slice(-8)}`;
+    let candidate = fallback;
+    let suffix = 1;
+    while (await getUserByUsername(candidate)) {
+      candidate = `${fallback}_${suffix}`;
+      suffix += 1;
+    }
+    await db.exec("UPDATE users SET username = ?, updated_at = NOW() WHERE id = ?", [candidate, user.id]);
+  }
   await db.exec("UPDATE ai_models SET timeout_seconds = 300 WHERE timeout_seconds IS NULL OR timeout_seconds < 300");
   await db.exec("ALTER TABLE prompt_templates MODIFY COLUMN result_image_url TEXT");
   await db.exec("ALTER TABLE prompt_versions MODIFY COLUMN result_image_url TEXT");
@@ -1392,7 +1453,7 @@ const routeApi = async (req, res, url) => {
     const target = normalizePhone(body.target);
     const scene = String(body.scene || "");
     if (targetType !== "phone" || !validatePhone(target)) return json(res, 400, { message: "请输入有效手机号。" });
-    if (!["login", "reset_password"].includes(scene)) return json(res, 400, { message: "验证码场景无效。" });
+    if (!["register", "login", "reset_password"].includes(scene)) return json(res, 400, { message: "验证码场景无效。" });
     const code = process.env.NODE_ENV === "production" ? String(crypto.randomInt(100000, 1000000)) : "867530";
     const now = new Date();
     await db.exec("INSERT INTO verification_codes (id, target_type, target, scene, code_hash, expires_at, ip, user_agent, created_at) VALUES (?, 'phone', ?, ?, ?, ?, ?, ?, ?)", [
@@ -1412,13 +1473,31 @@ const routeApi = async (req, res, url) => {
     return json(res, 200, { user: await publicUser(fresh), ...(await issueTokens(fresh, req)) });
   }
 
+  if (req.method === "POST" && url.pathname === "/api/auth/register/password") {
+    const username = normalizeUsername(body.account || body.username);
+    const usernameError = validateUsername(username);
+    if (usernameError) return json(res, 400, { message: usernameError });
+    const passwordError = validateSimplePassword(body.password);
+    if (passwordError) return json(res, 400, { message: passwordError });
+    if (await getUserByUsername(username)) return json(res, 409, { message: "账号已存在，请直接登录。" });
+
+    const id = uid("user");
+    await db.exec(
+      `INSERT INTO users (id, username, nickname, password_hash, status, credits, created_at, updated_at, last_login_at)
+       VALUES (?, ?, ?, ?, 'active', 0, NOW(), NOW(), NOW())`,
+      [id, username, username, hashPassword(body.password)]
+    );
+    const fresh = (await db.query("SELECT * FROM users WHERE id = ? LIMIT 1", [id]))[0];
+    return json(res, 200, { user: await publicUser(fresh), ...(await issueTokens(fresh, req)) });
+  }
+
   if (req.method === "POST" && url.pathname === "/api/auth/login/password") {
-    const phone = normalizePhone(body.phone);
-    const rows = await db.query("SELECT * FROM users WHERE phone = ? LIMIT 1", [phone]);
-    const user = rows[0];
-    if (!user || !verifyPassword(body.password || "", user.password_hash)) return json(res, 401, { message: "手机号或密码错误。" });
+    const username = normalizeUsername(body.account || body.username);
+    const user = await getUserByUsername(username);
+    if (!user || !verifyPassword(body.password || "", user.password_hash)) return json(res, 401, { message: "账号或密码错误。" });
     await db.exec("UPDATE users SET last_login_at = NOW(), updated_at = NOW() WHERE id = ?", [user.id]);
-    return json(res, 200, { user: await publicUser(user), ...(await issueTokens(user, req)) });
+    const fresh = (await db.query("SELECT * FROM users WHERE id = ? LIMIT 1", [user.id]))[0];
+    return json(res, 200, { user: await publicUser(fresh), ...(await issueTokens(fresh, req)) });
   }
 
   if (req.method === "POST" && url.pathname === "/api/auth/password/reset") {
@@ -1437,7 +1516,51 @@ const routeApi = async (req, res, url) => {
   }
 
   if (req.method === "POST" && url.pathname === "/api/auth/wechat/qr/create") {
-    return json(res, 200, { sceneId: uid("wx"), status: "pending", qrUrl: "", message: "微信扫码登录接口已预留，待接入开放平台。" });
+    return json(res, 501, {
+      message: "网站微信扫码登录尚未接入微信开放平台配置。"
+    });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/auth/wechat/miniapp-login") {
+    const code = String(body.code || "").trim();
+    const nickname = String(body.nickname || "").trim();
+    const avatarUrl = String(body.avatarUrl || "").trim();
+    if (!code) return json(res, 400, { message: "缺少微信登录 code。" });
+
+    let session = null;
+    const appid = process.env.WECHAT_MINIAPP_APPID || process.env.wechat_miniapp_appid || "";
+    const secret = process.env.WECHAT_MINIAPP_SECRET || process.env.wechat_miniapp_secret || "";
+
+    if (appid && secret) {
+      const endpoint = new URL("https://api.weixin.qq.com/sns/jscode2session");
+      endpoint.searchParams.set("appid", appid);
+      endpoint.searchParams.set("secret", secret);
+      endpoint.searchParams.set("js_code", code);
+      endpoint.searchParams.set("grant_type", "authorization_code");
+      const response = await fetch(endpoint, { signal: AbortSignal.timeout(10000) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) return json(res, 502, { message: "微信登录服务不可用。" });
+      if (data.errcode) return json(res, 400, { message: data.errmsg || "微信授权失败。" });
+      session = data;
+    } else if (process.env.NODE_ENV !== "production") {
+      session = {
+        openid: `dev_${sha256(code).slice(0, 24)}`,
+        unionid: `dev_union_${sha256(`union:${code}`).slice(0, 24)}`
+      };
+    } else {
+      return json(res, 501, { message: "微信登录尚未配置小程序密钥。" });
+    }
+
+    if (!session?.openid) return json(res, 400, { message: "微信授权未返回用户标识。" });
+    const user = await getOrCreateWechatUser({
+      openid: session.openid,
+      unionid: session.unionid || "",
+      nickname,
+      avatarUrl
+    });
+    await db.exec("UPDATE users SET last_login_at = NOW(), updated_at = NOW() WHERE id = ?", [user.id]);
+    const fresh = (await db.query("SELECT * FROM users WHERE id = ? LIMIT 1", [user.id]))[0];
+    return json(res, 200, { user: await publicUser(fresh), ...(await issueTokens(fresh, req)) });
   }
 
   if (req.method === "POST" && url.pathname === "/api/auth/token/refresh") {

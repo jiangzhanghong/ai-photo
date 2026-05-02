@@ -729,6 +729,11 @@
   gap: 14rpx;
 }
 
+.wechat-auth-panel {
+  display: grid;
+  gap: 14rpx;
+}
+
 .sheet-input {
   width: 100%;
   height: 82rpx;
@@ -738,21 +743,16 @@
   background: #fbfcfb;
 }
 
-.login-code-row {
-  display: grid;
-  grid-template-columns: 1fr 210rpx;
-  gap: 14rpx;
+.wechat-auth-title {
+  color: #202824;
+  font-size: 30rpx;
+  font-weight: 700;
 }
 
-.sheet-ghost-btn {
-  display: grid;
-  place-items: center;
-  height: 82rpx;
-  border: 1rpx solid #dce2dd;
-  border-radius: 16rpx;
-  background: #fff;
-  color: #274535;
-  font-size: 26rpx;
+.wechat-auth-desc {
+  color: #7c8681;
+  font-size: 24rpx;
+  line-height: 1.6;
 }
 
 .member-summary {
