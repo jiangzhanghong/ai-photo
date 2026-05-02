@@ -121,6 +121,7 @@ Page({
     selectedPromptScene: "",
     selectedPromptTitle: "",
     selectedPromptCost: 0,
+    promptCountLabel: "暂无模板",
     headerSubtitle: "登录后开始创作",
     resolutionOptions: [...resolutionOptions],
     ratioOptions,
@@ -187,11 +188,18 @@ Page({
       this.setData({
         prompts,
         promptCards: toPromptCards(prompts),
-        selectedPromptId
+        selectedPromptId,
+        promptCountLabel: prompts.length ? `${prompts.length} 个模板` : "暂无模板"
       });
       this.applyPromptDefaults(selectedPrompt);
     } catch (error) {
-      this.setData({ prompts: [], promptCards: [], selectedPromptId: "", message: (error as Error).message });
+      this.setData({
+        prompts: [],
+        promptCards: [],
+        selectedPromptId: "",
+        promptCountLabel: "暂无模板",
+        message: (error as Error).message
+      });
     }
   },
 

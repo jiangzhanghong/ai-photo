@@ -13,7 +13,7 @@
         <text class="section-index">1</text>
         <text class="section-title">真实模板</text>
       </view>
-      <text class="section-caption">{{promptCards.length ? `${promptCards.length} 个模板` : '暂无模板'}}</text>
+      <text class="section-caption">{{promptCountLabel}}</text>
     </view>
 
     <scroll-view wx:if="{{promptCards.length}}" scroll-x class="template-scroll">

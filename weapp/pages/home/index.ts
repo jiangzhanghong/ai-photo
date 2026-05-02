@@ -260,6 +260,7 @@ Page({
     paymentVisible: false,
     templateVisible: false,
     selectedPaymentPlan: null as Plan | null,
+    selectedPaymentPlanSummary: "支付成功后发放积分",
     selectedPromptId: "",
     selectedModelIndex: 0,
     selectedResolution: "2K",
@@ -732,6 +733,7 @@ Page({
       this.setData({
         paymentVisible: true,
         selectedPaymentPlan: data.plan,
+        selectedPaymentPlanSummary: `${data.plan.credits} 积分 / ${data.plan.quota} 张`,
         message: data.message || "请先完成付款。"
       });
     } catch (error) {
@@ -740,7 +742,11 @@ Page({
   },
 
   closePaymentSheet() {
-    this.setData({ paymentVisible: false, selectedPaymentPlan: null });
+    this.setData({
+      paymentVisible: false,
+      selectedPaymentPlan: null,
+      selectedPaymentPlanSummary: "支付成功后发放积分"
+    });
   },
 
   logout() {

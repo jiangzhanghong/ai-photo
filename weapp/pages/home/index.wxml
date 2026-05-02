@@ -306,7 +306,7 @@
       <view class="pay-sheet-card">
         <view class="pay-sheet-name">{{selectedPaymentPlan ? selectedPaymentPlan.name : '待支付套餐'}}</view>
         <view class="pay-sheet-price">¥{{selectedPaymentPlan ? selectedPaymentPlan.price : 0}}</view>
-        <view class="pay-sheet-desc">{{selectedPaymentPlan ? `${selectedPaymentPlan.credits} 积分 / ${selectedPaymentPlan.quota} 张` : '支付成功后发放积分'}}</view>
+        <view class="pay-sheet-desc">{{selectedPaymentPlanSummary}}</view>
       </view>
       <view class="wechat-auth-desc">当前不会直接加积分。支付成功后，需由正式支付回调确认到账。</view>
       <button class="sheet-submit" bindtap="closePaymentSheet">我知道了</button>
