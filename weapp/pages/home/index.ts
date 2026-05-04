@@ -1,6 +1,7 @@
-import type { LoginResponse, Model, Plan, Prompt, Task, User } from "../../types/api";
+import type { LoginResponse, MediaImage, Model, Plan, Prompt, Task, User } from "../../types/api";
 import { absoluteUrl, MAX_REFERENCE_IMAGES } from "../../utils/config";
 import { formatDate, statusText } from "../../utils/format";
+import { normalizeMediaImage, resolveMediaImages } from "../../utils/media";
 import { request } from "../../utils/request";
 import { clearSession, getStoredUser, saveSession } from "../../utils/session";
 
@@ -8,11 +9,11 @@ interface UploadItem {
   id: string;
   previewUrl: string;
   tempFilePath?: string;
-  uploadedUrl?: string;
+  uploadedMedia?: MediaImage;
 }
 
 interface HistoryItem {
-  url: string;
+  image: MediaImage;
   previewUrl: string;
   title: string;
   selected: boolean;
@@ -191,7 +192,7 @@ const resolutionFromSize = (size = ""): "2K" | "4K" => {
 };
 
 const promptPreviewUrl = (prompt?: Prompt | null) => {
-  const url = prompt?.exampleImages?.[0]?.compressedUrl || prompt?.exampleImageUrl || prompt?.resultImageUrl || "";
+  const url = prompt?.exampleImages?.[0]?.previewUrl || prompt?.exampleImages?.[0]?.compressedUrl || prompt?.exampleImageUrl || prompt?.resultImageUrl || "";
   return url ? absoluteUrl(url) : "";
 };
 
@@ -208,7 +209,7 @@ const toPromptChips = (prompts: Prompt[]) => {
 };
 
 const toRecentCard = (task: Task): RecentTaskCard => {
-  const cover = task.resultImageUrls?.[0] || task.inputImageUrls?.[0] || task.inputImageUrl || "/assets/demo/recent-1.jpg";
+  const cover = task.resultImages?.[0]?.thumbUrl || task.resultImages?.[0]?.previewUrl || task.resultImageUrls?.[0] || task.inputImages?.[0]?.thumbUrl || task.inputImages?.[0]?.previewUrl || task.inputImageUrls?.[0] || task.inputImageUrl || "/assets/demo/recent-1.jpg";
   const statusLabel = statusText(task.status);
   const statusClass = task.status === "failed" ? "failed" : (task.status === "processing" || task.status === "queued" ? "processing" : "success");
   return {
@@ -333,14 +334,24 @@ Page({
   async loadPrompts() {
     try {
       const data = await request<{ prompts: Prompt[] }>("/api/prompts?taskType=image_to_image", { auth: false });
-      const selectedPromptId = data.prompts.some((item) => item.id === this.data.selectedPromptId)
+      const prompts = data.prompts || [];
+      const promptImages = prompts.flatMap((prompt) => (prompt.exampleImages || []).map((item) => normalizeMediaImage(item)).filter(Boolean) as MediaImage[]);
+      const resolved = await resolveMediaImages(promptImages, false);
+      let cursor = 0;
+      const hydrated = prompts.map((prompt) => {
+        const count = prompt.exampleImages?.length || 0;
+        const exampleImages = resolved.slice(cursor, cursor + count);
+        cursor += count;
+        return { ...prompt, exampleImages };
+      });
+      const selectedPromptId = hydrated.some((item) => item.id === this.data.selectedPromptId)
         ? this.data.selectedPromptId
-        : (data.prompts[0]?.id || "");
-      const selectedPrompt = data.prompts.find((item) => item.id === selectedPromptId) || null;
+        : (hydrated[0]?.id || "");
+      const selectedPrompt = hydrated.find((item) => item.id === selectedPromptId) || null;
       this.setData({
-        prompts: data.prompts,
+        prompts: hydrated,
         selectedPromptId,
-        promptChips: toPromptChips(data.prompts)
+        promptChips: toPromptChips(hydrated)
       });
       this.applyPromptDefaults(selectedPrompt);
     } catch (error) {
@@ -378,12 +389,25 @@ Page({
     }
     try {
       const data = await request<{ tasks: Task[] }>("/api/ai-image-tasks");
-      const recentTasks = data.tasks.length ? data.tasks.slice(0, 4).map(toRecentCard) : demoRecentTasks;
+      const tasks = await Promise.all(data.tasks.map(async (task) => {
+        const inputImages = task.inputImages?.length
+          ? task.inputImages
+          : (task.inputImageUrls || []).map((url) => normalizeMediaImage({ originalUrl: url, previewUrl: url, thumbUrl: url })).filter(Boolean) as MediaImage[];
+        const resultImages = task.resultImages?.length
+          ? task.resultImages
+          : (task.resultImageUrls || []).map((url) => normalizeMediaImage({ originalUrl: url, previewUrl: url, thumbUrl: url })).filter(Boolean) as MediaImage[];
+        return {
+          ...task,
+          inputImages: await resolveMediaImages(inputImages),
+          resultImages: await resolveMediaImages(resultImages)
+        };
+      }));
+      const recentTasks = tasks.length ? tasks.slice(0, 4).map(toRecentCard) : demoRecentTasks;
       this.setData({
-        tasks: data.tasks,
+        tasks,
         recentTasks,
-        latestTaskStatus: data.tasks[0] ? statusText(data.tasks[0].status) : "暂无任务",
-        latestTaskRelative: data.tasks[0] ? formatLatestRelative(data.tasks[0].updatedAt || data.tasks[0].createdAt) : "刚刚"
+        latestTaskStatus: tasks[0] ? statusText(tasks[0].status) : "暂无任务",
+        latestTaskRelative: tasks[0] ? formatLatestRelative(tasks[0].updatedAt || tasks[0].createdAt) : "刚刚"
       });
       this.buildHistoryImages();
     } catch (error) {
@@ -400,13 +424,13 @@ Page({
     const seen = new Set<string>();
     const history: HistoryItem[] = [];
     this.data.tasks.forEach((task) => {
-      const urls = task.inputImageUrls?.length ? task.inputImageUrls : (task.inputImageUrl ? [task.inputImageUrl] : []);
-      urls.forEach((url) => {
-        if (!url || seen.has(url)) return;
-        seen.add(url);
+      (task.inputImages || []).forEach((image) => {
+        const key = image.assetId || image.originalUrl;
+        if (!key || seen.has(key)) return;
+        seen.add(key);
         history.push({
-          url,
-          previewUrl: absoluteUrl(url),
+          image,
+          previewUrl: image.thumbUrl || image.previewUrl || image.originalUrl,
           title: task.promptTitle || "历史参考图",
           selected: false
         });
@@ -541,22 +565,22 @@ Page({
     const url = String(event.currentTarget.dataset.url || "");
     this.setData({
       historyImages: this.data.historyImages.map((item) => (
-        item.url === url ? { ...item, selected: !item.selected } : item
+        item.image.originalUrl === url ? { ...item, selected: !item.selected } : item
       ))
     });
   },
 
   applyHistoryImages() {
     const selected = this.data.historyImages.filter((item) => item.selected);
-    const existing = new Set(this.data.uploadedImages.map((item) => item.uploadedUrl || item.previewUrl));
+    const existing = new Set(this.data.uploadedImages.map((item) => item.uploadedMedia?.assetId || item.uploadedMedia?.originalUrl || item.previewUrl));
     const remaining = MAX_REFERENCE_IMAGES - this.data.uploadedImages.length;
     const items = selected
-      .filter((item) => !existing.has(item.url))
+      .filter((item) => !existing.has(item.image.assetId || item.image.originalUrl))
       .slice(0, remaining)
       .map((item) => ({
         id: `history-${Date.now()}-${Math.random().toString(16).slice(2)}`,
         previewUrl: item.previewUrl,
-        uploadedUrl: item.url
+        uploadedMedia: item.image
       }));
     this.setData({
       uploadedImages: [...this.data.uploadedImages, ...items],
@@ -577,22 +601,23 @@ Page({
   },
 
   async uploadReferences() {
-    const urls: string[] = [];
+    const images: MediaImage[] = [];
     for (const item of this.data.uploadedImages) {
-      if (item.uploadedUrl) {
-        urls.push(item.uploadedUrl);
+      if (item.uploadedMedia) {
+        images.push(item.uploadedMedia);
         continue;
       }
       if (!item.tempFilePath) continue;
       const imageData = await this.fileToDataUrl(item.tempFilePath);
-      const data = await request<{ url: string }>("/api/uploads/images", {
+      const data = await request<{ url: string; media: MediaImage }>("/api/uploads/images", {
         method: "POST",
         data: { imageData }
       });
-      item.uploadedUrl = data.url;
-      urls.push(data.url);
+      item.uploadedMedia = data.media;
+      item.previewUrl = data.media.thumbUrl || data.media.previewUrl || data.url;
+      images.push(data.media);
     }
-    return urls;
+    return images;
   },
 
   async submitTask() {
@@ -614,7 +639,7 @@ Page({
     }
     this.setData({ submitting: true, message: "" });
     try {
-      const inputImageUrls = await this.uploadReferences();
+      const inputImages = await this.uploadReferences();
       const model = this.data.models[this.data.selectedModelIndex];
       const response = await request<{ task: Task; user: User }>("/api/ai-image-tasks", {
         method: "POST",
@@ -626,8 +651,9 @@ Page({
           ratio: this.data.selectedRatioValue,
           size: this.currentRequestSize(),
           count: this.data.count,
-          inputImageUrl: inputImageUrls[0] || "",
-          inputImageUrls,
+          inputImageUrl: inputImages[0]?.originalUrl || "",
+          inputImageUrls: inputImages,
+          inputImages,
           userInstruction: this.data.customPrompt
         }
       });

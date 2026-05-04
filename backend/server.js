@@ -5,6 +5,7 @@ const net = require("net");
 const path = require("path");
 const COS = require("cos-nodejs-sdk-v5");
 const mysql = require("mysql2/promise");
+const sharp = require("sharp");
 const { URL } = require("url");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -13,6 +14,9 @@ const ACCESS_EXPIRES_SECONDS = 60 * 60 * 2;
 const REFRESH_EXPIRES_SECONDS = 60 * 60 * 24 * 30;
 const VERIFICATION_CODE_EXPIRES_MS = 10 * 60 * 1000;
 const ADMIN_ACCESS_EXPIRES_SECONDS = 60 * 60 * 8;
+const MEDIA_ACCESS_URL_EXPIRES_SECONDS = Number(process.env.MEDIA_SIGNED_URL_EXPIRES_SECONDS || 60 * 10);
+const MEDIA_PREVIEW_MAX_SIDE = 1920;
+const MEDIA_THUMB_MAX_SIDE = 384;
 
 const loadEnvFile = (file) => {
   if (!fs.existsSync(file)) return;
@@ -471,6 +475,30 @@ const imageExtensionFromMime = (mime) => {
   return "jpg";
 };
 
+const imageMimeFromSharpFormat = (format, fallback = "image/jpeg") => {
+  const value = String(format || "").toLowerCase();
+  if (value === "png") return "image/png";
+  if (value === "webp") return "image/webp";
+  if (value === "jpeg" || value === "jpg") return "image/jpeg";
+  return fallback;
+};
+
+const imageExtensionFromSharpFormat = (format, fallback = "jpg") => {
+  const mime = imageMimeFromSharpFormat(format, imageMimeFromSharpFormat(fallback));
+  return imageExtensionFromMime(mime);
+};
+
+const mediaUrl = (assetId, variant = "original") => `/api/media/${encodeURIComponent(assetId)}/${variant}`;
+
+const mediaUrlParts = (pathname) => {
+  const match = String(pathname || "").match(/^\/api\/media\/([^/]+)\/(original|preview|thumb)$/);
+  if (!match) return null;
+  return {
+    assetId: decodeURIComponent(match[1]),
+    variant: match[2]
+  };
+};
+
 const decodeImageDataUrl = (imageData) => {
   const match = String(imageData || "").match(/^data:(image\/(?:jpeg|jpg|png|webp));base64,([a-zA-Z0-9+/=]+)$/);
   if (!match) throw new Error("图片数据格式无效。");
@@ -496,7 +524,7 @@ const objectStorageKeyFromApiPath = (pathname) => {
   }
 };
 
-const getObjectStorageUrl = async (key) => {
+const getObjectStorageUrl = async (key, options = {}) => {
   const config = requireObjectStorageConfig();
   if (!config.signedUrls) {
     const baseUrl = config.publicBaseUrl || `https://${objectStorageHost(config)}`;
@@ -509,26 +537,10 @@ const getObjectStorageUrl = async (key) => {
       Region: config.region,
       Key: key,
       Sign: true,
-      Expires: config.signedUrlExpiresSeconds
+      Expires: Math.max(60, Number(options.expiresSeconds || config.signedUrlExpiresSeconds))
     }, (err, result) => err ? reject(err) : resolve(result));
   });
   return data.Url;
-};
-
-const uploadObjectStorageImage = async (buffer, mime, prefix = OBJECT_STORAGE.uploadPrefix, options = {}) => {
-  const config = requireObjectStorageConfig();
-  const key = objectKey(prefix, imageExtensionFromMime(mime));
-  await getObjectStorageClient().putObject({
-    Bucket: config.bucket,
-    Region: config.region,
-    Key: key,
-    Body: buffer,
-    ContentLength: buffer.length,
-    ContentType: mime,
-    StorageClass: "DEFAULT"
-  });
-  if (options.stableUrl) return objectStorageImagePath(key);
-  return getObjectStorageUrl(key);
 };
 
 const objectStorageKeyFromUrl = (rawUrl) => {
@@ -560,7 +572,8 @@ const stableImageUrl = (rawUrl) => {
   const value = String(rawUrl || "").trim();
   if (!value) return "";
   try {
-    if (objectStorageKeyFromApiPath(new URL(value, "http://localhost").pathname)) return value;
+    const pathname = new URL(value, "http://localhost").pathname;
+    if (mediaUrlParts(pathname) || objectStorageKeyFromApiPath(pathname)) return value;
   } catch {
     return value;
   }
@@ -568,18 +581,51 @@ const stableImageUrl = (rawUrl) => {
   return key ? objectStorageImagePath(key) : value;
 };
 
-const stableImageUrls = (urls) => (Array.isArray(urls) ? urls : [])
-  .map(stableImageUrl)
-  .filter(Boolean);
+const getMediaAsset = async (assetId) => {
+  const rows = await db.query("SELECT * FROM media_assets WHERE id = ? LIMIT 1", [assetId]);
+  return rows[0] || null;
+};
 
-const directImageUrl = async (rawUrl, req = null) => {
+const canAccessMediaAsset = ({ asset, userId = "", isAdmin = false }) => {
+  if (!asset) return false;
+  if (asset.visibility === "public") return true;
+  if (isAdmin) return true;
+  return asset.owner_type === "user" && userId && asset.owner_id === userId;
+};
+
+const mediaVariantObjectKey = (asset, variant) => {
+  if (variant === "thumb") return asset.thumb_object_key || asset.preview_object_key || asset.original_object_key || "";
+  if (variant === "preview") return asset.preview_object_key || asset.original_object_key || "";
+  return asset.original_object_key || asset.preview_object_key || asset.thumb_object_key || "";
+};
+
+const signedMediaVariantUrl = async (asset, variant, options = {}) => {
+  const key = mediaVariantObjectKey(asset, variant);
+  if (!key) throw new Error("图片文件不存在。");
+  return getObjectStorageUrl(key, { expiresSeconds: options.expiresSeconds || MEDIA_ACCESS_URL_EXPIRES_SECONDS });
+};
+
+const directImageUrl = async (rawUrl, req = null, options = {}) => {
   const value = String(rawUrl || "").trim();
   if (!value || value.startsWith("data:")) return value;
-  const imageUrl = new URL(value, req ? publicUrl(req, "/") : undefined);
+  const imageUrl = new URL(value, req ? publicUrl(req, "/") : "http://localhost");
+  const media = mediaUrlParts(imageUrl.pathname);
+  if (media) {
+    const asset = await getMediaAsset(media.assetId);
+    if (!asset) throw new Error("图片不存在。");
+    if (!options.bypassMediaAuth && !canAccessMediaAsset({
+      asset,
+      userId: options.viewerUserId || "",
+      isAdmin: Boolean(options.viewerIsAdmin)
+    })) {
+      throw new Error("无权访问图片。");
+    }
+    return signedMediaVariantUrl(asset, media.variant, options);
+  }
   const apiStorageKey = objectStorageKeyFromApiPath(imageUrl.pathname);
-  if (apiStorageKey) return getObjectStorageUrl(apiStorageKey);
+  if (apiStorageKey) return getObjectStorageUrl(apiStorageKey, { expiresSeconds: options.expiresSeconds || MEDIA_ACCESS_URL_EXPIRES_SECONDS });
   const storageKey = objectStorageKeyFromUrl(imageUrl.href);
-  if (storageKey) return getObjectStorageUrl(storageKey);
+  if (storageKey) return getObjectStorageUrl(storageKey, { expiresSeconds: options.expiresSeconds || MEDIA_ACCESS_URL_EXPIRES_SECONDS });
   return imageUrl.href;
 };
 
@@ -606,20 +652,141 @@ const loadObjectStorageImage = async (key) => {
   };
 };
 
-const saveUploadedImage = async (req, imageData, options = {}) => {
+const imageMetadataFromBuffer = async (buffer, fallbackMime = "image/jpeg") => {
+  const metadata = await sharp(buffer, { failOn: "none" }).metadata();
+  return {
+    width: Number(metadata.width || 0),
+    height: Number(metadata.height || 0),
+    mime: imageMimeFromSharpFormat(metadata.format, fallbackMime),
+    ext: imageExtensionFromSharpFormat(metadata.format, imageExtensionFromMime(fallbackMime)),
+    format: metadata.format || ""
+  };
+};
+
+const mediaPreviewBuffer = async (buffer, maxSide, quality) => sharp(buffer, { failOn: "none" })
+  .rotate()
+  .resize({
+    width: maxSide,
+    height: maxSide,
+    fit: "inside",
+    withoutEnlargement: true
+  })
+  .webp({ quality })
+  .toBuffer();
+
+const createMediaAssetFromBuffer = async ({
+  buffer,
+  fallbackMime = "image/jpeg",
+  ownerType = "user",
+  ownerId = "",
+  visibility = "private",
+  prefix = "media-assets",
+  originalFilename = ""
+}) => {
+  const originalMeta = await imageMetadataFromBuffer(buffer, fallbackMime);
+  const previewBuffer = await mediaPreviewBuffer(buffer, MEDIA_PREVIEW_MAX_SIDE, 82);
+  const thumbBuffer = await mediaPreviewBuffer(buffer, MEDIA_THUMB_MAX_SIDE, 72);
+  const id = uid("media");
+  const assetPrefix = `${String(prefix || "media-assets").replace(/^\/+|\/+$/g, "")}/${id}`;
+  const originalKey = objectKey(`${assetPrefix}/original`, originalMeta.ext);
+  const previewKey = objectKey(`${assetPrefix}/preview`, "webp");
+  const thumbKey = objectKey(`${assetPrefix}/thumb`, "webp");
+  const sha = sha256(buffer);
+
+  const client = getObjectStorageClient();
+  const config = requireObjectStorageConfig();
+  await client.putObject({
+    Bucket: config.bucket,
+    Region: config.region,
+    Key: originalKey,
+    Body: buffer,
+    ContentLength: buffer.length,
+    ContentType: originalMeta.mime,
+    StorageClass: "DEFAULT"
+  });
+  await client.putObject({
+    Bucket: config.bucket,
+    Region: config.region,
+    Key: previewKey,
+    Body: previewBuffer,
+    ContentLength: previewBuffer.length,
+    ContentType: "image/webp",
+    StorageClass: "DEFAULT"
+  });
+  await client.putObject({
+    Bucket: config.bucket,
+    Region: config.region,
+    Key: thumbKey,
+    Body: thumbBuffer,
+    ContentLength: thumbBuffer.length,
+    ContentType: "image/webp",
+    StorageClass: "DEFAULT"
+  });
+
+  await db.exec(
+    `INSERT INTO media_assets
+      (id, owner_type, owner_id, visibility, original_filename, mime_type, width, height, file_size, sha256, original_object_key, preview_object_key, thumb_object_key, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+    [
+      id,
+      String(ownerType || "user").slice(0, 40),
+      String(ownerId || "").slice(0, 80),
+      visibility === "public" ? "public" : "private",
+      String(originalFilename || "").slice(0, 255),
+      originalMeta.mime,
+      originalMeta.width || null,
+      originalMeta.height || null,
+      buffer.length,
+      sha,
+      originalKey,
+      previewKey,
+      thumbKey
+    ]
+  );
+
+  return (await db.query("SELECT * FROM media_assets WHERE id = ? LIMIT 1", [id]))[0];
+};
+
+const mediaItemFromAsset = (asset) => {
+  if (!asset?.id) return null;
+  return {
+    assetId: asset.id,
+    originalUrl: mediaUrl(asset.id, "original"),
+    previewUrl: mediaUrl(asset.id, "preview"),
+    thumbUrl: mediaUrl(asset.id, "thumb"),
+    compressedUrl: mediaUrl(asset.id, "preview")
+  };
+};
+
+const createMediaAssetFromDataUrl = async (imageData, options = {}) => {
   const { mime, buffer } = decodeImageDataUrl(imageData);
   const maxSize = options.maxSize || 5 * 1024 * 1024;
   if (buffer.length > maxSize) throw new Error(`图片不能超过 ${Math.round(maxSize / 1024 / 1024)}MB。`);
-  return uploadObjectStorageImage(buffer, mime, options.prefix || OBJECT_STORAGE.uploadPrefix, { stableUrl: options.stableUrl });
+  return createMediaAssetFromBuffer({
+    buffer,
+    fallbackMime: mime,
+    ownerType: options.ownerType || "user",
+    ownerId: options.ownerId || "",
+    visibility: options.visibility || "private",
+    prefix: options.prefix || OBJECT_STORAGE.uploadPrefix,
+    originalFilename: options.originalFilename || ""
+  });
 };
 
 const normalizeReferenceImageUrls = (body) => {
-  const urls = Array.isArray(body.inputImageUrls) ? body.inputImageUrls : [];
-  const normalized = urls
+  const items = []
+    .concat(Array.isArray(body.inputImages) ? body.inputImages : [])
+    .concat(Array.isArray(body.inputImageUrls) ? body.inputImageUrls : [])
     .concat(body.inputImageUrl ? [body.inputImageUrl] : [])
-    .map((item) => String(item || "").trim())
+    .map(normalizeMediaItem)
     .filter(Boolean);
-  return Array.from(new Set(normalized)).slice(0, 5);
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = item.assetId || item.originalUrl || item.previewUrl || item.thumbUrl;
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 5);
 };
 
 const requireAdmin = (req) => {
@@ -797,56 +964,87 @@ const taskReferenceUrls = (task) => {
   return Array.isArray(urls) && urls.length ? urls : (task.input_image_url ? [task.input_image_url] : []);
 };
 
-const taskDto = (task) => ({
-  id: task.id,
-  taskNo: task.task_no,
-  userId: task.user_id,
-  userNickname: task.nickname || "",
-  userPhone: task.phone || "",
-  promptTemplateId: task.prompt_template_id,
-  promptTitle: task.prompt_title,
-  aiModelId: task.ai_model_id,
-  aiModelName: task.ai_model_name,
-  aiModelVersion: task.ai_model_version,
-  taskType: task.task_type,
-  status: task.status,
-  creditCost: Number(task.credit_cost || 0),
-  size: task.size,
-  count: Number(task.count || 1),
-  inputImageUrl: stableImageUrl(task.input_image_url || ""),
-  inputImageUrls: stableImageUrls(taskReferenceUrls(task)),
-  userInstruction: task.user_instruction || "",
-  resultImageUrls: stableImageUrls(jsonParse(task.result_image_urls_json, [])),
-  failureReason: task.failure_reason || "",
-  providerRequestId: task.provider_request_id || "",
-  providerLatencyMs: task.provider_latency_ms || null,
-  providerErrorCode: task.provider_error_code || "",
-  createdAt: toIso(task.created_at),
-  updatedAt: toIso(task.updated_at)
-});
+const normalizeMediaItem = (item) => {
+  if (!item) return null;
+  if (typeof item === "string") {
+    const url = stableImageUrl(item);
+    return url ? {
+      originalUrl: url,
+      previewUrl: url,
+      thumbUrl: url,
+      compressedUrl: url
+    } : null;
+  }
+  const assetId = String(item.assetId || item.id || "").trim();
+  const originalUrl = stableImageUrl(item.originalUrl || item.url || item.imageUrl || (assetId ? mediaUrl(assetId, "original") : ""));
+  const previewUrl = stableImageUrl(item.previewUrl || item.compressedUrl || item.thumbnailUrl || originalUrl || (assetId ? mediaUrl(assetId, "preview") : ""));
+  const thumbUrl = stableImageUrl(item.thumbUrl || item.thumbnailUrl || item.compressedUrl || previewUrl || originalUrl || (assetId ? mediaUrl(assetId, "thumb") : ""));
+  if (!originalUrl && !previewUrl && !thumbUrl) return null;
+  return {
+    ...(assetId ? { assetId } : {}),
+    originalUrl: originalUrl || previewUrl || thumbUrl,
+    previewUrl: previewUrl || originalUrl || thumbUrl,
+    thumbUrl: thumbUrl || previewUrl || originalUrl,
+    compressedUrl: previewUrl || originalUrl || thumbUrl
+  };
+};
+
+const mediaItemsFromValue = (value) => {
+  const parsed = typeof value === "string" ? jsonParse(value, null) : value;
+  const items = Array.isArray(parsed) ? parsed : (parsed && typeof parsed === "object" ? [parsed] : (value ? [value] : []));
+  return items.map(normalizeMediaItem).filter(Boolean);
+};
+
+const taskDto = (task) => {
+  const inputImages = mediaItemsFromValue(taskReferenceUrls(task));
+  const resultImages = mediaItemsFromValue(jsonParse(task.result_image_urls_json, []));
+  return {
+    id: task.id,
+    taskNo: task.task_no,
+    userId: task.user_id,
+    userNickname: task.nickname || "",
+    userPhone: task.phone || "",
+    promptTemplateId: task.prompt_template_id,
+    promptTitle: task.prompt_title,
+    aiModelId: task.ai_model_id,
+    aiModelName: task.ai_model_name,
+    aiModelVersion: task.ai_model_version,
+    taskType: task.task_type,
+    status: task.status,
+    creditCost: Number(task.credit_cost || 0),
+    size: task.size,
+    count: Number(task.count || 1),
+    inputImageUrl: inputImages[0]?.previewUrl || stableImageUrl(task.input_image_url || ""),
+    inputImageUrls: inputImages.map((item) => item.previewUrl).filter(Boolean),
+    inputImages,
+    userInstruction: task.user_instruction || "",
+    resultImageUrls: resultImages.map((item) => item.previewUrl).filter(Boolean),
+    resultImages,
+    failureReason: task.failure_reason || "",
+    providerRequestId: task.provider_request_id || "",
+    providerLatencyMs: task.provider_latency_ms || null,
+    providerErrorCode: task.provider_error_code || "",
+    createdAt: toIso(task.created_at),
+    updatedAt: toIso(task.updated_at)
+  };
+};
 
 const promptImageItems = (value) => {
   const text = String(value || "").trim();
   if (!text) return [];
   const parsed = jsonParse(text, null);
   const items = Array.isArray(parsed) ? parsed : (parsed && typeof parsed === "object" ? [parsed] : [text]);
-  return items.map((item) => {
-    if (typeof item === "string") {
-      const url = stableImageUrl(item);
-      return url ? { originalUrl: url, compressedUrl: url } : null;
-    }
-    const originalUrl = stableImageUrl(item.originalUrl || item.url || item.imageUrl || "");
-    const compressedUrl = stableImageUrl(item.compressedUrl || item.thumbnailUrl || item.previewUrl || originalUrl);
-    if (!originalUrl && !compressedUrl) return null;
-    return { originalUrl: originalUrl || compressedUrl, compressedUrl: compressedUrl || originalUrl };
-  }).filter(Boolean);
+  return items.map(normalizeMediaItem).filter(Boolean);
 };
 
 const promptImagesText = (body) => {
   if (Array.isArray(body.exampleImages)) {
     return jsonText(body.exampleImages.map((item) => ({
+      assetId: item.assetId || item.id || "",
       originalUrl: item.originalUrl || item.url || "",
-      compressedUrl: item.compressedUrl || item.thumbnailUrl || item.originalUrl || item.url || ""
+      previewUrl: item.previewUrl || item.compressedUrl || item.originalUrl || item.url || "",
+      thumbUrl: item.thumbUrl || item.thumbnailUrl || item.previewUrl || item.compressedUrl || item.originalUrl || item.url || "",
+      compressedUrl: item.previewUrl || item.compressedUrl || item.originalUrl || item.url || ""
     })).filter((item) => item.originalUrl || item.compressedUrl));
   }
   const url = body.exampleImageUrl ?? body.resultImageUrl ?? "";
@@ -876,7 +1074,7 @@ const promptDto = (p, includeSensitive = false) => {
     categoryTags: jsonParse(p.category_tags_json, []),
     variables: jsonParse(p.variables_json, []),
     creditCost: Number(p.credit_cost),
-    exampleImageUrl: firstImage?.compressedUrl || "",
+    exampleImageUrl: firstImage?.thumbUrl || firstImage?.previewUrl || "",
     resultImageUrl: firstImage?.originalUrl || "",
     exampleImages,
     defaultParams: includeSensitive ? jsonParse(p.default_params_json, {}) : publicPromptDefaultParams(p.default_params_json),
@@ -1084,11 +1282,13 @@ const processTask = async (taskId) => {
     }
     if (!text) text = task.user_instruction || "";
     const expectedCount = Math.max(1, Math.min(9, Number(task.count || 1)));
+    const inputImages = mediaItemsFromValue(taskReferenceUrls(task));
+    const inputOriginalUrls = await Promise.all(inputImages.map((item) => directImageUrl(item.originalUrl || item.previewUrl || item.thumbUrl || "", null, { bypassMediaAuth: true })));
     const requestBase = {
       model,
       taskType: task.task_type,
-      inputImageUrl: task.input_image_url,
-      inputImageUrls: jsonParse(task.input_image_urls_json, []),
+      inputImageUrl: inputOriginalUrls[0] || "",
+      inputImageUrls: inputOriginalUrls,
       ratio: snapshot.ratio,
       size: task.size,
       overrideParams: snapshot.defaultParams || {}
@@ -1111,7 +1311,12 @@ const processTask = async (taskId) => {
       if (!retry.resultImageUrls.length) break;
     }
     result.resultImageUrls = result.resultImageUrls.slice(0, expectedCount);
-    result.resultImageUrls = await persistImageUrlsToObjectStorage(result.resultImageUrls, taskId);
+    result.resultImageUrls = await persistImageUrlsToMediaItems(result.resultImageUrls, {
+      ownerType: "user",
+      ownerId: task.user_id,
+      visibility: "private",
+      prefix: `ai-results/${taskId}`
+    });
     await db.exec(
       "UPDATE ai_image_tasks SET status = 'succeeded', result_image_urls_json = ?, provider_request_id = ?, provider_status_code = ?, provider_latency_ms = ?, updated_at = NOW() WHERE id = ?",
       [jsonText(result.resultImageUrls), requestIds.join(","), result.providerStatusCode, result.latencyMs, taskId]
@@ -1216,6 +1421,25 @@ const ensureSchema = async () => {
       remark VARCHAR(500),
       created_at DATETIME NOT NULL,
       INDEX idx_user_created (user_id, created_at)
+    )`,
+    `CREATE TABLE IF NOT EXISTS media_assets (
+      id VARCHAR(40) PRIMARY KEY,
+      owner_type VARCHAR(40) NOT NULL,
+      owner_id VARCHAR(80),
+      visibility VARCHAR(20) NOT NULL DEFAULT 'private',
+      original_filename VARCHAR(255),
+      mime_type VARCHAR(120),
+      width INT,
+      height INT,
+      file_size INT,
+      sha256 CHAR(64),
+      original_object_key VARCHAR(500) NOT NULL,
+      preview_object_key VARCHAR(500),
+      thumb_object_key VARCHAR(500),
+      created_at DATETIME NOT NULL,
+      updated_at DATETIME NOT NULL,
+      INDEX idx_owner_created (owner_type, owner_id, created_at),
+      INDEX idx_visibility_created (visibility, created_at)
     )`,
     `CREATE TABLE IF NOT EXISTS prompt_templates (
       id VARCHAR(80) PRIMARY KEY,
@@ -1467,6 +1691,24 @@ const seedData = async () => {
 const routeApi = async (req, res, url) => {
   const body = ["POST", "PATCH", "DELETE"].includes(req.method) ? await readBody(req) : {};
 
+  const mediaMatch = req.method === "GET" ? mediaUrlParts(url.pathname) : null;
+  if (mediaMatch) {
+    const asset = await getMediaAsset(mediaMatch.assetId);
+    if (!asset) return json(res, 404, { message: "图片不存在。" });
+    const admin = requireAdmin(req);
+    const user = asset.visibility === "public" || admin ? null : await requireUser(req);
+    if (!canAccessMediaAsset({ asset, userId: user?.id || "", isAdmin: Boolean(admin) })) {
+      return json(res, 403, { message: "无权访问图片。" });
+    }
+    const target = await signedMediaVariantUrl(asset, mediaMatch.variant);
+    res.writeHead(302, {
+      Location: target,
+      "Cache-Control": "private, max-age=60",
+      "Access-Control-Allow-Origin": "*"
+    });
+    return res.end();
+  }
+
   if (req.method === "GET" && url.pathname.startsWith("/api/storage-images/")) {
     const key = objectStorageKeyFromApiPath(url.pathname);
     if (!key) return json(res, 400, { message: "图片地址无效。" });
@@ -1651,8 +1893,13 @@ const routeApi = async (req, res, url) => {
   if (req.method === "POST" && url.pathname === "/api/uploads/images") {
     const user = await requireUser(req);
     if (!user) return json(res, 401, { message: "请先登录。" });
-    const url = await saveUploadedImage(req, body.imageData);
-    return json(res, 201, { url });
+    const asset = await createMediaAssetFromDataUrl(body.imageData, {
+      ownerType: "user",
+      ownerId: user.id,
+      visibility: "private",
+      prefix: `${OBJECT_STORAGE.uploadPrefix}/user/${user.id}`
+    });
+    return json(res, 201, { url: mediaUrl(asset.id, "preview"), media: mediaItemFromAsset(asset) });
   }
 
   if ((req.method === "GET" || req.method === "POST") && url.pathname === "/api/downloads/images.zip") {
@@ -1663,11 +1910,16 @@ const routeApi = async (req, res, url) => {
     if (!imageUrls.length) return json(res, 400, { message: "没有可下载的图片。" });
     const files = [];
     let totalSize = 0;
-    for (let i = 0; i < imageUrls.length; i++) {
-      const file = await loadDownloadImage(req, imageUrls[i], i);
-      totalSize += file.data.length;
-      if (totalSize > 80 * 1024 * 1024) return json(res, 400, { message: "图片总大小超过 80MB。" });
-      files.push(file);
+    try {
+      for (let i = 0; i < imageUrls.length; i++) {
+        const file = await loadDownloadImage(req, imageUrls[i], i);
+        totalSize += file.data.length;
+        if (totalSize > 80 * 1024 * 1024) return json(res, 400, { message: "图片总大小超过 80MB。" });
+        files.push(file);
+      }
+    } catch (error) {
+      if (error.message === "无权访问图片。") return json(res, 403, { message: error.message });
+      throw error;
     }
     const zip = createZip(files);
     res.writeHead(200, {
@@ -1684,7 +1936,18 @@ const routeApi = async (req, res, url) => {
   if ((req.method === "GET" || req.method === "POST") && url.pathname === "/api/downloads/image") {
     const imageUrl = String(req.method === "GET" ? url.searchParams.get("url") : body.imageUrl || "").trim();
     if (!imageUrl) return json(res, 400, { message: "没有可下载的图片。" });
-    const image = await loadImageBuffer(imageUrl, req);
+    const admin = requireAdmin(req);
+    const user = admin ? null : await requireUser(req);
+    let image;
+    try {
+      image = await loadImageBuffer(imageUrl, req, {
+        viewerUserId: user?.id || "",
+        viewerIsAdmin: Boolean(admin)
+      });
+    } catch (error) {
+      if (error.message === "无权访问图片。") return json(res, 403, { message: error.message });
+      throw error;
+    }
     const ext = imageExtension(image.href, image.contentType);
     res.writeHead(200, {
       "Content-Type": image.contentType || contentTypes[ext] || "application/octet-stream",
@@ -1700,7 +1963,18 @@ const routeApi = async (req, res, url) => {
   if (req.method === "POST" && url.pathname === "/api/downloads/direct-urls") {
     const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter(Boolean).slice(0, 9) : [];
     if (!imageUrls.length) return json(res, 400, { message: "没有可下载的图片。" });
-    const urls = await Promise.all(imageUrls.map((imageUrl) => directImageUrl(imageUrl, req)));
+    const admin = requireAdmin(req);
+    const user = admin ? null : await requireUser(req);
+    let urls;
+    try {
+      urls = await Promise.all(imageUrls.map((imageUrl) => directImageUrl(imageUrl, req, {
+        viewerUserId: user?.id || "",
+        viewerIsAdmin: Boolean(admin)
+      })));
+    } catch (error) {
+      if (error.message === "无权访问图片。") return json(res, 403, { message: error.message });
+      throw error;
+    }
     return json(res, 200, { urls });
   }
 
@@ -1716,8 +1990,8 @@ const routeApi = async (req, res, url) => {
       : null;
     if (!prompt && !customPrompt) return json(res, 404, { message: "请选择提示词或输入完整自定义提示词。" });
     if (body.promptTemplateId && !prompt && !customPrompt) return json(res, 404, { message: "提示词不存在。" });
-    const inputImageUrls = normalizeReferenceImageUrls(body);
-    if (["edit", "image_to_image"].includes(taskType) && !inputImageUrls.length) return json(res, 400, { message: "该任务类型需要上传参考图。" });
+    const inputImages = normalizeReferenceImageUrls(body);
+    if (["edit", "image_to_image"].includes(taskType) && !inputImages.length) return json(res, 400, { message: "该任务类型需要上传参考图。" });
     const model = await resolveModel(user, taskType, body.aiModelId);
     if (!model) return json(res, 400, { message: "没有可用模型。" });
     const count = Math.max(1, Math.min(9, Number(body.count || 1)));
@@ -1747,7 +2021,7 @@ const routeApi = async (req, res, url) => {
       renderedPrompt,
       defaultParams,
       ratio,
-      inputImageUrls,
+      inputImages,
       isCustomPrompt: Boolean(customPrompt)
     };
     const task = {
@@ -1773,7 +2047,7 @@ const routeApi = async (req, res, url) => {
         `INSERT INTO ai_image_tasks
         (id, task_no, user_id, prompt_template_id, prompt_title, ai_model_id, ai_model_name, ai_model_version, task_type, status, credit_cost, size, count, input_image_url, input_image_urls_json, user_instruction, prompt_snapshot_json, result_image_urls_json, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, '[]', NOW(), NOW())`,
-        [task.id, task.taskNo, user.id, promptSnapshot.promptTemplateId, promptSnapshot.promptTitle, model.id, model.name, model.version, taskType, creditCost, size, count, inputImageUrls[0] || "", jsonText(inputImageUrls), body.userInstruction || "", jsonText(promptSnapshot)]
+        [task.id, task.taskNo, user.id, promptSnapshot.promptTemplateId, promptSnapshot.promptTitle, model.id, model.name, model.version, taskType, creditCost, size, count, inputImages[0]?.originalUrl || inputImages[0]?.previewUrl || "", jsonText(inputImages), body.userInstruction || "", jsonText(promptSnapshot)]
       );
       await conn.execute(
         "INSERT INTO credit_transactions (id, user_id, amount, transaction_type, related_type, related_id, remark, created_at) VALUES (?, ?, ?, 'task_spend', 'ai_task', ?, ?, NOW())",
@@ -1821,12 +2095,14 @@ const routeApi = async (req, res, url) => {
     }
 
     if (req.method === "POST" && url.pathname === "/api/admin/uploads/images") {
-      const imageUrl = await saveUploadedImage(req, body.imageData, {
+      const asset = await createMediaAssetFromDataUrl(body.imageData, {
+        ownerType: "admin",
+        ownerId: "admin",
+        visibility: "public",
         prefix: body.prefix || "prompt-images",
-        stableUrl: true,
         maxSize: 12 * 1024 * 1024
       });
-      return json(res, 201, { url: imageUrl });
+      return json(res, 201, { url: mediaUrl(asset.id, "preview"), media: mediaItemFromAsset(asset) });
     }
 
     if (req.method === "GET" && url.pathname === "/api/admin/users") {
@@ -1937,9 +2213,9 @@ const routeApi = async (req, res, url) => {
       }
       if (!text) text = task.user_instruction || "";
       const count = Math.max(1, Math.min(9, Number(task.count || 1)));
-      const inputImageUrl = task.input_image_url ? await directImageUrl(task.input_image_url, req) : "";
-      const storedInputImageUrls = jsonParse(task.input_image_urls_json, []);
-      const inputImageUrls = await Promise.all((Array.isArray(storedInputImageUrls) ? storedInputImageUrls : []).map((item) => directImageUrl(item, req)));
+      const inputImageUrl = task.input_image_url ? await directImageUrl(task.input_image_url, req, { viewerIsAdmin: true }) : "";
+      const storedInputImageUrls = mediaItemsFromValue(jsonParse(task.input_image_urls_json, []));
+      const inputImageUrls = await Promise.all(storedInputImageUrls.map((item) => directImageUrl(item.originalUrl || item.previewUrl || item.thumbUrl || "", req, { viewerIsAdmin: true })));
       const request = buildImageModelRequest({
         model,
         taskType: task.task_type,
@@ -2152,12 +2428,13 @@ const routeApi = async (req, res, url) => {
           defaultParams: promptDefaultParams
         };
         const testId = uid("ptest");
+        const inputImage = normalizeMediaItem(body.inputImageUrl || "");
         try {
           const result = await callImageModel({
             model,
             taskType: prompt.task_type,
             prompt: renderedPrompt,
-            inputImageUrl: body.inputImageUrl || "",
+            inputImageUrl: inputImage?.originalUrl ? await directImageUrl(inputImage.originalUrl, req, { viewerIsAdmin: true }) : "",
             ratio: testRatio,
             size: testSize,
             count: body.count || 1,
@@ -2165,13 +2442,13 @@ const routeApi = async (req, res, url) => {
           });
           await db.exec(
             "INSERT INTO prompt_test_results (id, prompt_template_id, prompt_version, model_id, model_name, task_type, variables_json, prompt_snapshot_json, input_image_url, size, count, success, latency_ms, provider_request_id, result_image_urls_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, NOW())",
-            [testId, prompt.id, prompt.version, model.id, model.name, prompt.task_type, jsonText(variables), jsonText(snapshot), body.inputImageUrl || "", testSize, Number(body.count || 1), result.latencyMs, result.providerRequestId, jsonText(result.resultImageUrls)]
+            [testId, prompt.id, prompt.version, model.id, model.name, prompt.task_type, jsonText(variables), jsonText(snapshot), inputImage?.originalUrl || "", testSize, Number(body.count || 1), result.latencyMs, result.providerRequestId, jsonText(result.resultImageUrls)]
           );
           return json(res, 200, { success: true, testId, latencyMs: result.latencyMs, requestId: result.providerRequestId, resultImageUrls: result.resultImageUrls, message: "提示词测试已保存。" });
         } catch (error) {
           await db.exec(
             "INSERT INTO prompt_test_results (id, prompt_template_id, prompt_version, model_id, model_name, task_type, variables_json, prompt_snapshot_json, input_image_url, size, count, success, error_message, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, NOW())",
-            [testId, prompt.id, prompt.version, model.id, model.name, prompt.task_type, jsonText(variables), jsonText(snapshot), body.inputImageUrl || "", testSize, Number(body.count || 1), error.message]
+            [testId, prompt.id, prompt.version, model.id, model.name, prompt.task_type, jsonText(variables), jsonText(snapshot), inputImage?.originalUrl || "", testSize, Number(body.count || 1), error.message]
           );
           return json(res, 400, { success: false, testId, message: error.message });
         }
@@ -2212,8 +2489,18 @@ const routeApi = async (req, res, url) => {
       if (!test) return json(res, 404, { message: "测试结果不存在。" });
       const imageUrl = jsonParse(test.result_image_urls_json, [])[0] || "";
       if (!imageUrl) return json(res, 400, { message: "测试结果没有图片。" });
-      await db.exec("UPDATE prompt_templates SET result_image_url = ?, updated_at = NOW() WHERE id = ?", [promptImagesText({ exampleImages: [{ originalUrl: imageUrl, compressedUrl: imageUrl }] }), test.prompt_template_id]);
-      return json(res, 200, { message: "已设为示例图。", exampleImageUrl: imageUrl });
+      const image = await loadImageBuffer(imageUrl, req, { bypassMediaAuth: true });
+      const asset = await createMediaAssetFromBuffer({
+        buffer: image.data,
+        fallbackMime: image.contentType || "image/jpeg",
+        ownerType: "admin",
+        ownerId: "admin",
+        visibility: "public",
+        prefix: `prompt-images/${test.prompt_template_id}`
+      });
+      const media = mediaItemFromAsset(asset);
+      await db.exec("UPDATE prompt_templates SET result_image_url = ?, updated_at = NOW() WHERE id = ?", [promptImagesText({ exampleImages: [media] }), test.prompt_template_id]);
+      return json(res, 200, { message: "已设为示例图。", exampleImageUrl: media.thumbUrl, exampleImages: [media] });
     }
   }
 
@@ -2315,14 +2602,28 @@ const imageExtension = (url, contentType = "") => {
   return ".jpg";
 };
 
-const loadImageBuffer = async (rawUrl, req = null) => {
+const loadImageBuffer = async (rawUrl, req = null, options = {}) => {
   const value = String(rawUrl || "");
   if (value.startsWith("data:")) {
     const { mime, buffer } = decodeImageDataUrl(value);
     return { data: buffer, contentType: mime, href: value };
   }
-  const imageUrl = new URL(value, req ? publicUrl(req, "/") : undefined);
+  const imageUrl = new URL(value, req ? publicUrl(req, "/") : "http://localhost");
   if (!["http:", "https:"].includes(imageUrl.protocol)) throw new Error("图片地址无效。");
+  const media = mediaUrlParts(imageUrl.pathname);
+  if (media) {
+    const asset = await getMediaAsset(media.assetId);
+    if (!asset) throw new Error("图片不存在。");
+    if (!options.bypassMediaAuth && !canAccessMediaAsset({
+      asset,
+      userId: options.viewerUserId || "",
+      isAdmin: Boolean(options.viewerIsAdmin)
+    })) {
+      throw new Error("无权访问图片。");
+    }
+    const image = await loadObjectStorageImage(mediaVariantObjectKey(asset, media.variant));
+    return { ...image, href: imageUrl.href };
+  }
   const apiStorageKey = objectStorageKeyFromApiPath(imageUrl.pathname);
   if (apiStorageKey) {
     const image = await loadObjectStorageImage(apiStorageKey);
@@ -2347,18 +2648,30 @@ const loadImageBuffer = async (rawUrl, req = null) => {
   return { data, contentType: response.headers.get("content-type") || "", href: imageUrl.href };
 };
 
-const persistImageUrlsToObjectStorage = async (imageUrls, taskId) => {
-  if (!isObjectStorageConfigured()) return imageUrls;
-  const storedUrls = [];
+const persistImageUrlsToMediaItems = async (imageUrls, options = {}) => {
+  const storedItems = [];
   for (const imageUrl of imageUrls) {
-    const image = await loadImageBuffer(imageUrl);
-    storedUrls.push(await uploadObjectStorageImage(image.data, image.contentType || "image/jpeg", `ai-results/${taskId}`, { stableUrl: true }));
+    const image = await loadImageBuffer(imageUrl, null, { bypassMediaAuth: true });
+    const asset = await createMediaAssetFromBuffer({
+      buffer: image.data,
+      fallbackMime: image.contentType || "image/jpeg",
+      ownerType: options.ownerType || "user",
+      ownerId: options.ownerId || "",
+      visibility: options.visibility || "private",
+      prefix: options.prefix || "ai-results"
+    });
+    storedItems.push(mediaItemFromAsset(asset));
   }
-  return storedUrls;
+  return storedItems.filter(Boolean);
 };
 
 const loadDownloadImage = async (req, rawUrl, index) => {
-  const image = await loadImageBuffer(rawUrl, req);
+  const admin = requireAdmin(req);
+  const user = admin ? null : await requireUser(req);
+  const image = await loadImageBuffer(rawUrl, req, {
+    viewerUserId: user?.id || "",
+    viewerIsAdmin: Boolean(admin)
+  });
   return {
     name: `ai-photo-${index + 1}${imageExtension(image.href, image.contentType)}`,
     data: image.data

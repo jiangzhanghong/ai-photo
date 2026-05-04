@@ -30,6 +30,14 @@ export interface Plan {
   features: string[];
 }
 
+export interface MediaImage {
+  assetId?: string;
+  originalUrl: string;
+  previewUrl: string;
+  thumbUrl: string;
+  compressedUrl?: string;
+}
+
 export interface Prompt {
   id: string;
   title: string;
@@ -47,10 +55,7 @@ export interface Prompt {
   };
   exampleImageUrl?: string;
   resultImageUrl?: string;
-  exampleImages?: Array<{
-    originalUrl: string;
-    compressedUrl: string;
-  }>;
+  exampleImages?: MediaImage[];
 }
 
 export interface Model {
@@ -72,7 +77,9 @@ export interface Task {
   count: number;
   inputImageUrl?: string;
   inputImageUrls?: string[];
+  inputImages?: MediaImage[];
   resultImageUrls?: string[];
+  resultImages?: MediaImage[];
   failureReason?: string;
   providerLatencyMs?: number;
   createdAt: string;

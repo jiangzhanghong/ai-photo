@@ -215,9 +215,9 @@
       <view class="sheet-grid">
         <button
           wx:for="{{historyImages}}"
-          wx:key="url"
+          wx:key="previewUrl"
           class="sheet-image-card {{item.selected ? 'selected' : ''}}"
-          data-url="{{item.url}}"
+          data-url="{{item.image.originalUrl}}"
           bindtap="toggleHistoryImage"
         >
           <image mode="aspectFill" src="{{item.previewUrl}}" />

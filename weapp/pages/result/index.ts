@@ -1,6 +1,6 @@
-import type { Task } from "../../types/api";
-import { absoluteUrl } from "../../utils/config";
+import type { MediaImage, Task } from "../../types/api";
 import { formatDate, formatLatency, statusText } from "../../utils/format";
+import { normalizeMediaImage, resolveMediaImages } from "../../utils/media";
 import { request } from "../../utils/request";
 
 interface ResultImage {
@@ -51,7 +51,7 @@ Page({
         this.setData({ message: "任务不存在。", loading: false });
         return;
       }
-      this.applyTask(task);
+      await this.applyTask(task);
       if (task.status === "queued" || task.status === "processing") this.startPolling();
       else this.stopPolling();
     } catch (error) {
@@ -61,10 +61,19 @@ Page({
     }
   },
 
-  applyTask(task: Task) {
-    const resultUrls = (task.resultImageUrls || []).map((url) => ({ url, previewUrl: absoluteUrl(url) }));
-    const referenceUrls = (task.inputImageUrls?.length ? task.inputImageUrls : (task.inputImageUrl ? [task.inputImageUrl] : []))
-      .map((url) => ({ url, previewUrl: absoluteUrl(url) }));
+  async applyTask(task: Task) {
+    const resultItems = task.resultImages?.length
+      ? task.resultImages
+      : (task.resultImageUrls || []).map((url) => normalizeMediaImage({ originalUrl: url, previewUrl: url, thumbUrl: url })).filter(Boolean) as MediaImage[];
+    const referenceItems = task.inputImages?.length
+      ? task.inputImages
+      : (task.inputImageUrls?.length ? task.inputImageUrls.map((url) => normalizeMediaImage({ originalUrl: url, previewUrl: url, thumbUrl: url })).filter(Boolean) as MediaImage[] : []);
+    const [resolvedResults, resolvedReferences] = await Promise.all([
+      resolveMediaImages(resultItems),
+      resolveMediaImages(referenceItems)
+    ]);
+    const resultUrls = resolvedResults.map((item) => ({ url: item.originalUrl, previewUrl: item.previewUrl || item.originalUrl }));
+    const referenceUrls = resolvedReferences.map((item) => ({ url: item.originalUrl, previewUrl: item.thumbUrl || item.previewUrl || item.originalUrl }));
     const currentIndex = Math.min(this.data.currentIndex, Math.max(0, resultUrls.length - 1));
     this.setData({
       task,
@@ -103,8 +112,8 @@ Page({
   previewCurrent() {
     if (!this.data.currentUrl) return;
     wx.previewImage({
-      current: this.data.currentUrl,
-      urls: this.data.images.map((item) => item.previewUrl)
+      current: this.data.images[this.data.currentIndex]?.url || this.data.currentUrl,
+      urls: this.data.images.map((item) => item.url)
     });
   },
 
@@ -112,15 +121,16 @@ Page({
     const url = String(event.currentTarget.dataset.url || "");
     if (!url) return;
     wx.previewImage({
-      current: url,
-      urls: this.data.references.map((item) => item.previewUrl)
+      current: this.data.references.find((item) => item.previewUrl === url)?.url || url,
+      urls: this.data.references.map((item) => item.url)
     });
   },
 
   saveCurrent() {
-    if (!this.data.currentUrl) return;
+    const downloadUrl = this.data.images[this.data.currentIndex]?.url || this.data.currentUrl;
+    if (!downloadUrl) return;
     wx.downloadFile({
-      url: this.data.currentUrl,
+      url: downloadUrl,
       success: (download) => {
         if (download.statusCode !== 200) {
           wx.showToast({ title: "下载失败", icon: "none" });

@@ -149,7 +149,7 @@
         <button bindtap="closeHistory">关闭</button>
       </view>
       <view class="history-grid">
-        <button wx:for="{{historyImages}}" wx:key="url" class="history-image {{item.selected ? 'selected' : ''}}" data-url="{{item.url}}" bindtap="toggleHistoryImage">
+        <button wx:for="{{historyImages}}" wx:key="previewUrl" class="history-image {{item.selected ? 'selected' : ''}}" data-url="{{item.image.originalUrl}}" bindtap="toggleHistoryImage">
           <image mode="aspectFill" src="{{item.previewUrl}}" />
           <text>{{item.title}}</text>
         </button>

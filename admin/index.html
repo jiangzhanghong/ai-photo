@@ -1246,6 +1246,21 @@
           if (url.startsWith("./")) return `/${url.slice(2)}`;
           return url.startsWith("/") ? url : `/${url}`;
         };
+        const normalizeMediaItem = (item) => {
+          if (!item) return null;
+          if (typeof item === "string") return { originalUrl: item, previewUrl: item, thumbUrl: item, compressedUrl: item };
+          const originalUrl = item.originalUrl || item.url || item.imageUrl || "";
+          const previewUrl = item.previewUrl || item.compressedUrl || originalUrl;
+          const thumbUrl = item.thumbUrl || item.thumbnailUrl || previewUrl || originalUrl;
+          if (!originalUrl && !previewUrl && !thumbUrl) return null;
+          return {
+            assetId: item.assetId || "",
+            originalUrl: originalUrl || previewUrl || thumbUrl,
+            previewUrl: previewUrl || originalUrl || thumbUrl,
+            thumbUrl: thumbUrl || previewUrl || originalUrl,
+            compressedUrl: previewUrl || originalUrl || thumbUrl
+          };
+        };
         const taskImageList = (urls) => {
           const list = (Array.isArray(urls) ? urls : []).filter(Boolean);
           if (!list.length) return `<span class="task-empty-image">无</span>`;
@@ -1327,15 +1342,16 @@
           return { ...baseParams, resolution: settings.resolution, ratio: settings.ratio, size: promptImageSize(settings) };
         };
         const promptImages = (prompt) => {
-          if (Array.isArray(prompt.exampleImages)) return prompt.exampleImages;
+          if (Array.isArray(prompt.exampleImages)) return prompt.exampleImages.map(normalizeMediaItem).filter(Boolean);
           const url = prompt.exampleImageUrl || prompt.resultImageUrl || "";
-          return url ? [{ originalUrl: prompt.resultImageUrl || url, compressedUrl: prompt.exampleImageUrl || url }] : [];
+          return url ? [{ originalUrl: prompt.resultImageUrl || url, previewUrl: prompt.exampleImageUrl || url, thumbUrl: prompt.exampleImageUrl || url, compressedUrl: prompt.exampleImageUrl || url }] : [];
         };
         const renderPromptImageList = (selector, images, removeAttr) => {
           const el = $(selector);
           if (!el) return;
-          el.innerHTML = images.length ? images.map((item, index) => {
-            const src = imageUrl(item.compressedUrl || item.originalUrl);
+          const list = (Array.isArray(images) ? images : []).map(normalizeMediaItem).filter(Boolean);
+          el.innerHTML = list.length ? list.map((item, index) => {
+            const src = imageUrl(item.thumbUrl || item.previewUrl || item.compressedUrl || item.originalUrl);
             return `<span class="prompt-image-item"><img src="${esc(src)}" alt="" loading="lazy" /><button type="button" ${removeAttr}="${index}">移除</button></span>`;
           }).join("") : `<span class="task-empty-image">未上传示例图片</span>`;
         };
@@ -1345,37 +1361,23 @@
           reader.onerror = () => reject(new Error("图片读取失败。"));
           reader.readAsDataURL(file);
         });
-        const compressImageFile = (file) => new Promise((resolve, reject) => {
-          const img = new Image();
-          const objectUrl = URL.createObjectURL(file);
-          img.onload = () => {
-            URL.revokeObjectURL(objectUrl);
-            const maxSide = 720;
-            const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-            const canvas = document.createElement("canvas");
-            canvas.width = Math.max(1, Math.round(img.width * scale));
-            canvas.height = Math.max(1, Math.round(img.height * scale));
-            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL("image/jpeg", 0.76));
-          };
-          img.onerror = () => {
-            URL.revokeObjectURL(objectUrl);
-            reject(new Error("图片压缩失败。"));
-          };
-          img.src = objectUrl;
-        });
         const uploadPromptImagePair = async (file) => {
-          const [originalData, compressedData] = await Promise.all([readFileDataUrl(file), compressImageFile(file)]);
-          const [original, compressed] = await Promise.all([
-            api("/api/admin/uploads/images", { method: "POST", body: JSON.stringify({ imageData: originalData, prefix: "prompt-images/original" }) }),
-            api("/api/admin/uploads/images", { method: "POST", body: JSON.stringify({ imageData: compressedData, prefix: "prompt-images/compressed" }) })
-          ]);
-          return { originalUrl: original.url, compressedUrl: compressed.url };
+          const originalData = await readFileDataUrl(file);
+          const data = await api("/api/admin/uploads/images", { method: "POST", body: JSON.stringify({ imageData: originalData, prefix: "prompt-images" }) });
+          return normalizeMediaItem(data.media || (data.url ? {
+            originalUrl: data.url,
+            previewUrl: data.url,
+            thumbUrl: data.url,
+            compressedUrl: data.url
+          } : null));
         };
         const uploadPromptImages = async (files) => {
           const list = Array.from(files || []).filter((file) => file.type.startsWith("image/"));
           const uploaded = [];
-          for (const file of list) uploaded.push(await uploadPromptImagePair(file));
+          for (const file of list) {
+            const item = await uploadPromptImagePair(file);
+            if (item) uploaded.push(item);
+          }
           return uploaded;
         };
         const pastedImageFiles = (clipboardData) => Array.from(clipboardData?.items || [])
@@ -1412,6 +1414,43 @@
           if (response.status === 401) showLogin();
           if (!response.ok) throw new Error(data.message || "请求失败");
           return data;
+        };
+
+        const resolveDirectUrls = async (urls) => {
+          const unique = Array.from(new Set((urls || []).filter(Boolean)));
+          if (!unique.length) return new Map();
+          const map = new Map();
+          const batchSize = 9;
+          for (let index = 0; index < unique.length; index += batchSize) {
+            const batch = unique.slice(index, index + batchSize);
+            try {
+              const data = await api("/api/downloads/direct-urls", {
+                method: "POST",
+                body: JSON.stringify({ imageUrls: batch })
+              });
+              batch.forEach((url, offset) => {
+                map.set(url, data.urls?.[offset] || imageUrl(url));
+              });
+            } catch {
+              batch.forEach((url) => {
+                map.set(url, imageUrl(url));
+              });
+            }
+          }
+          return map;
+        };
+
+        const resolveMediaItems = async (items) => {
+          const normalized = (items || []).map(normalizeMediaItem).filter(Boolean);
+          const urls = normalized.flatMap((item) => [item.originalUrl, item.previewUrl, item.thumbUrl]).filter(Boolean);
+          const resolved = await resolveDirectUrls(urls);
+          return normalized.map((item) => ({
+            ...item,
+            originalUrl: resolved.get(item.originalUrl) || imageUrl(item.originalUrl),
+            previewUrl: resolved.get(item.previewUrl) || imageUrl(item.previewUrl),
+            thumbUrl: resolved.get(item.thumbUrl) || imageUrl(item.thumbUrl),
+            compressedUrl: resolved.get(item.previewUrl || item.compressedUrl) || imageUrl(item.previewUrl || item.compressedUrl || item.thumbUrl)
+          }));
         };
 
         const setText = (selector, text) => { const el = $(selector); if (el) el.textContent = text ?? ""; };
@@ -1670,12 +1709,13 @@
               </tr>`;
             }
             const userName = task.userNickname || task.userPhone || task.userId || "";
-            const inputUrls = task.inputImageUrls?.length ? task.inputImageUrls : (task.inputImageUrl ? [task.inputImageUrl] : []);
+            const inputUrls = task.inputImages?.length ? task.inputImages.map((item) => item.thumbUrl || item.previewUrl || item.originalUrl) : (task.inputImageUrls?.length ? task.inputImageUrls : (task.inputImageUrl ? [task.inputImageUrl] : []));
+            const resultUrls = task.resultImages?.length ? task.resultImages.map((item) => item.thumbUrl || item.previewUrl || item.originalUrl) : (task.resultImageUrls || []);
             return `<tr>
               <td class="task-text"><strong>${esc(task.taskNo)}</strong><small>${esc(userName)}</small></td>
               <td class="task-text"><strong>${esc(task.promptTitle)}</strong><small>${esc(task.userInstruction || "")}</small></td>
               <td>${taskImageList(inputUrls)}</td>
-              <td>${taskImageList(task.resultImageUrls)}</td>
+              <td>${taskImageList(resultUrls)}</td>
               <td>${esc(task.aiModelName)}<br>${badge(taskTypeText[task.taskType] || task.taskType, "blue")}</td>
               <td>${status}<br><small>${task.creditCost} 积分${task.providerLatencyMs ? ` · 耗时 ${esc(fmtLatency(task.providerLatencyMs))}` : ""}</small></td>
               <td>${esc(task.failureReason || "")}</td>
@@ -1743,6 +1783,11 @@
           if (startedAt) params.set("startedAt", startedAt);
           if (endedAt) params.set("endedAt", endedAt);
           const data = await api(`/api/admin/ai-image-tasks?${params.toString()}`);
+          data.tasks = await Promise.all((data.tasks || []).map(async (task) => ({
+            ...task,
+            inputImages: await resolveMediaItems(task.inputImages || task.inputImageUrls || []),
+            resultImages: await resolveMediaItems(task.resultImages || task.resultImageUrls || [])
+          })));
           Object.assign(taskState, data.pagination || {});
           renderTasks("[data-task-list]", data.tasks || []);
           setText("[data-task-page-info]", `共 ${taskState.total || 0} 条`);
@@ -1793,7 +1838,14 @@
 
         const loadPrompts = async () => {
           const data = await api("/api/admin/prompt-templates");
-          cache.prompts = data.prompts;
+          const resolvedPromptImages = await resolveMediaItems((data.prompts || []).flatMap((prompt) => promptImages(prompt)));
+          let cursor = 0;
+          cache.prompts = (data.prompts || []).map((prompt) => {
+            const count = promptImages(prompt).length;
+            const exampleImages = resolvedPromptImages.slice(cursor, cursor + count);
+            cursor += count;
+            return { ...prompt, exampleImages };
+          });
           renderPrompts();
         };
 

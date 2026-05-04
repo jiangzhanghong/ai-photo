@@ -499,7 +499,31 @@
         };
         const promptExampleImages = (prompt) => {
           if (Array.isArray(prompt.exampleImages)) return prompt.exampleImages;
-          return prompt.exampleImageUrl ? [{ compressedUrl: prompt.exampleImageUrl, originalUrl: prompt.resultImageUrl || prompt.exampleImageUrl }] : [];
+          return prompt.exampleImageUrl ? [{ thumbUrl: prompt.exampleImageUrl, previewUrl: prompt.exampleImageUrl, compressedUrl: prompt.exampleImageUrl, originalUrl: prompt.resultImageUrl || prompt.exampleImageUrl }] : [];
+        };
+        const imageUrl = (value) => {
+          const url = String(value || "").trim();
+          if (!url || /^(https?:|data:|blob:)/.test(url)) return url;
+          if (url.startsWith("./")) return `/${url.slice(2)}`;
+          return url.startsWith("/") ? url : `/${url}`;
+        };
+
+        const normalizeMediaItem = (item) => {
+          if (!item) return null;
+          if (typeof item === "string") {
+            return { originalUrl: item, previewUrl: item, thumbUrl: item, compressedUrl: item };
+          }
+          const originalUrl = item.originalUrl || item.url || item.imageUrl || "";
+          const previewUrl = item.previewUrl || item.compressedUrl || originalUrl;
+          const thumbUrl = item.thumbUrl || item.thumbnailUrl || previewUrl || originalUrl;
+          if (!originalUrl && !previewUrl && !thumbUrl) return null;
+          return {
+            assetId: item.assetId || "",
+            originalUrl: originalUrl || previewUrl || thumbUrl,
+            previewUrl: previewUrl || originalUrl || thumbUrl,
+            thumbUrl: thumbUrl || previewUrl || originalUrl,
+            compressedUrl: previewUrl || originalUrl || thumbUrl
+          };
         };
 
         const authHeaders = () => {
@@ -519,6 +543,43 @@
           const data = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(data.message || "请求失败");
           return data;
+        };
+
+        const resolveDirectUrls = async (urls) => {
+          const unique = Array.from(new Set((urls || []).filter(Boolean)));
+          if (!unique.length) return new Map();
+          const map = new Map();
+          const batchSize = 9;
+          for (let index = 0; index < unique.length; index += batchSize) {
+            const batch = unique.slice(index, index + batchSize);
+            try {
+              const data = await api("/api/downloads/direct-urls", {
+                method: "POST",
+                body: JSON.stringify({ imageUrls: batch })
+              });
+              batch.forEach((url, offset) => {
+                map.set(url, data.urls?.[offset] || imageUrl(url));
+              });
+            } catch {
+              batch.forEach((url) => {
+                map.set(url, imageUrl(url));
+              });
+            }
+          }
+          return map;
+        };
+
+        const resolveMediaItems = async (items) => {
+          const normalized = (items || []).map(normalizeMediaItem).filter(Boolean);
+          const urls = normalized.flatMap((item) => [item.originalUrl, item.previewUrl, item.thumbUrl]).filter(Boolean);
+          const resolved = await resolveDirectUrls(urls);
+          return normalized.map((item) => ({
+            ...item,
+            originalUrl: resolved.get(item.originalUrl) || imageUrl(item.originalUrl),
+            previewUrl: resolved.get(item.previewUrl) || imageUrl(item.previewUrl),
+            thumbUrl: resolved.get(item.thumbUrl) || imageUrl(item.thumbUrl),
+            compressedUrl: resolved.get(item.previewUrl || item.compressedUrl) || imageUrl(item.previewUrl || item.compressedUrl || item.thumbUrl)
+          }));
         };
 
         const saveSession = (data) => {
@@ -655,22 +716,36 @@
           $("[data-generation-image-meta]").textContent = cached ? `${cached.width} × ${cached.height}` : "";
         };
 
-        const setCurrentImage = (src) => {
+        const generationMediaItems = (images) => {
+          const items = Array.isArray(images) ? images : [];
+          return items.map((item) => {
+            if (typeof item === "string") return { previewUrl: item, originalUrl: item };
+            return {
+              previewUrl: item.previewUrl || item.compressedUrl || item.thumbUrl || item.originalUrl,
+              originalUrl: item.originalUrl || item.previewUrl || item.compressedUrl || item.thumbUrl
+            };
+          }).filter((item) => item.previewUrl || item.originalUrl);
+        };
+
+        const setCurrentImage = (image) => {
+          if (!image) return;
+          const src = image.previewUrl || image.originalUrl;
           const main = $("[data-current-image]");
           main.src = src;
+          main.dataset.original = image.originalUrl || src;
           updateGenerationMeta(src);
           $$(".generation-thumbs button").forEach((btn) => btn.classList.toggle("active", btn.dataset.thumb === src));
         };
 
         const setGenerationImages = (images, statusText = "生成完成 ●", options = {}) => {
           const shouldOpen = options.open !== false;
-          const inputImages = Array.isArray(images) ? images : [];
-          const safeImages = inputImages.length ? inputImages : demoImagePool.slice(0, 4);
+          const inputImages = generationMediaItems(images);
+          const safeImages = inputImages.length ? inputImages : generationMediaItems(demoImagePool.slice(0, 4));
           $(".current-generation-card").classList.remove("is-template-applied", "is-generating");
           $("[data-generation-status]").textContent = statusText;
           $("[data-generation-count]").textContent = `共 ${safeImages.length} 张`;
-          $(".generation-thumbs").innerHTML = safeImages.map((src, index) => `
-            <button class="${index === 0 ? "active" : ""}" type="button" data-thumb="${esc(src)}"><img src="${esc(src)}" alt="" loading="lazy" decoding="async" /></button>
+          $(".generation-thumbs").innerHTML = safeImages.map((item, index) => `
+            <button class="${index === 0 ? "active" : ""}" type="button" data-thumb="${esc(item.previewUrl || item.originalUrl)}" data-original="${esc(item.originalUrl || item.previewUrl)}"><img src="${esc(item.previewUrl || item.originalUrl)}" alt="" loading="lazy" decoding="async" /></button>
           `).join("");
           setCurrentImage(safeImages[0]);
           if (shouldOpen) openGenerationModal();
@@ -685,13 +760,13 @@
         };
 
         const setTemplatePending = (images) => {
-          const safeImages = images.length ? images : demoImagePool.slice(0, 4);
+          const safeImages = generationMediaItems(images.length ? images : demoImagePool.slice(0, 4));
           $(".current-generation-card").classList.remove("is-generating");
           $(".current-generation-card").classList.add("is-template-applied");
           $("[data-generation-status]").textContent = "模板已套用，待生成";
           $("[data-generation-count]").textContent = `共 ${safeImages.length} 张`;
-          $(".generation-thumbs").innerHTML = safeImages.map((src, index) => `
-            <button class="${index === 0 ? "active" : ""}" type="button" data-thumb="${esc(src)}"><img src="${esc(src)}" alt="" loading="lazy" decoding="async" /></button>
+          $(".generation-thumbs").innerHTML = safeImages.map((item, index) => `
+            <button class="${index === 0 ? "active" : ""}" type="button" data-thumb="${esc(item.previewUrl || item.originalUrl)}" data-original="${esc(item.originalUrl || item.previewUrl)}"><img src="${esc(item.previewUrl || item.originalUrl)}" alt="" loading="lazy" decoding="async" /></button>
           `).join("");
           setCurrentImage(safeImages[0]);
         };
@@ -789,7 +864,7 @@
         };
 
         const downloadCurrentImage = async () => {
-          const imageUrl = $("[data-current-image]").getAttribute("src");
+          const imageUrl = $("[data-current-image]").dataset.original || $("[data-current-image]").getAttribute("src");
           if (!imageUrl) {
             setMessage("当前没有可下载的图片。");
             return;
@@ -800,7 +875,7 @@
         };
 
         const downloadAllImages = async () => {
-          const imageUrls = $$(".generation-thumbs button").map((btn) => btn.dataset.thumb).filter(Boolean);
+          const imageUrls = $$(".generation-thumbs button").map((btn) => btn.dataset.original || btn.dataset.thumb).filter(Boolean);
           if (!imageUrls.length) {
             setMessage("当前没有可下载的图片。");
             return;
@@ -812,7 +887,7 @@
         };
 
         const openCurrentImageOriginal = () => {
-          const imageUrl = $("[data-current-image]").getAttribute("src");
+          const imageUrl = $("[data-current-image]").dataset.original || $("[data-current-image]").getAttribute("src");
           if (!imageUrl) {
             setMessage("当前没有可查看的图片。");
             return;
@@ -1029,15 +1104,15 @@
           zone.classList.toggle("has-preview", hasImages);
         };
 
-        const uploadItemKey = (item) => item.uploadedUrl || item.dataUrl || item.id;
+        const uploadItemKey = (item) => item.uploadedMedia?.assetId || item.uploadedMedia?.originalUrl || item.dataUrl || item.id;
 
         const historicalReferenceImages = () => {
           const seen = new Set();
           return state.tasks.flatMap((task) => {
-            const urls = Array.isArray(task.inputImageUrls) && task.inputImageUrls.length
-              ? task.inputImageUrls
-              : (task.inputImageUrl ? [task.inputImageUrl] : []);
-            return urls.map((url, index) => ({ url, taskId: task.id, promptTitle: task.promptTitle, createdAt: task.createdAt, index }));
+            const images = Array.isArray(task.inputImages) && task.inputImages.length
+              ? task.inputImages
+              : (Array.isArray(task.inputImageUrls) ? task.inputImageUrls.map((url) => normalizeMediaItem(url)).filter(Boolean) : []);
+            return images.map((image, index) => ({ image, url: image.originalUrl, taskId: task.id, promptTitle: task.promptTitle, createdAt: task.createdAt, index }));
           }).filter((item) => {
             const key = String(item.url || "").trim();
             if (!key || seen.has(key)) return false;
@@ -1057,7 +1132,7 @@
             const selected = state.selectedUploadHistoryUrls.includes(item.url);
             return `
               <button class="upload-history-item${selected ? " is-selected" : ""}" type="button" data-upload-history-url="${esc(item.url)}">
-                <img src="${esc(item.url)}" alt="${esc(item.promptTitle || "历史参考图")}" loading="lazy" decoding="async" />
+                <img src="${esc(item.image.thumbUrl || item.image.previewUrl || item.url)}" alt="${esc(item.promptTitle || "历史参考图")}" loading="lazy" decoding="async" />
                 <span>${esc(item.promptTitle || "历史参考图")}</span>
                 <small>${esc(item.createdAt ? new Date(item.createdAt).toLocaleDateString("zh-CN") : "")}</small>
               </button>
@@ -1068,7 +1143,7 @@
         const openUploadHistoryPicker = () => {
           const available = new Set(historicalReferenceImages().map((item) => item.url));
           state.selectedUploadHistoryUrls = state.uploadedImages
-            .map((item) => item.uploadedUrl)
+            .map((item) => item.uploadedMedia?.originalUrl)
             .filter((url) => available.has(url));
           renderUploadHistoryPicker();
           const backdrop = $("[data-upload-history-backdrop]");
@@ -1105,16 +1180,16 @@
 
         const uploadReferenceImages = async () => {
           if (!state.uploadedImages.length) return [];
-          const urls = await Promise.all(state.uploadedImages.map(async (item) => {
-            if (item.uploadedUrl) return item.uploadedUrl;
+          const images = await Promise.all(state.uploadedImages.map(async (item) => {
+            if (item.uploadedMedia) return item.uploadedMedia;
             const data = await api("/api/uploads/images", {
               method: "POST",
               body: JSON.stringify({ imageData: item.dataUrl })
             });
-            item.uploadedUrl = data.url;
-            return data.url;
+            item.uploadedMedia = data.media;
+            return data.media;
           }));
-          return urls;
+          return images.filter(Boolean);
         };
 
         const handleImageFiles = async (fileList) => {
@@ -1133,7 +1208,7 @@
             const items = [];
             for (const file of selected) {
               const dataUrl = await compressImage(file);
-              items.push({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, name: file.name, dataUrl, uploadedUrl: "" });
+              items.push({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, name: file.name, dataUrl });
             }
             addUploadPreviews(items);
             setMessage(files.length > remaining ? `最多上传 ${MAX_REFERENCE_IMAGES} 张参考图，已添加前 ${remaining} 张。` : "");
@@ -1162,7 +1237,14 @@
           } catch {
             data = { prompts: [] };
           }
-          state.prompts = data.prompts;
+          const promptImages = await resolveMediaItems((data.prompts || []).flatMap((prompt) => promptExampleImages(prompt)));
+          let cursor = 0;
+          state.prompts = (data.prompts || []).map((prompt) => {
+            const count = promptExampleImages(prompt).length;
+            const exampleImages = promptImages.slice(cursor, cursor + count);
+            cursor += count;
+            return { ...prompt, exampleImages };
+          });
           renderPromptCategoryTabs();
           syncPromptSelect();
           applyPromptImageDefaults(currentPrompt());
@@ -1198,7 +1280,7 @@
         const templateTags = (prompt) => [prompt.scene, ...(prompt.categoryTags || [])].filter(Boolean);
 
         const templateImages = (prompt) => promptExampleImages(prompt)
-          .map((item) => item.compressedUrl || item.originalUrl)
+          .map((item) => item.thumbUrl || item.previewUrl || item.compressedUrl || item.originalUrl)
           .filter(Boolean);
 
         const templateOriginalImages = (prompt) => promptExampleImages(prompt)
@@ -1536,7 +1618,17 @@
             return;
           }
           const data = await api("/api/ai-image-tasks");
-          state.tasks = data.tasks;
+          state.tasks = await Promise.all((data.tasks || []).map(async (task) => {
+            const inputImages = await resolveMediaItems(task.inputImages || (task.inputImageUrls || []));
+            const resultImages = await resolveMediaItems(task.resultImages || (task.resultImageUrls || []));
+            return {
+              ...task,
+              inputImages,
+              inputImageUrls: inputImages.map((item) => item.previewUrl),
+              resultImages,
+              resultImageUrls: resultImages.map((item) => item.previewUrl)
+            };
+          }));
           renderTasks();
           renderUploadHistoryPicker();
         };
@@ -1547,9 +1639,9 @@
             await loadTasks();
             const task = state.tasks.find((t) => t.id === taskId);
             if (!task || task.status === "succeeded" || task.status === "failed") {
-              if (task?.status === "succeeded" && task.resultImageUrls?.length) {
+              if (task?.status === "succeeded" && (task.resultImages?.length || task.resultImageUrls?.length)) {
                 const latencyText = formatLatency(task.providerLatencyMs);
-                setGenerationImages(task.resultImageUrls, latencyText ? `生成完成 · 耗时 ${latencyText}` : "生成完成 ●");
+                setGenerationImages(task.resultImages?.length ? task.resultImages : task.resultImageUrls, latencyText ? `生成完成 · 耗时 ${latencyText}` : "生成完成 ●");
               }
               setMessage(task?.status === "succeeded"
                 ? `任务已完成${task?.providerLatencyMs ? `，耗时 ${formatLatency(task.providerLatencyMs)}` : ""}，已打开结果预览。`
@@ -1812,7 +1904,7 @@
             submitBtn.textContent = "提交中…";
             setMessage("");
             try {
-              const inputImageUrls = state.taskType === "generate" ? [] : await uploadReferenceImages();
+              const inputImages = state.taskType === "generate" ? [] : await uploadReferenceImages();
               const data = await api("/api/ai-image-tasks", {
                 method: "POST",
                 body: JSON.stringify({
@@ -1823,8 +1915,9 @@
                   ratio: currentRequestRatio(),
                   size: $("[data-size-select]").value,
                   count: Math.max(1, Math.min(9, Number($("[data-image-count]").value || 1))),
-                  inputImageUrl: inputImageUrls[0] || "",
-                  inputImageUrls,
+                  inputImageUrl: inputImages[0]?.originalUrl || "",
+                  inputImageUrls: inputImages,
+                  inputImages,
                   userInstruction: $("[data-user-instruction]").value
                 })
               });
@@ -1832,9 +1925,9 @@
               state.tasks.unshift(data.task);
               updateMemberState();
               renderTasks();
-              if (data.task.resultImageUrls?.length) {
+              if (data.task.resultImages?.length || data.task.resultImageUrls?.length) {
                 const latencyText = formatLatency(data.task.providerLatencyMs);
-                setGenerationImages(data.task.resultImageUrls, latencyText ? `生成完成 · 耗时 ${latencyText}` : "生成完成 ●");
+                setGenerationImages(data.task.resultImages?.length ? data.task.resultImages : data.task.resultImageUrls, latencyText ? `生成完成 · 耗时 ${latencyText}` : "生成完成 ●");
               }
               setMessage("任务已提交，正在生成中…");
               watchTaskUntilDone(data.task.id);
@@ -1997,13 +2090,17 @@
               setMessage("请先选择历史参考图。");
               return;
             }
+            const lookup = new Map(historicalReferenceImages().map((item) => [item.url, item]));
             const before = state.uploadedImages.length;
-            addUploadPreviews(urls.map((url, index) => ({
+            addUploadPreviews(urls.map((url, index) => {
+              const item = lookup.get(url);
+              return ({
               id: `history-${Date.now()}-${index}`,
               name: "历史参考图",
-              dataUrl: url,
-              uploadedUrl: url
-            })));
+              dataUrl: item?.image?.thumbUrl || item?.image?.previewUrl || url,
+              uploadedMedia: item?.image || null
+            });
+            }));
             const added = state.uploadedImages.length - before;
             closeUploadHistoryPicker();
             setMessage(added > 0 ? `已添加 ${added} 张历史参考图。` : "这些历史参考图已经在当前列表中了。");
