@@ -25,6 +25,8 @@ const actionIcons: Record<string, string> = {
   logout: "logout"
 };
 
+const tabPageUrls = ["/pages/home/index", "/pages/create/index", "/pages/records/index", "/pages/profile/index"];
+
 Page({
   data: {
     safeTop: 32,
@@ -168,7 +170,7 @@ Page({
   async handleAction(event: WechatMiniprogram.TouchEvent) {
     const key = String(event.currentTarget.dataset.key || "");
     if (key === "recharge") {
-      wx.switchTab({ url: "/pages/wallet/index" });
+      wx.navigateTo({ url: "/pages/wallet/index" });
       return;
     }
     if (key === "bindWechat") {
@@ -199,7 +201,7 @@ Page({
       return;
     }
     if (key === "orders") {
-      wx.switchTab({ url: "/pages/records/index" });
+      wx.navigateTo({ url: "/pages/orders/index" });
       return;
     }
     if (key === "flows") {
@@ -218,7 +220,11 @@ Page({
     const url = consumeLoginRedirect();
     if (!url || url === "/pages/profile/index") return;
     setTimeout(() => {
-      wx.switchTab({ url });
+      if (tabPageUrls.includes(url)) {
+        wx.switchTab({ url });
+        return;
+      }
+      wx.navigateTo({ url });
     }, 250);
   }
 });

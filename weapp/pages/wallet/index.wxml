@@ -1,8 +1,4 @@
-<view class="page wallet-page" style="padding-top: {{safeTop}}px;">
-  <view class="custom-nav" style="padding-right: {{capsuleGap}}px;">
-    <text class="custom-nav-title">钱包</text>
-  </view>
-
+<view class="page wallet-page">
   <view wx:if="{{needsLogin}}" class="card login-empty">
     <text class="login-empty-title">登录后查看积分与订单</text>
     <text class="login-empty-desc">充值记录、消费明细和积分余额都会跟随账号同步。</text>

@@ -340,7 +340,7 @@ Page({
       return;
     }
     if (this.data.estimatedCost > this.data.creditBalance) {
-      wx.switchTab({ url: "/pages/wallet/index" });
+      wx.navigateTo({ url: "/pages/wallet/index" });
       return;
     }
     if (!this.data.uploadedImages.length) {

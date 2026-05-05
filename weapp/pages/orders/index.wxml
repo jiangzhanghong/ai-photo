@@ -1,0 +1,35 @@
+<view class="page orders-page">
+  <view wx:if="{{needsLogin}}" class="card login-empty">
+    <text class="login-empty-title">登录后查看订单</text>
+    <text class="login-empty-desc">充值订单、支付状态和到账信息会同步到你的账号。</text>
+    <button class="login-empty-btn" bindtap="goLogin">去登录</button>
+  </view>
+
+  <block wx:else>
+    <view class="order-summary">
+      <text class="summary-title">订单记录</text>
+      <text class="summary-desc">{{loading ? "正在同步订单" : "充值与支付订单集中展示"}}</text>
+    </view>
+
+    <view wx:if="{{orders.length}}" class="order-list">
+      <view wx:for="{{orders}}" wx:key="id" class="order-card">
+        <view class="order-main">
+          <text class="order-title">{{item.title}}</text>
+          <view class="order-meta">
+            <text>{{item.createdLabel}}</text>
+            <text>{{item.creditsLabel}}</text>
+          </view>
+        </view>
+        <view class="order-side">
+          <text class="order-amount">{{item.amountLabel}}</text>
+          <text class="order-status">{{item.statusLabel}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:else class="card empty-card">
+      <text class="empty-title">暂无订单</text>
+      <text class="empty-desc">完成充值后会在这里展示支付订单。</text>
+    </view>
+  </block>
+</view>

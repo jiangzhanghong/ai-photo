@@ -1,0 +1,110 @@
+.orders-page {
+  padding-bottom: 72rpx;
+  background:
+    radial-gradient(circle at top left, rgba(20, 60, 46, 0.10), transparent 42%),
+    linear-gradient(180deg, #fbf7f0 0%, #f4efe6 100%);
+}
+
+.login-empty,
+.empty-card {
+  display: grid;
+  gap: 18rpx;
+  padding: 42rpx 30rpx;
+  text-align: center;
+}
+
+.login-empty-title,
+.empty-title {
+  color: #1f2824;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.login-empty-desc,
+.empty-desc,
+.summary-desc,
+.order-meta,
+.order-status {
+  color: #7b857f;
+  font-size: 24rpx;
+}
+
+.login-empty-btn {
+  height: 88rpx;
+  margin-top: 8rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #174b39 0%, #103728 100%);
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 88rpx;
+  text-align: center;
+}
+
+.order-summary {
+  display: grid;
+  gap: 10rpx;
+  padding: 30rpx;
+  border-radius: 30rpx;
+  background: linear-gradient(145deg, #143c2e 0%, #1a4a37 100%);
+  box-shadow: 0 18rpx 34rpx rgba(20, 60, 46, 0.16);
+}
+
+.summary-title {
+  color: #ffffff;
+  font-size: 42rpx;
+  font-weight: 700;
+}
+
+.summary-desc {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.order-list {
+  display: grid;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.order-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.order-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.order-title {
+  display: block;
+  overflow: hidden;
+  color: #1f2824;
+  font-size: 28rpx;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-meta {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 10rpx;
+}
+
+.order-side {
+  display: grid;
+  justify-items: end;
+  gap: 8rpx;
+}
+
+.order-amount {
+  color: #1f2824;
+  font-size: 30rpx;
+  font-weight: 700;
+}

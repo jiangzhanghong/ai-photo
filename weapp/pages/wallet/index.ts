@@ -1,7 +1,6 @@
 import type { User } from "../../types/api";
 import { requireLogin } from "../../utils/auth";
 import { getStoredUser } from "../../utils/session";
-import { getPageChrome } from "../../utils/layout";
 import { syncCurrentUser } from "../../utils/user";
 import {
   getDisplayCredits,
@@ -11,18 +10,12 @@ import {
 
 Page({
   data: {
-    safeTop: 32,
-    capsuleGap: 0,
     user: null as User | null,
     creditBalance: 0,
     needsLogin: false,
     packages: walletPackages,
     selectedPackageId: walletPackages[1].id,
     records: walletRecords
-  },
-
-  onLoad() {
-    this.setData(getPageChrome());
   },
 
   async onShow() {
@@ -63,8 +56,7 @@ Page({
       return;
     }
     const key = String(event.currentTarget.dataset.key || "");
-    const label = key === "orders" ? "订单" : "充值记录";
-    wx.showToast({ title: `${label}页待接真实数据`, icon: "none" });
+    wx.navigateTo({ url: key === "orders" ? "/pages/orders/index" : "/pages/flows/index" });
   },
 
   goLogin() {
