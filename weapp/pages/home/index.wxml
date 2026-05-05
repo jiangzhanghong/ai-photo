@@ -46,36 +46,18 @@
     </view>
   </scroll-view>
 
-  <view class="section-block">
-    <view class="section-title">画面比例</view>
-    <view class="ratio-row">
-      <button
-        wx:for="{{ratioOptions}}"
-        wx:key="value"
-        class="ratio-chip {{item.value === selectedRatio ? 'active' : ''}}"
-        data-value="{{item.value}}"
-        bindtap="selectRatio"
-      >
-        {{item.label}}
-      </button>
+  <button class="settings-summary" bindtap="openSettingsPanel">
+    <view class="settings-summary-item">
+      <text class="settings-summary-label">画面比例</text>
+      <text class="settings-summary-value">{{selectedRatio}}</text>
     </view>
-  </view>
-
-  <view class="section-block">
-    <view class="section-title">清晰度</view>
-    <view class="resolution-row">
-      <button
-        wx:for="{{resolutionOptions}}"
-        wx:key="value"
-        class="resolution-chip {{item.value === selectedResolution ? 'active' : ''}}"
-        data-value="{{item.value}}"
-        bindtap="selectResolution"
-      >
-        <text class="resolution-label">{{item.label}}</text>
-        <text class="resolution-desc">{{item.desc}}</text>
-      </button>
+    <view class="settings-summary-divider"></view>
+    <view class="settings-summary-item">
+      <text class="settings-summary-label">清晰度</text>
+      <text class="settings-summary-value">{{selectedResolution}}</text>
     </view>
-  </view>
+    <text class="settings-summary-arrow">›</text>
+  </button>
 
   <view class="section-block">
     <view class="count-head">
@@ -101,6 +83,55 @@
     <view wx:for="{{uploadedImages}}" wx:key="id" class="selected-image-tile">
       <image class="selected-image" mode="aspectFill" src="{{item.previewUrl}}" />
       <button class="remove-btn" data-id="{{item.id}}" bindtap="removeImage">×</button>
+    </view>
+  </view>
+
+  <view wx:if="{{settingsPanelVisible}}" class="settings-mask" catchtap="closeSettingsPanel">
+    <view class="settings-sheet" catchtap="noop">
+      <view class="settings-sheet-head">
+        <view>
+          <view class="settings-sheet-title">生成参数</view>
+          <view class="settings-sheet-desc">选模板后会自动带入推荐参数，也可以手动调整。</view>
+        </view>
+        <button class="settings-close" bindtap="closeSettingsPanel">×</button>
+      </view>
+
+      <view class="settings-group">
+        <view class="settings-group-title">画面比例</view>
+        <view class="ratio-list">
+          <button
+            wx:for="{{ratioOptions}}"
+            wx:key="value"
+            class="ratio-option {{item.value === selectedRatio ? 'active' : ''}}"
+            data-value="{{item.value}}"
+            bindtap="selectRatio"
+          >
+            <view>
+              <view class="ratio-option-label">{{item.label}}</view>
+              <view class="ratio-option-usage">{{item.usage}}</view>
+            </view>
+            <text wx:if="{{item.value === selectedRatio}}" class="ratio-check">✓</text>
+          </button>
+        </view>
+      </view>
+
+      <view class="settings-group">
+        <view class="settings-group-title">清晰度</view>
+        <view class="resolution-row">
+          <button
+            wx:for="{{resolutionOptions}}"
+            wx:key="value"
+            class="resolution-chip {{item.value === selectedResolution ? 'active' : ''}}"
+            data-value="{{item.value}}"
+            bindtap="selectResolution"
+          >
+            <text class="resolution-label">{{item.label}}</text>
+            <text class="resolution-desc">{{item.desc}}</text>
+          </button>
+        </view>
+      </view>
+
+      <button class="settings-done" bindtap="closeSettingsPanel">完成</button>
     </view>
   </view>
 </view>

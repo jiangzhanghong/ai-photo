@@ -223,63 +223,45 @@
   margin-top: 34rpx;
 }
 
-.ratio-row,
-.resolution-row {
-  display: grid;
+.settings-summary {
+  display: flex;
+  align-items: center;
   gap: 18rpx;
-  margin-top: 18rpx;
+  min-height: 82rpx;
+  margin-top: 34rpx;
+  padding: 0 24rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 12rpx 24rpx rgba(20, 51, 38, 0.05);
+  text-align: left;
 }
 
-.ratio-row {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.resolution-row {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.ratio-chip {
-  height: 68rpx;
-  border: 2rpx solid transparent;
-  border-radius: 22rpx;
-  background: rgba(255, 255, 255, 0.72);
-  color: #55605a;
-  font-size: 26rpx;
-}
-
-.ratio-chip.active {
-  border-color: #163d2f;
-  background: #ffffff;
-  color: #163d2f;
-  font-weight: 700;
-}
-
-.resolution-chip {
+.settings-summary-item {
   display: grid;
-  gap: 6rpx;
-  align-content: center;
-  height: 86rpx;
-  border: 2rpx solid transparent;
-  border-radius: 22rpx;
-  background: rgba(255, 255, 255, 0.72);
-  color: #53605a;
-  text-align: center;
+  gap: 4rpx;
+  flex: 1;
 }
 
-.resolution-chip.active {
-  border-color: #163d2f;
-  background: #ffffff;
-  color: #163d2f;
+.settings-summary-label {
+  color: #7d857f;
+  font-size: 20rpx;
 }
 
-.resolution-label {
+.settings-summary-value {
+  color: #1f2723;
   font-size: 28rpx;
   font-weight: 700;
 }
 
-.resolution-desc {
-  color: #7d857f;
-  font-size: 20rpx;
+.settings-summary-divider {
+  width: 1rpx;
+  height: 42rpx;
+  background: rgba(16, 59, 44, 0.10);
+}
+
+.settings-summary-arrow {
+  color: #9aa39d;
+  font-size: 34rpx;
 }
 
 .count-head {
@@ -376,5 +358,152 @@
   color: #ffffff;
   font-size: 24rpx;
   line-height: 40rpx;
+  text-align: center;
+}
+
+.settings-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(16, 27, 22, 0.42);
+}
+
+.settings-sheet {
+  width: 100%;
+  max-height: 78vh;
+  overflow-y: auto;
+  padding: 30rpx 24rpx 44rpx;
+  border-radius: 34rpx 34rpx 0 0;
+  background: #fbf7f0;
+}
+
+.settings-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.settings-sheet-title {
+  color: #1f2723;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.settings-sheet-desc {
+  margin-top: 8rpx;
+  color: #7d857f;
+  font-size: 22rpx;
+}
+
+.settings-close {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: rgba(31, 39, 35, 0.08);
+  color: #4f5953;
+  font-size: 34rpx;
+  line-height: 56rpx;
+  text-align: center;
+}
+
+.settings-group {
+  margin-top: 30rpx;
+}
+
+.settings-group-title {
+  color: #1f2723;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.ratio-list {
+  display: grid;
+  gap: 14rpx;
+  margin-top: 16rpx;
+}
+
+.ratio-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  min-height: 86rpx;
+  padding: 0 22rpx;
+  border: 2rpx solid transparent;
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.82);
+  text-align: left;
+}
+
+.ratio-option.active {
+  border-color: #143d2f;
+  background: #ffffff;
+}
+
+.ratio-option-label {
+  color: #1f2723;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.ratio-option-usage {
+  margin-top: 6rpx;
+  color: #7d857f;
+  font-size: 22rpx;
+}
+
+.ratio-check {
+  color: #143d2f;
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.resolution-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18rpx;
+  margin-top: 16rpx;
+}
+
+.resolution-chip {
+  display: grid;
+  gap: 6rpx;
+  align-content: center;
+  height: 86rpx;
+  border: 2rpx solid transparent;
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.82);
+  color: #53605a;
+  text-align: center;
+}
+
+.resolution-chip.active {
+  border-color: #163d2f;
+  background: #ffffff;
+  color: #163d2f;
+}
+
+.resolution-label {
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.resolution-desc {
+  color: #7d857f;
+  font-size: 20rpx;
+}
+
+.settings-done {
+  height: 88rpx;
+  margin-top: 30rpx;
+  border-radius: 24rpx;
+  background: #143d2f;
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 88rpx;
   text-align: center;
 }

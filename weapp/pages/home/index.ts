@@ -25,12 +25,12 @@ interface UploadItem {
 }
 
 const ratioOptions = [
-  { label: "1:1", value: "1:1" },
-  { label: "3:4", value: "3:4" },
-  { label: "2:3", value: "2:3" },
-  { label: "9:16", value: "9:16" },
-  { label: "16:9", value: "16:9" },
-  { label: "3:2", value: "3:2" }
+  { label: "1:1", value: "1:1", usage: "头像、证件照、社交封面" },
+  { label: "3:4", value: "3:4", usage: "写真、半身照、模板默认" },
+  { label: "2:3", value: "2:3", usage: "竖版海报、全身照" },
+  { label: "9:16", value: "9:16", usage: "朋友圈、短视频封面" },
+  { label: "16:9", value: "16:9", usage: "横版合照、电脑壁纸" },
+  { label: "3:2", value: "3:2", usage: "横版写真、生活记录" }
 ];
 
 const recommendedSizes = {
@@ -86,6 +86,8 @@ Page({
     selectedTemplateSize: "",
     selectedRatio: "1:1",
     selectedResolution: "2K",
+    settingsPanelVisible: false,
+    selectedRatioUsage: "头像、证件照、社交封面",
     count: 4,
     estimatedCost: 8,
     uploadedImages: [] as UploadItem[],
@@ -129,7 +131,8 @@ Page({
       selectedTemplateCost: Number(template.creditCost || 0),
       selectedTemplateSize: template.defaultSize || "",
       selectedRatio,
-      selectedResolution
+      selectedResolution,
+      selectedRatioUsage: this.ratioUsage(selectedRatio)
     }, () => this.syncGenerationState());
   },
 
@@ -218,13 +221,31 @@ Page({
   selectRatio(event: WechatMiniprogram.TouchEvent) {
     const selectedRatio = String(event.currentTarget.dataset.value || "1:1");
     if (!ratioOptions.find((item) => item.value === selectedRatio)) return;
-    this.setData({ selectedRatio, selectedTemplateSize: "" });
+    this.setData({
+      selectedRatio,
+      selectedTemplateSize: "",
+      selectedRatioUsage: this.ratioUsage(selectedRatio)
+    });
   },
 
   selectResolution(event: WechatMiniprogram.TouchEvent) {
     const selectedResolution = normalizeResolution(String(event.currentTarget.dataset.value || "2K"));
     this.setData({ selectedResolution, selectedTemplateSize: "" });
   },
+
+  ratioUsage(ratio: string) {
+    return ratioOptions.find((item) => item.value === ratio)?.usage || "";
+  },
+
+  openSettingsPanel() {
+    this.setData({ settingsPanelVisible: true });
+  },
+
+  closeSettingsPanel() {
+    this.setData({ settingsPanelVisible: false });
+  },
+
+  noop() {},
 
   increaseCount() {
     this.setData({ count: Math.min(9, this.data.count + 1) });
