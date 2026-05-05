@@ -26,24 +26,42 @@
     </view>
   </scroll-view>
 
-  <view wx:if="{{filteredTemplates.length}}" class="template-grid">
+  <view wx:if="{{loadingPrompts}}" class="template-grid">
+    <view wx:for="{{skeletonItems}}" wx:key="*this" class="template-card skeleton-card">
+      <view class="template-cover skeleton-block"></view>
+      <view class="template-body">
+        <view class="skeleton-line title-line"></view>
+        <view class="skeleton-line"></view>
+        <view class="skeleton-line short-line"></view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:elif="{{promptLoadFailed}}" class="card empty-card">
+    <text class="empty-title">模板加载失败</text>
+    <text class="empty-desc">网络或服务异常，稍后重试。</text>
+    <button class="retry-btn" bindtap="retryLoadPrompts">重新加载</button>
+  </view>
+
+  <view wx:elif="{{filteredTemplates.length}}" class="template-grid">
     <button
       wx:for="{{filteredTemplates}}"
       wx:key="id"
-      class="template-card"
+      class="template-card {{item.id === selectedTemplateId || item.promptId === selectedTemplateId ? 'active' : ''}}"
       data-id="{{item.id}}"
       bindtap="selectTemplate"
     >
       <view class="template-cover-wrap">
         <image class="template-cover" mode="aspectFill" src="{{item.imageUrl}}" />
         <text wx:if="{{item.badge}}" class="template-badge">{{item.badge}}</text>
+        <text wx:if="{{item.id === selectedTemplateId || item.promptId === selectedTemplateId}}" class="using-badge">使用中</text>
       </view>
       <view class="template-body">
         <text class="template-title">{{item.title}}</text>
         <text class="template-subtitle">{{item.subtitle}}</text>
         <view class="template-meta">
           <text class="template-cost">P {{item.creditCost}}</text>
-          <text class="template-go">使用</text>
+          <text class="template-go">{{item.id === selectedTemplateId || item.promptId === selectedTemplateId ? '已选择' : '使用'}}</text>
         </view>
       </view>
     </button>

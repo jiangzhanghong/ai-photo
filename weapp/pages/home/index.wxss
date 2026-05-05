@@ -293,6 +293,12 @@
   text-align: center;
 }
 
+.generate-btn[disabled] {
+  background: #d8ded9;
+  color: #7f8a84;
+  box-shadow: none;
+}
+
 .remaining-text,
 .message-line {
   margin-top: 20rpx;

@@ -75,13 +75,10 @@
     </view>
   </view>
 
-  <button class="generate-btn" loading="{{submitting}}" bindtap="submitTask">
-    {{submitting ? '生成中...' : '立即生成'}}
+  <button class="generate-btn" loading="{{submitting}}" disabled="{{generateButtonDisabled}}" bindtap="submitTask">
+    {{generateButtonText}}
   </button>
-  <view class="remaining-text">
-    剩余积分：
-    <text class="remaining-value">{{creditBalance}}</text>
-  </view>
+  <view class="remaining-text">{{generateHint}}</view>
   <view wx:if="{{message}}" class="message-line">{{message}}</view>
 
   <view wx:if="{{uploadedImages.length}}" class="selected-images">

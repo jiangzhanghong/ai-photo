@@ -25,7 +25,7 @@ Page({
   },
 
   onShow() {
-    if (!requireLogin()) return;
+    if (!requireLogin("/pages/wallet/index")) return;
     const user = getStoredUser();
     this.setData({
       user,

@@ -28,7 +28,7 @@ Page({
   },
 
   async onShow() {
-    if (!requireLogin()) return;
+    if (!requireLogin("/pages/records/index")) return;
     const user = getStoredUser();
     this.setData({ user, needsLogin: !user });
     await this.loadWorks();

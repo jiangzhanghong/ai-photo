@@ -7,6 +7,7 @@ import { getStoredUser } from "../../utils/session";
 import {
   getDisplayCredits,
   getFallbackTemplates,
+  getSelectedTemplate,
   saveSelectedTemplate,
   selectedTemplatePayload,
   templateFilterTabs,
@@ -24,7 +25,11 @@ Page({
     activeCategory: "推荐",
     searchValue: "",
     templates: getFallbackTemplates(),
-    filteredTemplates: getFallbackTemplates()
+    filteredTemplates: getFallbackTemplates(),
+    selectedTemplateId: "",
+    loadingPrompts: false,
+    promptLoadFailed: false,
+    skeletonItems: [1, 2, 3, 4]
   },
 
   onLoad() {
@@ -32,17 +37,20 @@ Page({
   },
 
   async onShow() {
-    if (!requireLogin()) return;
+    if (!requireLogin("/pages/create/index")) return;
     const user = getStoredUser();
+    const selected = getSelectedTemplate();
     this.setData({
       user,
-      creditBalance: getDisplayCredits(user)
+      creditBalance: getDisplayCredits(user),
+      selectedTemplateId: selected?.id || selected?.promptId || ""
     });
     await this.loadPrompts();
     this.applyFilter();
   },
 
   async loadPrompts() {
+    this.setData({ loadingPrompts: true, promptLoadFailed: false });
     try {
       const data = await request<{ prompts: Prompt[] }>("/api/prompts?taskType=image_to_image", { auth: false });
       const prompts = data.prompts || [];
@@ -57,11 +65,11 @@ Page({
         cursor += count;
         return { ...prompt, exampleImages };
       });
-      this.setData({ templates: toShowcaseTemplates(hydrated) }, () => {
+      this.setData({ templates: toShowcaseTemplates(hydrated), loadingPrompts: false }, () => {
         this.applyFilter();
       });
     } catch {
-      this.setData({ templates: getFallbackTemplates() }, () => {
+      this.setData({ templates: [], loadingPrompts: false, promptLoadFailed: true }, () => {
         this.applyFilter();
       });
     }
@@ -91,14 +99,19 @@ Page({
   },
 
   selectTemplate(event: WechatMiniprogram.TouchEvent) {
-    if (!requireLogin()) return;
+    if (!requireLogin("/pages/create/index")) return;
     const id = String(event.currentTarget.dataset.id || "");
     const template = this.data.templates.find((item) => item.id === id) as ShowcaseTemplate | undefined;
     if (!template) return;
     saveSelectedTemplate(selectedTemplatePayload(template));
+    this.setData({ selectedTemplateId: template.id });
     wx.showToast({ title: "已设为当前模板", icon: "none" });
     setTimeout(() => {
       wx.switchTab({ url: "/pages/home/index" });
     }, 250);
+  },
+
+  retryLoadPrompts() {
+    this.loadPrompts();
   }
 });

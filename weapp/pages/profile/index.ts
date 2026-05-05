@@ -1,3 +1,4 @@
+import { consumeLoginRedirect } from "../../utils/auth";
 import type { LoginResponse, Task, User } from "../../types/api";
 import { isUnauthorizedError, request } from "../../utils/request";
 import { clearSession, getRefreshToken, getStoredUser, saveSession } from "../../utils/session";
@@ -13,14 +14,14 @@ import {
 } from "../../utils/showcase";
 
 const actionIcons: Record<string, string> = {
-  recharge: "P",
-  orders: "D",
-  flows: "L",
-  bindWechat: "W",
-  protocol: "A",
-  privacy: "S",
-  contact: "@",
-  logout: "O"
+  recharge: "coin",
+  orders: "doc",
+  flows: "list",
+  bindWechat: "chat",
+  protocol: "shield",
+  privacy: "lock",
+  contact: "mail",
+  logout: "logout"
 };
 
 Page({
@@ -121,6 +122,7 @@ Page({
       saveSession(data);
       getApp<{ globalData: { user: User | null } }>().globalData.user = data.user;
       await this.refreshProfile();
+      this.redirectAfterLogin();
       wx.showToast({ title: "登录成功", icon: "success" });
     } catch (error) {
       wx.showToast({ title: (error as Error).message, icon: "none" });
@@ -163,6 +165,7 @@ Page({
       getApp<{ globalData: { user: User | null } }>().globalData.user = data.user;
       this.setData({ password: "" });
       await this.refreshProfile();
+      this.redirectAfterLogin();
       wx.showToast({ title: "登录成功", icon: "success" });
     } catch (error) {
       wx.showToast({ title: (error as Error).message, icon: "none" });
@@ -214,5 +217,13 @@ Page({
       contact: "联系邮箱：support@ai-photo.local"
     };
     wx.showToast({ title: tips[key] || "功能整理中", icon: "none" });
+  },
+
+  redirectAfterLogin() {
+    const url = consumeLoginRedirect();
+    if (!url || url === "/pages/profile/index") return;
+    setTimeout(() => {
+      wx.switchTab({ url });
+    }, 250);
   }
 });

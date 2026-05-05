@@ -18,12 +18,12 @@
 
     <view class="quick-grid">
       <button class="quick-card" data-key="orders" bindtap="handleQuickAction">
-        <text class="quick-icon">D</text>
+        <text class="quick-icon doc-icon"></text>
         <text class="quick-title">订单</text>
         <text class="quick-subtitle">查看订单记录</text>
       </button>
       <button class="quick-card" data-key="records" bindtap="handleQuickAction">
-        <text class="quick-icon gold">C</text>
+        <text class="quick-icon gold wallet-icon"></text>
         <text class="quick-title">充值记录</text>
         <text class="quick-subtitle">查看充值明细</text>
       </button>

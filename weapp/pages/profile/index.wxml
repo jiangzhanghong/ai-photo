@@ -40,7 +40,7 @@
         bindtap="handleAction"
       >
         <view class="action-main">
-          <text class="action-icon">{{item.iconText}}</text>
+          <text class="action-icon {{item.iconText}}-icon"></text>
           <text class="action-label">{{item.label}}</text>
         </view>
         <view class="action-side">

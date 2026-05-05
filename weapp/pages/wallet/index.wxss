@@ -97,6 +97,7 @@
 }
 
 .quick-icon {
+  position: relative;
   display: inline-grid;
   place-items: center;
   width: 46rpx;
@@ -106,6 +107,46 @@
   color: #143d2f;
   font-size: 24rpx;
   font-weight: 700;
+}
+
+.quick-icon::before,
+.quick-icon::after {
+  content: "";
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.doc-icon::before {
+  width: 22rpx;
+  height: 28rpx;
+  border: 4rpx solid currentColor;
+  border-radius: 5rpx;
+}
+
+.doc-icon::after {
+  width: 12rpx;
+  height: 4rpx;
+  left: 17rpx;
+  top: 22rpx;
+  border-radius: 999rpx;
+  background: currentColor;
+  box-shadow: 0 9rpx 0 currentColor;
+}
+
+.wallet-icon::before {
+  width: 28rpx;
+  height: 22rpx;
+  border: 4rpx solid currentColor;
+  border-radius: 7rpx;
+}
+
+.wallet-icon::after {
+  right: 10rpx;
+  top: 20rpx;
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .quick-icon.gold {

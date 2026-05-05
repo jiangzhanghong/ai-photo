@@ -88,10 +88,16 @@
 
 .template-card {
   overflow: hidden;
+  border: 2rpx solid transparent;
   border-radius: 24rpx;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 14rpx 28rpx rgba(20, 51, 38, 0.06);
   text-align: left;
+}
+
+.template-card.active {
+  border-color: #143d2f;
+  box-shadow: 0 16rpx 34rpx rgba(20, 61, 47, 0.14);
 }
 
 .template-cover-wrap {
@@ -111,6 +117,18 @@
   padding: 8rpx 14rpx;
   border-radius: 999rpx;
   background: linear-gradient(180deg, #f39f72 0%, #e57e47 100%);
+  color: #ffffff;
+  font-size: 20rpx;
+  line-height: 1;
+}
+
+.using-badge {
+  position: absolute;
+  right: 12rpx;
+  bottom: 12rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(20, 61, 47, 0.92);
   color: #ffffff;
   font-size: 20rpx;
   line-height: 1;
@@ -174,4 +192,52 @@
 .empty-desc {
   color: #7a847e;
   font-size: 24rpx;
+}
+
+.retry-btn {
+  width: 220rpx;
+  height: 70rpx;
+  margin: 12rpx auto 0;
+  border-radius: 999rpx;
+  background: #143d2f;
+  color: #ffffff;
+  font-size: 26rpx;
+  line-height: 70rpx;
+  text-align: center;
+}
+
+.skeleton-card {
+  pointer-events: none;
+}
+
+.skeleton-block,
+.skeleton-line {
+  background: linear-gradient(90deg, #eee8dd 0%, #f8f4ec 48%, #eee8dd 100%);
+  background-size: 300% 100%;
+  animation: skeleton-wave 1.4s ease-in-out infinite;
+}
+
+.skeleton-line {
+  width: 100%;
+  height: 24rpx;
+  border-radius: 999rpx;
+}
+
+.title-line {
+  width: 66%;
+  height: 30rpx;
+}
+
+.short-line {
+  width: 42%;
+}
+
+@keyframes skeleton-wave {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: 0 0;
+  }
 }

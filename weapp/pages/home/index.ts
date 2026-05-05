@@ -58,7 +58,10 @@ Page({
     estimatedCost: 8,
     uploadedImages: [] as UploadItem[],
     submitting: false,
-    message: ""
+    message: "",
+    generateButtonText: "请先上传参考图",
+    generateButtonDisabled: true,
+    generateHint: "上传参考图后即可生成"
   },
 
   onLoad() {
@@ -66,11 +69,11 @@ Page({
   },
 
   async onShow() {
-    if (!requireLogin()) return;
+    if (!requireLogin("/pages/home/index")) return;
     this.applyUser(getStoredUser());
     await this.loadPrompts();
     this.applyStoredTemplateSelection();
-    this.syncCost();
+    this.syncGenerationState();
   },
 
   applyUser(user: User | null) {
@@ -78,7 +81,7 @@ Page({
       user,
       avatarUrl: getDisplayAvatar(user),
       creditBalance: getDisplayCredits(user)
-    });
+    }, () => this.syncGenerationState());
   },
 
   applyTemplate(template?: SelectedTemplatePayload | ShowcaseTemplate | null) {
@@ -90,7 +93,7 @@ Page({
       selectedTemplateImage: template.imageUrl,
       selectedTemplatePromptText: template.promptText,
       selectedTemplateCost: Number(template.creditCost || 0)
-    });
+    }, () => this.syncGenerationState());
   },
 
   applyStoredTemplateSelection() {
@@ -104,8 +107,43 @@ Page({
   },
 
   syncCost() {
+    this.syncGenerationState();
+  },
+
+  syncGenerationState() {
+    const estimatedCost = Math.max(1, this.data.count * Math.max(1, Number(this.data.selectedTemplateCost || 0)));
+    const hasUploadedImage = Boolean(this.data.uploadedImages.length);
+    const hasTemplate = Boolean(this.data.selectedTemplateId);
+    const hasEnoughCredits = Number(this.data.creditBalance || 0) >= estimatedCost;
+    let generateButtonText = "立即生成";
+    let generateButtonDisabled = false;
+    let generateHint = `剩余积分：${this.data.creditBalance}`;
+
+    if (this.data.submitting) {
+      generateButtonText = "生成中...";
+      generateButtonDisabled = true;
+      generateHint = "正在提交生成任务";
+    } else if (!hasUploadedImage) {
+      generateButtonText = "请先上传参考图";
+      generateButtonDisabled = true;
+      generateHint = "上传一张清晰正脸照后即可生成";
+    } else if (!hasTemplate) {
+      generateButtonText = "请选择模板";
+      generateButtonDisabled = true;
+      generateHint = "先选择一个写真风格模板";
+    } else if (!hasEnoughCredits) {
+      generateButtonText = "积分不足，去充值";
+      generateButtonDisabled = false;
+      generateHint = `本次需 ${estimatedCost} 积分，当前剩余 ${this.data.creditBalance}`;
+    } else {
+      generateHint = `本次消耗 ${estimatedCost} 积分，剩余 ${this.data.creditBalance}`;
+    }
+
     this.setData({
-      estimatedCost: Math.max(1, this.data.count * Math.max(1, Number(this.data.selectedTemplateCost || 0)))
+      estimatedCost,
+      generateButtonText,
+      generateButtonDisabled,
+      generateHint
     });
   },
 
@@ -176,12 +214,12 @@ Page({
     this.setData({
       uploadedImages: [...this.data.uploadedImages, ...items],
       message: ""
-    });
+    }, () => this.syncGenerationState());
   },
 
   removeImage(event: WechatMiniprogram.TouchEvent) {
     const id = String(event.currentTarget.dataset.id || "");
-    this.setData({ uploadedImages: this.data.uploadedImages.filter((item) => item.id !== id) });
+    this.setData({ uploadedImages: this.data.uploadedImages.filter((item) => item.id !== id) }, () => this.syncGenerationState());
   },
 
   currentRequestSize() {
@@ -222,7 +260,15 @@ Page({
   async submitTask() {
     if (!this.data.user) {
       wx.showToast({ title: "请先在我的页完成登录", icon: "none" });
-      wx.switchTab({ url: "/pages/profile/index" });
+      requireLogin("/pages/home/index");
+      return;
+    }
+    if (this.data.generateButtonDisabled) {
+      wx.showToast({ title: this.data.generateHint, icon: "none" });
+      return;
+    }
+    if (this.data.estimatedCost > this.data.creditBalance) {
+      wx.switchTab({ url: "/pages/wallet/index" });
       return;
     }
     if (!this.data.uploadedImages.length) {
@@ -233,7 +279,7 @@ Page({
       this.setData({ message: "请先选择模板。" });
       return;
     }
-    this.setData({ submitting: true, message: "" });
+    this.setData({ submitting: true, message: "" }, () => this.syncGenerationState());
     try {
       const inputImages = await this.uploadReferences();
       const response = await request<{ task: Task; user: User }>("/api/ai-image-tasks", {
@@ -258,12 +304,12 @@ Page({
     } catch (error) {
       this.setData({ message: (error as Error).message });
     } finally {
-      this.setData({ submitting: false });
+      this.setData({ submitting: false }, () => this.syncGenerationState());
     }
   },
 
   openTemplatePage() {
-    if (!requireLogin()) return;
+    if (!requireLogin("/pages/create/index")) return;
     wx.switchTab({ url: "/pages/create/index" });
   }
 });
