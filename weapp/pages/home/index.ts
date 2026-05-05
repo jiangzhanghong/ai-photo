@@ -5,6 +5,7 @@ import { getPageChrome } from "../../utils/layout";
 import { normalizeMediaImage, resolveMediaImages } from "../../utils/media";
 import { request } from "../../utils/request";
 import { getStoredUser, saveSession } from "../../utils/session";
+import { syncCurrentUser } from "../../utils/user";
 import {
   getDisplayAvatar,
   getDisplayCredits,
@@ -105,6 +106,7 @@ Page({
   async onShow() {
     if (!requireLogin("/pages/home/index")) return;
     this.applyUser(getStoredUser());
+    this.applyUser(await syncCurrentUser());
     await this.loadPrompts();
     this.applyStoredTemplateSelection();
     this.syncGenerationState();

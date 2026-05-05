@@ -2,6 +2,7 @@ import type { User } from "../../types/api";
 import { requireLogin } from "../../utils/auth";
 import { getStoredUser } from "../../utils/session";
 import { getPageChrome } from "../../utils/layout";
+import { syncCurrentUser } from "../../utils/user";
 import {
   getDisplayCredits,
   walletPackages,
@@ -24,13 +25,19 @@ Page({
     this.setData(getPageChrome());
   },
 
-  onShow() {
+  async onShow() {
     if (!requireLogin("/pages/wallet/index")) return;
     const user = getStoredUser();
     this.setData({
       user,
       needsLogin: !user,
       creditBalance: getDisplayCredits(user)
+    });
+    const syncedUser = await syncCurrentUser();
+    this.setData({
+      user: syncedUser,
+      needsLogin: !syncedUser,
+      creditBalance: getDisplayCredits(syncedUser)
     });
   },
 

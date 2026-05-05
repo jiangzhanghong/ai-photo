@@ -1,8 +1,9 @@
 import { consumeLoginRedirect } from "../../utils/auth";
 import type { LoginResponse, Task, User } from "../../types/api";
-import { isUnauthorizedError, request } from "../../utils/request";
+import { request } from "../../utils/request";
 import { clearSession, getRefreshToken, getStoredUser, saveSession } from "../../utils/session";
 import { getPageChrome } from "../../utils/layout";
+import { syncCurrentUser } from "../../utils/user";
 import {
   getCumulativeRecharge,
   getCumulativeSpend,
@@ -54,17 +55,7 @@ Page({
     let user = getStoredUser();
     let tasks: Task[] = [];
     if (user) {
-      try {
-        const auth = await request<{ user: User }>("/api/auth/me");
-        user = auth.user;
-        saveSession({ user });
-      } catch (error) {
-        if (isUnauthorizedError(error)) {
-          clearSession();
-          getApp<{ globalData: { user: User | null } }>().globalData.user = null;
-          user = null;
-        }
-      }
+      user = await syncCurrentUser();
       if (user) {
         try {
           const data = await request<{ tasks: Task[] }>("/api/ai-image-tasks");
@@ -207,8 +198,12 @@ Page({
       wx.showToast({ title: "已退出登录", icon: "none" });
       return;
     }
-    if (key === "orders" || key === "flows") {
-      wx.switchTab({ url: "/pages/wallet/index" });
+    if (key === "orders") {
+      wx.switchTab({ url: "/pages/records/index" });
+      return;
+    }
+    if (key === "flows") {
+      wx.navigateTo({ url: "/pages/flows/index" });
       return;
     }
     const tips: Record<string, string> = {

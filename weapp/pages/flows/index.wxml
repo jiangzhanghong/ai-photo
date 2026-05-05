@@ -1,0 +1,40 @@
+<view class="page flows-page">
+  <view wx:if="{{needsLogin}}" class="card login-empty">
+    <text class="login-empty-title">登录后查看积分流水</text>
+    <text class="login-empty-desc">生成消耗、充值到账和余额变化会同步到你的账号。</text>
+    <button class="login-empty-btn" bindtap="goLogin">去登录</button>
+  </view>
+
+  <block wx:else>
+    <view class="balance-card">
+      <text class="balance-label">当前积分</text>
+      <view class="balance-value">{{creditBalance}} <text class="balance-unit">积分</text></view>
+    </view>
+
+    <view class="section-title">
+      <text>流水明细</text>
+      <text class="section-extra">{{loading ? "同步中" : "近期"}}</text>
+    </view>
+
+    <view wx:if="{{records.length}}" class="flow-list">
+      <view wx:for="{{records}}" wx:key="id" class="flow-card">
+        <view class="flow-main">
+          <text class="flow-title">{{item.title}}</text>
+          <view class="flow-meta">
+            <text>{{item.createdLabel}}</text>
+            <text>{{item.amountLabel}}</text>
+          </view>
+        </view>
+        <view class="flow-side">
+          <text class="flow-credits {{item.type}}">{{item.creditsLabel}}</text>
+          <text class="flow-status">{{item.statusLabel}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:else class="card empty-card">
+      <text class="empty-title">暂无流水</text>
+      <text class="empty-desc">生成或充值后会在这里展示积分变化。</text>
+    </view>
+  </block>
+</view>

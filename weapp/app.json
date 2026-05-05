@@ -5,6 +5,7 @@
     "pages/records/index",
     "pages/wallet/index",
     "pages/profile/index",
+    "pages/flows/index",
     "pages/result/index"
   ],
   "window": {
