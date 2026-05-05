@@ -223,11 +223,19 @@
   margin-top: 34rpx;
 }
 
-.ratio-row {
+.ratio-row,
+.resolution-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
   gap: 18rpx;
   margin-top: 18rpx;
+}
+
+.ratio-row {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.resolution-row {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .ratio-chip {
@@ -244,6 +252,34 @@
   background: #ffffff;
   color: #163d2f;
   font-weight: 700;
+}
+
+.resolution-chip {
+  display: grid;
+  gap: 6rpx;
+  align-content: center;
+  height: 86rpx;
+  border: 2rpx solid transparent;
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.72);
+  color: #53605a;
+  text-align: center;
+}
+
+.resolution-chip.active {
+  border-color: #163d2f;
+  background: #ffffff;
+  color: #163d2f;
+}
+
+.resolution-label {
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.resolution-desc {
+  color: #7d857f;
+  font-size: 20rpx;
 }
 
 .count-head {

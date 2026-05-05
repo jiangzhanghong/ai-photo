@@ -28,15 +28,44 @@ const ratioOptions = [
   { label: "1:1", value: "1:1" },
   { label: "3:4", value: "3:4" },
   { label: "2:3", value: "2:3" },
-  { label: "9:16", value: "9:16" }
+  { label: "9:16", value: "9:16" },
+  { label: "16:9", value: "16:9" },
+  { label: "3:2", value: "3:2" }
 ];
 
 const recommendedSizes = {
-  "1:1": "2048x2048",
-  "3:4": "1728x2304",
-  "2:3": "1664x2496",
-  "9:16": "1600x2848"
+  "2K": {
+    "1:1": "2048x2048",
+    "3:4": "1728x2304",
+    "2:3": "1664x2496",
+    "9:16": "1600x2848",
+    "16:9": "2848x1600",
+    "3:2": "2496x1664"
+  },
+  "4K": {
+    "1:1": "4096x4096",
+    "3:4": "3520x4704",
+    "2:3": "3328x4992",
+    "9:16": "3040x5504",
+    "16:9": "5504x3040",
+    "3:2": "4992x3328"
+  }
 } as const;
+
+const resolutionOptions = [
+  { label: "2K", value: "2K", desc: "速度更快" },
+  { label: "4K", value: "4K", desc: "细节更清晰" }
+];
+
+const normalizeRatio = (value = "") => {
+  const ratio = String(value || "").trim();
+  return ratioOptions.find((item) => item.value === ratio)?.value || "";
+};
+
+const normalizeResolution = (value = "") => {
+  const resolution = String(value || "").toUpperCase();
+  return resolution === "4K" ? "4K" : "2K";
+};
 
 Page({
   data: {
@@ -47,13 +76,16 @@ Page({
     creditBalance: 0,
     templates: getFallbackTemplates(),
     ratioOptions,
+    resolutionOptions,
     selectedTemplateId: "",
     selectedTemplatePromptId: "",
     selectedTemplateTitle: "",
     selectedTemplateImage: "/assets/demo/recent-1.jpg",
     selectedTemplatePromptText: "",
     selectedTemplateCost: 2,
+    selectedTemplateSize: "",
     selectedRatio: "1:1",
+    selectedResolution: "2K",
     count: 4,
     estimatedCost: 8,
     uploadedImages: [] as UploadItem[],
@@ -86,13 +118,18 @@ Page({
 
   applyTemplate(template?: SelectedTemplatePayload | ShowcaseTemplate | null) {
     if (!template) return;
+    const selectedRatio = normalizeRatio(template.defaultRatio) || this.data.selectedRatio;
+    const selectedResolution = normalizeResolution(template.defaultResolution || this.data.selectedResolution);
     this.setData({
       selectedTemplateId: template.id,
       selectedTemplatePromptId: template.promptId || "",
       selectedTemplateTitle: template.title,
       selectedTemplateImage: template.imageUrl,
       selectedTemplatePromptText: template.promptText,
-      selectedTemplateCost: Number(template.creditCost || 0)
+      selectedTemplateCost: Number(template.creditCost || 0),
+      selectedTemplateSize: template.defaultSize || "",
+      selectedRatio,
+      selectedResolution
     }, () => this.syncGenerationState());
   },
 
@@ -181,7 +218,12 @@ Page({
   selectRatio(event: WechatMiniprogram.TouchEvent) {
     const selectedRatio = String(event.currentTarget.dataset.value || "1:1");
     if (!ratioOptions.find((item) => item.value === selectedRatio)) return;
-    this.setData({ selectedRatio });
+    this.setData({ selectedRatio, selectedTemplateSize: "" });
+  },
+
+  selectResolution(event: WechatMiniprogram.TouchEvent) {
+    const selectedResolution = normalizeResolution(String(event.currentTarget.dataset.value || "2K"));
+    this.setData({ selectedResolution, selectedTemplateSize: "" });
   },
 
   increaseCount() {
@@ -223,7 +265,10 @@ Page({
   },
 
   currentRequestSize() {
-    return recommendedSizes[this.data.selectedRatio as keyof typeof recommendedSizes] || recommendedSizes["1:1"];
+    if (this.data.selectedTemplateSize) return this.data.selectedTemplateSize;
+    const resolution = normalizeResolution(this.data.selectedResolution);
+    const sizes = recommendedSizes[resolution as keyof typeof recommendedSizes] || recommendedSizes["2K"];
+    return sizes[this.data.selectedRatio as keyof typeof sizes] || sizes["1:1"];
   },
 
   fileToDataUrl(filePath: string) {

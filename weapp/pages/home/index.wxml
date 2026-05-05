@@ -62,6 +62,22 @@
   </view>
 
   <view class="section-block">
+    <view class="section-title">清晰度</view>
+    <view class="resolution-row">
+      <button
+        wx:for="{{resolutionOptions}}"
+        wx:key="value"
+        class="resolution-chip {{item.value === selectedResolution ? 'active' : ''}}"
+        data-value="{{item.value}}"
+        bindtap="selectResolution"
+      >
+        <text class="resolution-label">{{item.label}}</text>
+        <text class="resolution-desc">{{item.desc}}</text>
+      </button>
+    </view>
+  </view>
+
+  <view class="section-block">
     <view class="count-head">
       <view>
         <view class="section-title">生成数量</view>

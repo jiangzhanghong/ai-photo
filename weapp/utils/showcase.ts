@@ -12,6 +12,9 @@ export interface ShowcaseTemplate {
   category: string;
   badge?: string;
   promptText: string;
+  defaultRatio?: string;
+  defaultSize?: string;
+  defaultResolution?: string;
 }
 
 export interface ShowcaseWork {
@@ -57,6 +60,9 @@ export interface SelectedTemplatePayload {
   imageUrl: string;
   creditCost: number;
   promptText: string;
+  defaultRatio?: string;
+  defaultSize?: string;
+  defaultResolution?: string;
 }
 
 export const TEMPLATE_STORAGE_KEY = "ai_photo_selected_template";
@@ -81,6 +87,9 @@ const fallbackTemplates: ShowcaseTemplate[] = [
     creditCost: 2,
     category: "校园",
     badge: "推荐",
+    defaultRatio: "3:4",
+    defaultResolution: "2K",
+    defaultSize: "1728x2304",
     promptText: "校园写真，阳光感，清新自然，人物微笑，浅景深，真实皮肤质感，高级人像摄影"
   },
   {
@@ -91,6 +100,9 @@ const fallbackTemplates: ShowcaseTemplate[] = [
     creditCost: 3,
     category: "日常",
     badge: "NEW",
+    defaultRatio: "9:16",
+    defaultResolution: "2K",
+    defaultSize: "1600x2848",
     promptText: "海边写真，通透光线，少女侧脸，柔和肤色，胶片氛围，高级写真"
   },
   {
@@ -101,6 +113,9 @@ const fallbackTemplates: ShowcaseTemplate[] = [
     creditCost: 2,
     category: "复古",
     badge: "HOT",
+    defaultRatio: "3:4",
+    defaultResolution: "2K",
+    defaultSize: "1728x2304",
     promptText: "法式复古写真，柔和阴影，奶油色调，花束道具，电影感人像，高级氛围"
   },
   {
@@ -110,6 +125,9 @@ const fallbackTemplates: ShowcaseTemplate[] = [
     imageUrl: localImages.hat,
     creditCost: 1,
     category: "日常",
+    defaultRatio: "3:4",
+    defaultResolution: "2K",
+    defaultSize: "1728x2304",
     promptText: "日常纪实写真，自然抓拍，轻松姿态，暖色阳光，生活感，高级审美"
   },
   {
@@ -119,6 +137,9 @@ const fallbackTemplates: ShowcaseTemplate[] = [
     imageUrl: localImages.refA,
     creditCost: 2,
     category: "胶片",
+    defaultRatio: "2:3",
+    defaultResolution: "2K",
+    defaultSize: "1664x2496",
     promptText: "胶片写真，细腻颗粒，低饱和度，故事感构图，人像电影感"
   },
   {
@@ -128,6 +149,9 @@ const fallbackTemplates: ShowcaseTemplate[] = [
     imageUrl: localImages.refB,
     creditCost: 2,
     category: "韩系",
+    defaultRatio: "3:4",
+    defaultResolution: "2K",
+    defaultSize: "1728x2304",
     promptText: "韩系写真，清透肤感，空气刘海，柔焦背景，明亮人像，韩杂风格"
   },
   {
@@ -137,6 +161,9 @@ const fallbackTemplates: ShowcaseTemplate[] = [
     imageUrl: localImages.refC,
     creditCost: 3,
     category: "清新",
+    defaultRatio: "1:1",
+    defaultResolution: "2K",
+    defaultSize: "2048x2048",
     promptText: "生日写真，少女氛围，奶油色布景，柔光人像，精致妆容，庆生仪式感"
   }
 ];
@@ -270,7 +297,10 @@ export const toShowcaseTemplates = (prompts: Prompt[]) => {
     creditCost: Number(prompt.creditCost || 0),
     category: normalizeCategory(`${prompt.scene} ${prompt.categoryTags?.join(" ")} ${prompt.title}`),
     badge: index === 0 ? "推荐" : (index === 1 ? "NEW" : ""),
-    promptText: prompt.userDescription || prompt.promptPreview || prompt.title
+    promptText: prompt.userDescription || prompt.promptPreview || prompt.title,
+    defaultRatio: prompt.defaultParams?.ratio || "",
+    defaultSize: prompt.defaultParams?.size || "",
+    defaultResolution: prompt.defaultParams?.resolution || ""
   }));
 };
 
@@ -350,7 +380,10 @@ export const selectedTemplatePayload = (template: ShowcaseTemplate): SelectedTem
   subtitle: template.subtitle,
   imageUrl: template.imageUrl,
   creditCost: template.creditCost,
-  promptText: template.promptText
+  promptText: template.promptText,
+  defaultRatio: template.defaultRatio,
+  defaultSize: template.defaultSize,
+  defaultResolution: template.defaultResolution
 });
 
 export const saveSelectedTemplate = (template: SelectedTemplatePayload) => {
