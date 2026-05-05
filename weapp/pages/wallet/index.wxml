@@ -1,0 +1,53 @@
+<view class="page wallet-page" style="padding-top: {{safeTop}}px;">
+  <view class="custom-nav">
+    <text class="custom-nav-title">钱包</text>
+    <text class="custom-nav-action">明细</text>
+  </view>
+
+  <view class="balance-card phone-shell">
+    <view class="balance-label">我的积分</view>
+    <view class="balance-value">{{creditBalance}} <text class="balance-unit">积分</text></view>
+  </view>
+
+  <view class="quick-grid">
+    <button class="quick-card" data-key="orders" bindtap="handleQuickAction">
+      <text class="quick-title">订单</text>
+      <text class="quick-subtitle">查看订单记录</text>
+    </button>
+    <button class="quick-card" data-key="records" bindtap="handleQuickAction">
+      <text class="quick-title">充值记录</text>
+      <text class="quick-subtitle">查看充值明细</text>
+    </button>
+  </view>
+
+  <view class="section-title">充值套餐</view>
+  <view class="package-grid">
+    <button
+      wx:for="{{packages}}"
+      wx:key="id"
+      class="package-card {{item.id === selectedPackageId ? 'active' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="selectPackage"
+    >
+      <text class="package-price">{{item.priceLabel}}</text>
+      <text class="package-credits">{{item.creditsLabel}}</text>
+      <text class="package-bonus">{{item.bonusLabel}}</text>
+    </button>
+  </view>
+
+  <button class="recharge-btn" bindtap="rechargeNow">立即充值</button>
+
+  <view class="section-title section-gap">近期订单</view>
+  <view class="record-list">
+    <view wx:for="{{records}}" wx:key="id" class="record-card">
+      <view>
+        <view class="record-title">{{item.title}}</view>
+        <view class="record-time">{{item.createdLabel}}</view>
+      </view>
+      <view class="record-side">
+        <text class="record-credits">{{item.creditsLabel}}</text>
+        <text class="record-status">{{item.statusLabel}}</text>
+      </view>
+    </view>
+  </view>
+</view>

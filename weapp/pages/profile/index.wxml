@@ -1,0 +1,49 @@
+<view class="page profile-page" style="padding-top: {{safeTop}}px;">
+  <view class="custom-nav">
+    <text class="custom-nav-title">我的</text>
+    <text class="custom-nav-action">设置</text>
+  </view>
+
+  <view class="profile-head phone-shell">
+    <image class="profile-avatar" mode="aspectFill" src="{{avatarUrl}}" />
+    <view class="profile-copy">
+      <view class="profile-name-row">
+        <text class="profile-name">{{displayName}}</text>
+      </view>
+      <text class="profile-desc">{{user ? '用积分记录真实好瞬间' : '点击绑定微信后同步账号与积分'}}</text>
+    </view>
+  </view>
+
+  <view class="card stats-card">
+    <view class="stats-main">
+      <view class="stats-label">我的积分</view>
+      <view class="stats-value">{{creditBalance}}</view>
+    </view>
+    <view class="stats-side">
+      <view class="stats-item">
+        <text class="stats-item-label">累计充值</text>
+        <text class="stats-item-value">{{cumulativeRecharge}} 积分</text>
+      </view>
+      <view class="stats-item">
+        <text class="stats-item-label">累计消耗</text>
+        <text class="stats-item-value">{{cumulativeSpend}} 积分</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card action-list">
+    <button
+      wx:for="{{actions}}"
+      wx:key="key"
+      class="action-item"
+      data-key="{{item.key}}"
+      bindtap="handleAction"
+    >
+      <text class="action-label">{{item.label}}</text>
+      <view class="action-side">
+        <text wx:if="{{item.value}}" class="action-value">{{item.value}}</text>
+        <text class="action-arrow">›</text>
+      </view>
+    </button>
+  </view>
+</view>

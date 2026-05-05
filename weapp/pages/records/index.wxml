@@ -1,29 +1,46 @@
-<view class="page records-page">
-  <view class="section-title">
-    <text>生成记录</text>
-    <button class="ghost-btn" bindtap="goCreate">去创作</button>
+<view class="page works-page" style="padding-top: {{safeTop}}px;">
+  <view class="custom-nav">
+    <text class="custom-nav-title">作品</text>
+    <text class="custom-nav-action">管理</text>
   </view>
 
-  <view wx:if="{{message}}" class="card empty-card">{{message}}</view>
-
-  <view wx:elif="{{!tasks.length && !loading}}" class="card empty-card">
-    <view>还没有生成记录</view>
-    <button class="primary-btn" bindtap="goCreate">开始生成</button>
+  <view class="filter-row">
+    <button
+      wx:for="{{filters}}"
+      wx:key="key"
+      class="filter-chip {{item.key === activeFilter ? 'active' : ''}}"
+      data-value="{{item.key}}"
+      bindtap="selectFilter"
+    >
+      {{item.label}}
+    </button>
   </view>
 
-  <view class="task-grid">
-    <button wx:for="{{tasks}}" wx:key="id" class="card task-card" data-id="{{item.id}}" bindtap="openTask">
-      <image wx:if="{{item.coverUrl}}" class="task-cover" mode="aspectFill" src="{{item.coverUrl}}" />
-      <view wx:else class="task-cover placeholder">生成中</view>
-      <view class="task-body">
-        <view class="task-title">{{item.promptTitle}}</view>
-        <view class="task-meta">
-          <text>{{item.statusLabel}}</text>
-          <text>{{item.count}} 张</text>
-        </view>
-        <view class="task-meta">
-          <text>{{item.createdLabel}}</text>
-          <text wx:if="{{item.latencyLabel}}">耗时 {{item.latencyLabel}}</text>
+  <view class="works-grid">
+    <button
+      wx:for="{{displayWorks}}"
+      wx:key="id"
+      class="work-card"
+      data-id="{{item.id}}"
+      bindtap="openWork"
+    >
+      <view class="work-image-wrap">
+        <image class="work-image" mode="aspectFill" src="{{item.imageUrl}}" />
+        <button
+          wx:if="{{item.buttonText}}"
+          class="work-action"
+          data-id="{{item.id}}"
+          catchtap="openWork"
+        >
+          {{item.buttonText}}
+        </button>
+      </view>
+      <view class="work-body">
+        <text class="work-title">{{item.title}}</text>
+        <text class="work-time">{{item.createdLabel}}</text>
+        <view class="work-meta">
+          <text>{{item.ratio}}</text>
+          <text>消耗 {{item.creditCost}} 积分</text>
         </view>
       </view>
     </button>

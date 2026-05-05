@@ -3,6 +3,8 @@
     "pages/home/index",
     "pages/create/index",
     "pages/records/index",
+    "pages/wallet/index",
+    "pages/profile/index",
     "pages/result/index"
   ],
   "window": {
@@ -19,21 +21,33 @@
     "list": [
       {
         "pagePath": "pages/home/index",
-        "text": "会员",
-        "iconPath": "assets/tab/home.png",
-        "selectedIconPath": "assets/tab/home-active.png"
-      },
-      {
-        "pagePath": "pages/create/index",
         "text": "创作",
         "iconPath": "assets/tab/create.png",
         "selectedIconPath": "assets/tab/create-active.png"
       },
       {
+        "pagePath": "pages/create/index",
+        "text": "模板",
+        "iconPath": "assets/tab/home.png",
+        "selectedIconPath": "assets/tab/home-active.png"
+      },
+      {
         "pagePath": "pages/records/index",
-        "text": "记录",
+        "text": "作品",
         "iconPath": "assets/tab/records.png",
         "selectedIconPath": "assets/tab/records-active.png"
+      },
+      {
+        "pagePath": "pages/wallet/index",
+        "text": "钱包",
+        "iconPath": "assets/tab/create.png",
+        "selectedIconPath": "assets/tab/create-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "assets/tab/home.png",
+        "selectedIconPath": "assets/tab/home-active.png"
       }
     ]
   },

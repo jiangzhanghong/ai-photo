@@ -1981,8 +1981,6 @@ const routeApi = async (req, res, url) => {
   if (req.method === "POST" && url.pathname === "/api/ai-image-tasks") {
     const user = await requireUser(req);
     if (!user) return json(res, 401, { message: "请先登录。" });
-    const membership = (await db.query("SELECT * FROM user_memberships WHERE user_id = ? AND status = 'active' LIMIT 1", [user.id]))[0];
-    if (!membership) return json(res, 403, { message: "请先购买积分套餐。" });
     const taskType = ["generate", "edit", "image_to_image"].includes(body.taskType) ? body.taskType : "generate";
     const customPrompt = String(body.customPrompt || "").trim();
     const prompt = body.promptTemplateId
@@ -1999,7 +1997,7 @@ const routeApi = async (req, res, url) => {
     const size = body.size || defaultParams.size || model.default_size;
     const ratio = normalizeImageRatio(body.ratio || defaultParams.ratio, size);
     const creditCost = modelCost(model, taskType, count);
-    if (Number(user.credits || 0) < creditCost) return json(res, 400, { message: "积分不足，请选择更少数量或开通更高方案。" });
+    if (Number(user.credits || 0) < creditCost) return json(res, 400, { message: "积分不足，请先充值积分或减少生成数量。" });
     const promptVariables = body.promptVariables && typeof body.promptVariables === "object" ? body.promptVariables : {};
     const promptContent = customPrompt || prompt.prompt_content;
     const negativePrompt = customPrompt ? "" : (prompt.negative_prompt || "");

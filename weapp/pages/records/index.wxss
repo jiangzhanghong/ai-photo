@@ -1,55 +1,89 @@
-.records-page {
-  padding-bottom: 120rpx;
+.works-page {
+  padding-bottom: 150rpx;
+  background:
+    radial-gradient(circle at top center, rgba(221, 198, 162, 0.16), transparent 42%),
+    linear-gradient(180deg, #fbf7f0 0%, #f6f2eb 100%);
 }
 
-.empty-card {
-  display: grid;
-  gap: 22rpx;
-  padding: 36rpx 28rpx;
-  color: #53615b;
-  text-align: center;
+.filter-row {
+  display: flex;
+  gap: 14rpx;
+  margin-bottom: 24rpx;
 }
 
-.task-grid {
+.filter-chip {
+  min-width: 112rpx;
+  height: 56rpx;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.88);
+  color: #808983;
+  font-size: 24rpx;
+  line-height: 56rpx;
+}
+
+.filter-chip.active {
+  background: #143d2f;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.works-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 18rpx;
 }
 
-.task-card {
+.work-card {
   overflow: hidden;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 14rpx 28rpx rgba(20, 51, 38, 0.06);
   text-align: left;
 }
 
-.task-cover {
+.work-image-wrap {
+  position: relative;
+}
+
+.work-image {
   width: 100%;
-  height: 342rpx;
-  display: grid;
-  place-items: center;
-  background: #e9efeb;
-  color: #708078;
-  font-size: 24rpx;
+  height: 248rpx;
+  background: #e9e4db;
 }
 
-.task-body {
-  display: grid;
-  gap: 10rpx;
-  padding: 16rpx;
+.work-action {
+  position: absolute;
+  right: 14rpx;
+  bottom: 14rpx;
+  padding: 14rpx 18rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.92);
+  color: #4d544f;
+  font-size: 22rpx;
 }
 
-.task-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: #1d2823;
-  font-size: 26rpx;
+.work-body {
+  display: grid;
+  gap: 8rpx;
+  padding: 18rpx;
+}
+
+.work-title {
+  color: #1f2824;
+  font-size: 28rpx;
   font-weight: 700;
 }
 
-.task-meta {
+.work-time {
+  color: #78827c;
+  font-size: 22rpx;
+}
+
+.work-meta {
   display: flex;
   justify-content: space-between;
   gap: 10rpx;
-  color: #76847d;
+  color: #7c847f;
   font-size: 22rpx;
 }

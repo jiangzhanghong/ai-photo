@@ -1,4 +1,5 @@
 {
-  "navigationBarTitleText": "生成记录",
+  "navigationBarTitleText": "作品",
+  "navigationStyle": "custom",
   "enablePullDownRefresh": true
 }

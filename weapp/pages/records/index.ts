@@ -1,48 +1,47 @@
 import type { MediaImage, Task } from "../../types/api";
-import { absoluteUrl } from "../../utils/config";
-import { formatDate, formatLatency, statusText } from "../../utils/format";
 import { normalizeMediaImage, resolveMediaImages } from "../../utils/media";
 import { request } from "../../utils/request";
-
-interface TaskCard extends Task {
-  coverUrl: string;
-  statusLabel: string;
-  latencyLabel: string;
-  createdLabel: string;
-}
-
-const toCard = (task: Task): TaskCard => {
-  const cover = task.resultImages?.[0]?.thumbUrl || task.resultImages?.[0]?.previewUrl || task.resultImageUrls?.[0] || task.inputImages?.[0]?.thumbUrl || task.inputImages?.[0]?.previewUrl || task.inputImageUrls?.[0] || task.inputImageUrl || "";
-  return {
-    ...task,
-    coverUrl: absoluteUrl(cover),
-    statusLabel: statusText(task.status),
-    latencyLabel: formatLatency(task.providerLatencyMs),
-    createdLabel: formatDate(task.createdAt)
-  };
-};
+import { getStoredUser } from "../../utils/session";
+import {
+  getFallbackWorks,
+  toShowcaseWorks,
+  workFilterTabs,
+  type ShowcaseWork
+} from "../../utils/showcase";
 
 Page({
   data: {
-    tasks: [] as TaskCard[],
-    loading: false,
-    message: ""
+    safeTop: 32,
+    filters: [...workFilterTabs],
+    activeFilter: "all",
+    works: getFallbackWorks(),
+    displayWorks: getFallbackWorks()
+  },
+
+  onLoad() {
+    const { statusBarHeight = 24 } = wx.getSystemInfoSync();
+    this.setData({ safeTop: statusBarHeight + 12 });
   },
 
   async onShow() {
-    await this.loadTasks();
+    await this.loadWorks();
+    this.applyFilter();
   },
 
   async onPullDownRefresh() {
-    await this.loadTasks();
+    await this.loadWorks();
+    this.applyFilter();
     wx.stopPullDownRefresh();
   },
 
-  async loadTasks() {
-    this.setData({ loading: true, message: "" });
+  async loadWorks() {
+    if (!getStoredUser()) {
+      this.setData({ works: getFallbackWorks() });
+      return;
+    }
     try {
       const data = await request<{ tasks: Task[] }>("/api/ai-image-tasks");
-      const tasks = await Promise.all(data.tasks.map(async (task) => {
+      const tasks = await Promise.all((data.tasks || []).map(async (task) => {
         const resultImages = task.resultImages?.length
           ? task.resultImages
           : (task.resultImageUrls || []).map((url) => normalizeMediaImage({ originalUrl: url, previewUrl: url, thumbUrl: url })).filter(Boolean) as MediaImage[];
@@ -55,21 +54,36 @@ Page({
           inputImages: await resolveMediaImages(inputImages)
         };
       }));
-      this.setData({ tasks: tasks.map(toCard) });
-    } catch (error) {
-      this.setData({ message: (error as Error).message });
-    } finally {
-      this.setData({ loading: false });
+      this.setData({ works: toShowcaseWorks(tasks) });
+    } catch {
+      this.setData({ works: getFallbackWorks() });
     }
   },
 
-  openTask(event: WechatMiniprogram.TouchEvent) {
-    const id = String(event.currentTarget.dataset.id || "");
-    if (!id) return;
-    wx.navigateTo({ url: `/pages/result/index?id=${id}` });
+  applyFilter() {
+    const activeFilter = this.data.activeFilter;
+    const displayWorks = activeFilter === "all"
+      ? this.data.works
+      : this.data.works.filter((item) => item.filter === activeFilter);
+    this.setData({ displayWorks });
   },
 
-  goCreate() {
-    wx.switchTab({ url: "/pages/create/index" });
+  selectFilter(event: WechatMiniprogram.TouchEvent) {
+    this.setData({ activeFilter: String(event.currentTarget.dataset.value || "all") });
+    this.applyFilter();
+  },
+
+  openWork(event: WechatMiniprogram.TouchEvent) {
+    const id = String(event.currentTarget.dataset.id || "");
+    const work = this.data.works.find((item) => item.id === id) as ShowcaseWork | undefined;
+    if (!work) return;
+    if (work.taskId) {
+      wx.navigateTo({ url: `/pages/result/index?id=${work.taskId}` });
+      return;
+    }
+    wx.previewImage({
+      current: work.imageUrl,
+      urls: this.data.works.map((item) => item.imageUrl)
+    });
   }
 });

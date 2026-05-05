@@ -1,0 +1,155 @@
+.wallet-page {
+  padding-bottom: 150rpx;
+  background:
+    radial-gradient(circle at top center, rgba(223, 199, 160, 0.16), transparent 42%),
+    linear-gradient(180deg, #fbf7f0 0%, #f5f1ea 100%);
+}
+
+.balance-card {
+  padding: 28rpx;
+  border-radius: 30rpx;
+  background: linear-gradient(145deg, #143c2e 0%, #1a4a37 100%);
+}
+
+.balance-label {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 26rpx;
+}
+
+.balance-value {
+  margin-top: 14rpx;
+  color: #ffffff;
+  font-size: 68rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.balance-unit {
+  margin-left: 8rpx;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 24rpx;
+  font-weight: 400;
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.quick-card {
+  display: grid;
+  gap: 8rpx;
+  padding: 22rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.92);
+  text-align: left;
+}
+
+.quick-title {
+  color: #1f2824;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.quick-subtitle,
+.package-bonus,
+.record-time,
+.record-status {
+  color: #7b857f;
+  font-size: 22rpx;
+}
+
+.section-title {
+  margin-top: 28rpx;
+  color: #1f2824;
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.package-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+  margin-top: 18rpx;
+}
+
+.package-card {
+  display: grid;
+  gap: 12rpx;
+  align-content: start;
+  min-height: 176rpx;
+  padding: 22rpx 18rpx;
+  border: 2rpx solid transparent;
+  border-radius: 26rpx;
+  background: rgba(255, 255, 255, 0.90);
+  text-align: left;
+}
+
+.package-card.active {
+  border-color: #d9aa57;
+  background: linear-gradient(180deg, #fffaf0 0%, #fff3d8 100%);
+}
+
+.package-price {
+  color: #1f2824;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.package-credits {
+  color: #6f4e17;
+  font-size: 38rpx;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.recharge-btn {
+  height: 90rpx;
+  margin-top: 24rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #164836 0%, #113829 100%);
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 90rpx;
+  text-align: center;
+}
+
+.section-gap {
+  margin-top: 34rpx;
+}
+
+.record-list {
+  display: grid;
+  gap: 16rpx;
+  margin-top: 18rpx;
+}
+
+.record-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding: 22rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.record-title,
+.record-credits {
+  color: #1f2824;
+  font-size: 28rpx;
+}
+
+.record-credits {
+  color: #d08f2d;
+  font-weight: 700;
+}
+
+.record-side {
+  display: grid;
+  justify-items: end;
+  gap: 8rpx;
+}
