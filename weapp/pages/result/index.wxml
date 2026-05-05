@@ -18,7 +18,7 @@
   </view>
   <view wx:elif="{{isPending}}" class="card pending-card">
     <view class="pending-title">{{statusLabel}}</view>
-    <view class="muted">通常 30-90 秒完成，完成后会自动刷新。</view>
+    <view class="muted">通常 30-90 秒完成。你可以离开此页，作品页会同步展示生成进度。</view>
   </view>
 
   <view wx:if="{{task}}" class="status-summary {{isFailed ? 'failed' : (isPending ? 'pending' : 'success')}}">
@@ -34,7 +34,7 @@
 
   <view class="action-row">
     <button class="primary-btn" bindtap="saveCurrent" disabled="{{!currentUrl}}">保存图片</button>
-    <button class="ghost-btn" bindtap="goHome">再生成</button>
+    <button class="ghost-btn" bindtap="goHome">{{isFailed ? '重试' : '再生成'}}</button>
     <button class="ghost-btn" bindtap="goCreate">换模板</button>
   </view>
 
@@ -61,6 +61,7 @@
     <text>图片仅用于本次生成，不会公开展示。</text>
     <text>生成失败自动退回积分。</text>
     <text>如保存失败，可先点图片预览后长按保存。</text>
+    <button wx:if="{{isFailed}}" class="copy-task-btn" bindtap="copyTaskId">复制任务编号并联系客服</button>
   </view>
 
   <view wx:if="{{references.length}}" class="reference-section">

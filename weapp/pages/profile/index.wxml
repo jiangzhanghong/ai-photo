@@ -20,7 +20,7 @@
           <text class="profile-name">{{displayName}}</text>
           <text class="profile-edit">编辑</text>
         </view>
-        <text class="profile-desc">用镜头记录最美好瞬间</text>
+        <text class="profile-desc">{{avatarHint}}</text>
       </view>
     </view>
 

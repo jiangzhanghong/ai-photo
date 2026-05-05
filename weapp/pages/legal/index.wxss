@@ -1,0 +1,60 @@
+.legal-page {
+  padding-bottom: 80rpx;
+  background:
+    radial-gradient(circle at top center, rgba(221, 198, 162, 0.14), transparent 42%),
+    linear-gradient(180deg, #fbf7f0 0%, #f4efe6 100%);
+}
+
+.legal-back {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.86);
+  color: #1d2823;
+  font-size: 48rpx;
+  line-height: 56rpx;
+  text-align: center;
+}
+
+.legal-panel,
+.contact-panel {
+  display: grid;
+  gap: 24rpx;
+  padding: 28rpx;
+  border: 1rpx solid rgba(16, 59, 44, 0.06);
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 14rpx 28rpx rgba(16, 59, 44, 0.05);
+}
+
+.legal-section {
+  display: grid;
+  gap: 12rpx;
+}
+
+.legal-title,
+.contact-title {
+  color: #1f2824;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.legal-text {
+  color: #5f6b65;
+  font-size: 25rpx;
+  line-height: 1.65;
+}
+
+.contact-panel {
+  margin-top: 22rpx;
+}
+
+.contact-copy {
+  height: 72rpx;
+  border-radius: 18rpx;
+  background: #143d2f;
+  color: #ffffff;
+  font-size: 26rpx;
+  line-height: 72rpx;
+  text-align: center;
+}

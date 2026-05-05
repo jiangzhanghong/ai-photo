@@ -2,8 +2,8 @@
   <view class="custom-nav" style="padding-right: {{capsuleGap}}px;">
     <text class="custom-nav-title">模板广场</text>
     <view class="coin-box">
-      <text class="coin-label">P</text>
-      <text class="coin-value">{{creditBalance}}</text>
+      <text class="coin-label">分</text>
+      <text class="coin-value">{{user ? creditBalance : '--'}}</text>
     </view>
   </view>
 
@@ -60,7 +60,7 @@
         <text class="template-title">{{item.title}}</text>
         <text class="template-subtitle">{{item.subtitle}}</text>
         <view class="template-meta">
-          <text class="template-cost">P {{item.creditCost}}</text>
+          <text class="template-cost">{{item.creditCost}} 积分</text>
           <text class="template-go">{{item.id === selectedTemplateId || item.promptId === selectedTemplateId ? '已选择' : '使用'}}</text>
         </view>
       </view>

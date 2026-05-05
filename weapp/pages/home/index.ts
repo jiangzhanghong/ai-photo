@@ -68,12 +68,21 @@ const normalizeResolution = (value = "") => {
   return resolution === "4K" ? "4K" : "2K";
 };
 
+const greetingText = () => {
+  const hour = new Date().getHours();
+  if (hour < 6) return "夜间创作";
+  if (hour < 12) return "上午好";
+  if (hour < 18) return "下午好";
+  return "晚上好";
+};
+
 Page({
   data: {
     safeTop: 32,
     capsuleGap: 0,
     user: null as User | null,
     avatarUrl: getDisplayAvatar(null),
+    greetingTitle: greetingText(),
     creditBalance: 0,
     templates: getFallbackTemplates(),
     ratioOptions,
@@ -103,13 +112,12 @@ Page({
   },
 
   onLoad() {
-    this.setData(getPageChrome());
+    this.setData({ ...getPageChrome(), greetingTitle: greetingText() });
   },
 
   async onShow() {
-    if (!requireLogin("/pages/home/index")) return;
     this.applyUser(getStoredUser());
-    this.applyUser(await syncCurrentUser());
+    if (getStoredUser()) this.applyUser(await syncCurrentUser());
     await this.loadPrompts();
     this.applyStoredTemplateSelection();
     this.syncGenerationState();
@@ -164,7 +172,7 @@ Page({
     const requestSize = this.currentRequestSize();
     let generateButtonText = "立即生成";
     let generateButtonDisabled = false;
-    let generateHint = `剩余积分：${this.data.creditBalance}`;
+    let generateHint = this.data.user ? `剩余积分：${this.data.creditBalance}` : "登录后可提交生成任务";
 
     if (this.data.submitting) {
       generateButtonText = "生成中...";
@@ -173,11 +181,15 @@ Page({
     } else if (!hasUploadedImage) {
       generateButtonText = "请先上传参考图";
       generateButtonDisabled = true;
-      generateHint = "上传一张清晰正脸照后即可生成";
+      generateHint = "建议上传清晰正脸照，最多 5 张";
     } else if (!hasTemplate) {
       generateButtonText = "请选择模板";
       generateButtonDisabled = true;
       generateHint = "先选择一个写真风格模板";
+    } else if (!this.data.user) {
+      generateButtonText = "登录后生成";
+      generateButtonDisabled = false;
+      generateHint = "登录后会同步积分、作品和订单";
     } else if (!hasEnoughCredits) {
       generateButtonText = `差 ${creditShortage} 积分，去充值`;
       generateButtonDisabled = false;
@@ -389,7 +401,6 @@ Page({
   },
 
   openTemplatePage() {
-    if (!requireLogin("/pages/create/index")) return;
     wx.switchTab({ url: "/pages/create/index" });
   }
 });

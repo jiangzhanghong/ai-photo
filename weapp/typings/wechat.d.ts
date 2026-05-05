@@ -30,3 +30,5 @@ declare function Page(options: any): void;
 declare function App<T = any>(options: T): void;
 
 declare function getApp<T = any>(): T;
+
+declare function getCurrentPages(): any[];

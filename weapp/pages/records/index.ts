@@ -19,7 +19,9 @@ Page({
     filters: [...workFilterTabs],
     activeFilter: "all",
     works: [] as ShowcaseWork[],
-    displayWorks: [] as ShowcaseWork[]
+    displayWorks: [] as ShowcaseWork[],
+    loadingWorks: false,
+    loadFailed: false
   },
 
   onLoad() {
@@ -44,10 +46,13 @@ Page({
     if (!getStoredUser()) {
       this.setData({
         works: [],
-        displayWorks: []
+        displayWorks: [],
+        loadingWorks: false,
+        loadFailed: false
       });
       return;
     }
+    this.setData({ loadingWorks: true, loadFailed: false });
     try {
       const data = await request<{ tasks: Task[] }>("/api/ai-image-tasks");
       const tasks = await Promise.all((data.tasks || []).map(async (task) => {
@@ -63,10 +68,14 @@ Page({
           inputImages: await resolveMediaImages(inputImages)
         };
       }));
-      this.setData({ works: toShowcaseWorks(tasks) });
+      this.setData({ works: toShowcaseWorks(tasks), loadingWorks: false, loadFailed: false });
     } catch {
-      this.setData({ works: [] });
+      this.setData({ works: [], loadingWorks: false, loadFailed: true });
     }
+  },
+
+  retryLoadWorks() {
+    this.loadWorks().then(() => this.applyFilter());
   },
 
   applyFilter() {
@@ -98,5 +107,9 @@ Page({
 
   goLogin() {
     wx.switchTab({ url: "/pages/profile/index" });
+  },
+
+  goCreate() {
+    wx.switchTab({ url: "/pages/create/index" });
   }
 });

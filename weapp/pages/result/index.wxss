@@ -163,3 +163,14 @@
   font-size: 23rpx;
   line-height: 1.45;
 }
+
+.copy-task-btn {
+  height: 64rpx;
+  margin-top: 8rpx;
+  border-radius: 16rpx;
+  background: #143d2f;
+  color: #ffffff;
+  font-size: 24rpx;
+  line-height: 64rpx;
+  text-align: center;
+}

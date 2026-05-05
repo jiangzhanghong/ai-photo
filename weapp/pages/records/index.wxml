@@ -22,7 +22,18 @@
       </button>
     </view>
 
-    <view wx:if="{{displayWorks.length}}" class="works-grid">
+    <view wx:if="{{loadingWorks}}" class="card works-empty">
+      <text class="works-empty-title">正在加载作品</text>
+      <text class="works-empty-desc">正在同步生成中、已完成和失败的任务。</text>
+    </view>
+
+    <view wx:elif="{{loadFailed}}" class="card works-empty">
+      <text class="works-empty-title">作品加载失败</text>
+      <text class="works-empty-desc">网络或服务暂时异常，请稍后重试。</text>
+      <button class="works-empty-btn" bindtap="retryLoadWorks">重新加载</button>
+    </view>
+
+    <view wx:elif="{{displayWorks.length}}" class="works-grid">
       <button
         wx:for="{{displayWorks}}"
         wx:key="id"
@@ -57,6 +68,7 @@
     <view wx:else class="card works-empty">
       <text class="works-empty-title">暂无作品</text>
       <text class="works-empty-desc">生成成功、生成中和失败任务都会按真实状态展示在这里。</text>
+      <button class="works-empty-btn" bindtap="goCreate">去选模板</button>
     </view>
   </block>
 </view>

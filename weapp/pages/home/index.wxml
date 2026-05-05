@@ -1,14 +1,14 @@
 <view class="page create-home" style="padding-top: {{safeTop}}px;">
   <view class="hero-panel">
     <view class="hero-copy">
-      <view class="hero-title">Hello, 早安</view>
-      <view class="hero-subtitle">欢迎回来，今天想创作点什么呢？</view>
+      <view class="hero-title">{{greetingTitle}}</view>
+      <view class="hero-subtitle">选择模板，上传参考图，生成你的专属写真</view>
     </view>
     <view class="credit-badge" style="margin-right: {{capsuleGap}}px;">
-      <text class="credit-coin">P</text>
+      <text class="credit-coin">分</text>
       <view class="credit-badge-copy">
-        <text class="credit-badge-label">积分</text>
-        <text class="credit-badge-value">{{creditBalance}}</text>
+        <text class="credit-badge-label">{{user ? '积分' : '未登录'}}</text>
+        <text class="credit-badge-value">{{user ? creditBalance : '--'}}</text>
       </view>
     </view>
   </view>
@@ -16,14 +16,14 @@
   <view class="card upload-card">
     <view class="upload-copy">
       <view class="card-title">上传参考图</view>
-      <view class="card-subtitle">建议上传清晰正脸照，图片仅用于本次生成</view>
+      <view class="card-subtitle">上传 1-5 张清晰正脸照，图片仅用于本次生成</view>
       <button class="upload-action" bindtap="chooseImages">+</button>
-      <text class="upload-script">Upload</text>
+      <text class="upload-script">上传</text>
     </view>
     <view class="upload-preview-stack">
       <image class="upload-preview back" mode="aspectFill" src="{{selectedTemplateImage}}" />
-      <image class="upload-preview front" mode="aspectFill" src="{{uploadedImages.length ? uploadedImages[0].previewUrl : avatarUrl}}" />
-      <text class="sample-flag">{{uploadedImages.length ? '已上传' : '示例'}}</text>
+      <image class="upload-preview front" mode="aspectFill" src="{{uploadedImages.length ? uploadedImages[0].previewUrl : selectedTemplateImage}}" />
+      <text class="sample-flag">{{uploadedImages.length ? '已上传' : '待上传'}}</text>
     </view>
   </view>
 

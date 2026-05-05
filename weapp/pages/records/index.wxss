@@ -173,3 +173,15 @@
   font-size: 24rpx;
   line-height: 1.6;
 }
+
+.works-empty-btn {
+  width: 220rpx;
+  height: 72rpx;
+  margin: 8rpx auto 0;
+  border-radius: 999rpx;
+  background: #143d2f;
+  color: #ffffff;
+  font-size: 26rpx;
+  line-height: 72rpx;
+  text-align: center;
+}

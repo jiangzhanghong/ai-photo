@@ -53,14 +53,9 @@ Page({
     }
     this.setData({ loading: true, message: "" });
     try {
-      const data = await request<{ tasks: Task[] }>("/api/ai-image-tasks");
-      const task = data.tasks.find((item) => item.id === this.data.taskId) || null;
-      if (!task) {
-        this.setData({ message: "任务不存在。", loading: false });
-        return;
-      }
-      await this.applyTask(task);
-      if (task.status === "queued" || task.status === "processing") this.startPolling();
+      const data = await request<{ task: Task }>(`/api/ai-image-tasks/${encodeURIComponent(this.data.taskId)}`);
+      await this.applyTask(data.task);
+      if (data.task.status === "queued" || data.task.status === "processing") this.startPolling();
       else this.stopPolling();
     } catch (error) {
       this.setData({ message: (error as Error).message });
@@ -154,6 +149,21 @@ Page({
   saveCurrent() {
     const downloadUrl = this.data.images[this.data.currentIndex]?.url || this.data.currentUrl;
     if (!downloadUrl) return;
+    const handleSaveFail = (error?: { errMsg?: string }) => {
+      const message = String(error?.errMsg || "");
+      if (message.includes("auth deny") || message.includes("authorize")) {
+        wx.showModal({
+          title: "需要相册权限",
+          content: "开启保存到相册权限后，才能把生成图片保存到手机。",
+          confirmText: "去设置",
+          success: (res) => {
+            if (res.confirm) wx.openSetting({});
+          }
+        });
+        return;
+      }
+      wx.showToast({ title: "保存失败", icon: "none" });
+    };
     wx.downloadFile({
       url: downloadUrl,
       success: (download) => {
@@ -164,7 +174,7 @@ Page({
         wx.saveImageToPhotosAlbum({
           filePath: download.tempFilePath,
           success: () => wx.showToast({ title: "已保存" }),
-          fail: () => wx.showToast({ title: "保存失败", icon: "none" })
+          fail: handleSaveFail
         });
       },
       fail: () => wx.showToast({ title: "下载失败", icon: "none" })
@@ -181,5 +191,10 @@ Page({
 
   goHome() {
     wx.switchTab({ url: "/pages/home/index" });
+  },
+
+  copyTaskId() {
+    if (!this.data.taskId) return;
+    wx.setClipboardData({ data: this.data.taskId });
   }
 });

@@ -25,6 +25,12 @@ const actionIcons: Record<string, string> = {
 
 const tabPageUrls = ["/pages/home/index", "/pages/create/index", "/pages/records/index", "/pages/profile/index"];
 
+const avatarSourceLabel = (user?: User | null) => {
+  if (!user?.avatarUrl) return "未获取微信头像，点头像可设置";
+  if (user.avatarSource === "custom") return "当前使用自定义头像，点头像可更换";
+  return "当前使用微信头像，点头像可自定义";
+};
+
 Page({
   data: {
     safeTop: 32,
@@ -33,6 +39,7 @@ Page({
     tasks: [] as Task[],
     avatarUrl: getDisplayAvatar(null),
     displayName: getDisplayName(null),
+    avatarHint: avatarSourceLabel(null),
     creditBalance: 0,
     cumulativeRecharge: 0,
     cumulativeSpend: 0,
@@ -70,6 +77,7 @@ Page({
       tasks,
       avatarUrl: getDisplayAvatar(user),
       displayName: getDisplayName(user),
+      avatarHint: avatarSourceLabel(user),
       creditBalance: getDisplayCredits(user),
       cumulativeRecharge,
       cumulativeSpend,
@@ -149,7 +157,8 @@ Page({
       getApp<{ globalData: { user: User | null } }>().globalData.user = data.user;
       this.setData({
         user: data.user,
-        avatarUrl: getDisplayAvatar(data.user)
+        avatarUrl: getDisplayAvatar(data.user),
+        avatarHint: avatarSourceLabel(data.user)
       });
       wx.showToast({ title: "头像已更新", icon: "success" });
     } catch (error) {
@@ -193,12 +202,24 @@ Page({
       wx.navigateTo({ url: "/pages/flows/index" });
       return;
     }
-    const tips: Record<string, string> = {
-      protocol: "用户协议待补充正式内容",
-      privacy: "隐私政策待补充正式内容",
-      contact: "联系邮箱：support@ai-photo.local"
-    };
-    wx.showToast({ title: tips[key] || "功能整理中", icon: "none" });
+    if (key === "protocol" || key === "privacy") {
+      wx.navigateTo({ url: `/pages/legal/index?type=${key}` });
+      return;
+    }
+    if (key === "contact") {
+      wx.showActionSheet({
+        itemList: ["复制客服邮箱", "查看隐私说明"],
+        success: (res) => {
+          if (res.tapIndex === 0) {
+            wx.setClipboardData({ data: "support@ai-photo.local" });
+            return;
+          }
+          wx.navigateTo({ url: "/pages/legal/index?type=privacy" });
+        }
+      });
+      return;
+    }
+    wx.showToast({ title: "功能整理中", icon: "none" });
   },
 
   redirectAfterLogin() {

@@ -2102,6 +2102,15 @@ const routeApi = async (req, res, url) => {
     return json(res, 200, { tasks: rows.map(taskDto) });
   }
 
+  const taskDetailMatch = url.pathname.match(/^\/api\/ai-image-tasks\/([^/]+)$/);
+  if (req.method === "GET" && taskDetailMatch) {
+    const user = await requireUser(req);
+    if (!user) return json(res, 401, { message: "请先登录。" });
+    const rows = await db.query("SELECT * FROM ai_image_tasks WHERE id = ? AND user_id = ? LIMIT 1", [decodeURIComponent(taskDetailMatch[1]), user.id]);
+    if (!rows[0]) return json(res, 404, { message: "任务不存在。" });
+    return json(res, 200, { task: taskDto(rows[0]) });
+  }
+
   if (req.method === "GET" && url.pathname === "/api/credit-transactions") {
     const user = await requireUser(req);
     if (!user) return json(res, 401, { message: "请先登录。" });

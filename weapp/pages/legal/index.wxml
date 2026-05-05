@@ -1,0 +1,49 @@
+<view class="page legal-page" style="padding-top: {{safeTop}}px;">
+  <view class="custom-nav" style="padding-right: {{capsuleGap}}px;">
+    <button class="legal-back" bindtap="goBack">‹</button>
+    <text class="custom-nav-title">{{pageTitle}}</text>
+  </view>
+
+  <view wx:if="{{type === 'privacy'}}" class="legal-panel">
+    <view class="legal-section">
+      <text class="legal-title">我们会处理哪些信息</text>
+      <text class="legal-text">登录时会使用微信登录凭证识别账号。你主动选择头像、昵称或上传参考图时，我们会保存对应内容，用于展示资料、提交 AI 生成任务和同步作品记录。</text>
+    </view>
+    <view class="legal-section">
+      <text class="legal-title">图片如何使用</text>
+      <text class="legal-text">参考图仅用于本次生成和你的作品记录，不会作为公开案例展示。生成失败时会自动退回对应积分。</text>
+    </view>
+    <view class="legal-section">
+      <text class="legal-title">存储与访问</text>
+      <text class="legal-text">上传图片和生成结果会存储在服务端对象存储中，并通过登录态控制访问。请勿上传他人隐私、证件、未授权肖像或违法违规内容。</text>
+    </view>
+    <view class="legal-section">
+      <text class="legal-title">删除与联系</text>
+      <text class="legal-text">如需删除账号资料、上传图片或作品记录，请通过客服邮箱联系我们，并提供账号信息或任务编号。</text>
+    </view>
+  </view>
+
+  <view wx:else class="legal-panel">
+    <view class="legal-section">
+      <text class="legal-title">服务内容</text>
+      <text class="legal-text">光影AI提供基于用户上传参考图和模板提示词的图片生成服务。生成效果会受到参考图质量、模板、模型状态和网络环境影响。</text>
+    </view>
+    <view class="legal-section">
+      <text class="legal-title">用户责任</text>
+      <text class="legal-text">你应确保上传内容拥有合法使用权，不得上传违法违规、侵权、低俗、暴力或侵犯他人隐私的内容。</text>
+    </view>
+    <view class="legal-section">
+      <text class="legal-title">积分与失败处理</text>
+      <text class="legal-text">提交任务会按页面展示扣减积分。任务未成功生成时，系统会按规则自动退回本次消耗积分。</text>
+    </view>
+    <view class="legal-section">
+      <text class="legal-title">服务调整</text>
+      <text class="legal-text">在备案、支付和模型服务配置完善前，部分能力可能处于内测状态。实际可用能力以页面展示为准。</text>
+    </view>
+  </view>
+
+  <view class="contact-panel">
+    <text class="contact-title">客服邮箱</text>
+    <button class="contact-copy" bindtap="copyEmail">support@ai-photo.local</button>
+  </view>
+</view>

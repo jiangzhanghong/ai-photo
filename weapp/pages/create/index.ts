@@ -1,5 +1,4 @@
 import type { MediaImage, Prompt, User } from "../../types/api";
-import { requireLogin } from "../../utils/auth";
 import { getPageChrome } from "../../utils/layout";
 import { normalizeMediaImage, resolveMediaImages } from "../../utils/media";
 import { request } from "../../utils/request";
@@ -37,7 +36,6 @@ Page({
   },
 
   async onShow() {
-    if (!requireLogin("/pages/create/index")) return;
     const user = getStoredUser();
     const selected = getSelectedTemplate();
     this.setData({
@@ -99,7 +97,6 @@ Page({
   },
 
   selectTemplate(event: WechatMiniprogram.TouchEvent) {
-    if (!requireLogin("/pages/create/index")) return;
     const id = String(event.currentTarget.dataset.id || "");
     const template = this.data.templates.find((item) => item.id === id) as ShowcaseTemplate | undefined;
     if (!template) return;
