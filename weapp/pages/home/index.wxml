@@ -4,12 +4,13 @@
       <view class="hero-title">{{greetingTitle}}</view>
       <view class="hero-subtitle">选择模板，上传参考图，生成你的专属写真</view>
     </view>
-    <view class="credit-badge" style="margin-right: {{capsuleGap}}px;">
+    <view class="credit-badge">
       <text class="credit-coin">分</text>
       <view class="credit-badge-copy">
-        <text class="credit-badge-label">{{user ? '积分' : '未登录'}}</text>
+        <text class="credit-badge-label">积分</text>
         <text class="credit-badge-value">{{user ? creditBalance : '--'}}</text>
       </view>
+      <text wx:if="{{!user}}" class="credit-login">登录查看</text>
     </view>
   </view>
 
