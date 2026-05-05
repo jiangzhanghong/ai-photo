@@ -1,4 +1,6 @@
 import type { MediaImage, Prompt, User } from "../../types/api";
+import { requireLogin } from "../../utils/auth";
+import { getPageChrome } from "../../utils/layout";
 import { normalizeMediaImage, resolveMediaImages } from "../../utils/media";
 import { request } from "../../utils/request";
 import { getStoredUser } from "../../utils/session";
@@ -15,6 +17,7 @@ import {
 Page({
   data: {
     safeTop: 32,
+    capsuleGap: 0,
     user: null as User | null,
     creditBalance: 0,
     categories: [...templateFilterTabs],
@@ -25,11 +28,11 @@ Page({
   },
 
   onLoad() {
-    const { statusBarHeight = 24 } = wx.getSystemInfoSync();
-    this.setData({ safeTop: statusBarHeight + 12 });
+    this.setData(getPageChrome());
   },
 
   async onShow() {
+    if (!requireLogin()) return;
     const user = getStoredUser();
     this.setData({
       user,
@@ -88,13 +91,14 @@ Page({
   },
 
   selectTemplate(event: WechatMiniprogram.TouchEvent) {
+    if (!requireLogin()) return;
     const id = String(event.currentTarget.dataset.id || "");
     const template = this.data.templates.find((item) => item.id === id) as ShowcaseTemplate | undefined;
     if (!template) return;
     saveSelectedTemplate(selectedTemplatePayload(template));
-      wx.showToast({ title: "已设为当前模板", icon: "none" });
-      setTimeout(() => {
-        wx.switchTab({ url: "/pages/home/index" });
-      }, 250);
+    wx.showToast({ title: "已设为当前模板", icon: "none" });
+    setTimeout(() => {
+      wx.switchTab({ url: "/pages/home/index" });
+    }, 250);
   }
 });

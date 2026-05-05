@@ -1,5 +1,5 @@
 <view class="page profile-page" style="padding-top: {{safeTop}}px;">
-  <view class="custom-nav">
+  <view class="custom-nav" style="padding-right: {{capsuleGap}}px;">
     <text class="custom-nav-title">我的</text>
     <text class="custom-nav-action">设置</text>
   </view>

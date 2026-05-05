@@ -4,7 +4,7 @@
       <view class="hero-title">Hello, 早安</view>
       <view class="hero-subtitle">欢迎回来，今天想创作点什么呢？</view>
     </view>
-    <view class="credit-badge">
+    <view class="credit-badge" style="margin-right: {{capsuleGap}}px;">
       <text class="credit-coin">P</text>
       <view class="credit-badge-copy">
         <text class="credit-badge-label">积分</text>

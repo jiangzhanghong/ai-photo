@@ -1,7 +1,9 @@
 import type { MediaImage, Task } from "../../types/api";
+import { requireLogin } from "../../utils/auth";
 import { normalizeMediaImage, resolveMediaImages } from "../../utils/media";
 import { request } from "../../utils/request";
 import { getStoredUser } from "../../utils/session";
+import { getPageChrome } from "../../utils/layout";
 import {
   getFallbackWorks,
   toShowcaseWorks,
@@ -12,6 +14,7 @@ import {
 Page({
   data: {
     safeTop: 32,
+    capsuleGap: 0,
     user: null as ReturnType<typeof getStoredUser>,
     needsLogin: false,
     filters: [...workFilterTabs],
@@ -21,11 +24,11 @@ Page({
   },
 
   onLoad() {
-    const { statusBarHeight = 24 } = wx.getSystemInfoSync();
-    this.setData({ safeTop: statusBarHeight + 12 });
+    this.setData(getPageChrome());
   },
 
   async onShow() {
+    if (!requireLogin()) return;
     const user = getStoredUser();
     this.setData({ user, needsLogin: !user });
     await this.loadWorks();

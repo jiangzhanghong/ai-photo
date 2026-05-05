@@ -1,6 +1,7 @@
 import type { LoginResponse, Task, User } from "../../types/api";
 import { request } from "../../utils/request";
 import { clearSession, getRefreshToken, getStoredUser, saveSession } from "../../utils/session";
+import { getPageChrome } from "../../utils/layout";
 import {
   getCumulativeRecharge,
   getCumulativeSpend,
@@ -25,6 +26,7 @@ const actionIcons: Record<string, string> = {
 Page({
   data: {
     safeTop: 32,
+    capsuleGap: 0,
     user: null as User | null,
     tasks: [] as Task[],
     avatarUrl: getDisplayAvatar(null),
@@ -40,8 +42,7 @@ Page({
   },
 
   onLoad() {
-    const { statusBarHeight = 24 } = wx.getSystemInfoSync();
-    this.setData({ safeTop: statusBarHeight + 12 });
+    this.setData(getPageChrome());
   },
 
   async onShow() {

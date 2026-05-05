@@ -1,7 +1,8 @@
-// DevTools can use localhost when domain checks are disabled.
-// Real-device debugging and release builds must use an HTTPS domain
-// configured in the Mini Program request/download legal domain list.
-export const API_BASE_URL = "http://114.132.185.231:8000";
+// Real-device debugging and release builds must use a domain configured in
+// the Mini Program request/download legal domain list.
+const REMOTE_API_BASE_URL = "http://114.132.185.231:8000";
+
+export const API_BASE_URL = REMOTE_API_BASE_URL;
 
 export const MAX_REFERENCE_IMAGES = 5;
 

@@ -1,5 +1,7 @@
 import type { MediaImage, Prompt, Task, User } from "../../types/api";
+import { requireLogin } from "../../utils/auth";
 import { MAX_REFERENCE_IMAGES } from "../../utils/config";
+import { getPageChrome } from "../../utils/layout";
 import { normalizeMediaImage, resolveMediaImages } from "../../utils/media";
 import { request } from "../../utils/request";
 import { getStoredUser, saveSession } from "../../utils/session";
@@ -39,6 +41,7 @@ const recommendedSizes = {
 Page({
   data: {
     safeTop: 32,
+    capsuleGap: 0,
     user: null as User | null,
     avatarUrl: getDisplayAvatar(null),
     creditBalance: 0,
@@ -59,11 +62,11 @@ Page({
   },
 
   onLoad() {
-    const { statusBarHeight = 24 } = wx.getSystemInfoSync();
-    this.setData({ safeTop: statusBarHeight + 12 });
+    this.setData(getPageChrome());
   },
 
   async onShow() {
+    if (!requireLogin()) return;
     this.applyUser(getStoredUser());
     await this.loadPrompts();
     this.applyStoredTemplateSelection();
@@ -260,6 +263,7 @@ Page({
   },
 
   openTemplatePage() {
+    if (!requireLogin()) return;
     wx.switchTab({ url: "/pages/create/index" });
   }
 });

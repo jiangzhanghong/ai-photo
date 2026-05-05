@@ -1,5 +1,7 @@
 import type { User } from "../../types/api";
+import { requireLogin } from "../../utils/auth";
 import { getStoredUser } from "../../utils/session";
+import { getPageChrome } from "../../utils/layout";
 import {
   getDisplayCredits,
   walletPackages,
@@ -9,6 +11,7 @@ import {
 Page({
   data: {
     safeTop: 32,
+    capsuleGap: 0,
     user: null as User | null,
     creditBalance: 0,
     needsLogin: false,
@@ -18,11 +21,11 @@ Page({
   },
 
   onLoad() {
-    const { statusBarHeight = 24 } = wx.getSystemInfoSync();
-    this.setData({ safeTop: statusBarHeight + 12 });
+    this.setData(getPageChrome());
   },
 
   onShow() {
+    if (!requireLogin()) return;
     const user = getStoredUser();
     this.setData({
       user,
