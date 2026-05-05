@@ -62,7 +62,7 @@ export interface SelectedTemplatePayload {
 export const TEMPLATE_STORAGE_KEY = "ai_photo_selected_template";
 
 const localImages = {
-  avatar: "/assets/demo/avatar.jpg",
+  avatar: "/assets/demo/default-avatar.png",
   campus: "/assets/demo/recent-1.jpg",
   sea: "/assets/demo/recent-2.jpg",
   flower: "/assets/demo/recent-3.jpg",

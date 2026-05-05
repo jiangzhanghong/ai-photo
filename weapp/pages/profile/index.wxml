@@ -6,7 +6,15 @@
 
   <block wx:if="{{user}}">
     <view class="profile-head card">
-      <image class="profile-avatar" mode="aspectFill" src="{{avatarUrl}}" />
+      <button
+        class="profile-avatar-button"
+        open-type="chooseAvatar"
+        loading="{{updatingAvatar}}"
+        bindchooseavatar="chooseAvatar"
+      >
+        <image class="profile-avatar" mode="aspectFill" src="{{avatarUrl}}" />
+        <text class="profile-avatar-edit"></text>
+      </button>
       <view class="profile-copy">
         <view class="profile-name-row">
           <text class="profile-name">{{displayName}}</text>

@@ -12,6 +12,7 @@ export interface User {
   phone: string;
   nickname: string;
   avatarUrl: string;
+  avatarSource?: string;
   credits: number;
   status: string;
   preferredAiModelId?: string;

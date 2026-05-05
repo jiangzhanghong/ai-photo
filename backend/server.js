@@ -813,6 +813,7 @@ const publicUser = async (user) => {
     phone: user.phone,
     nickname: user.nickname,
     avatarUrl: user.avatar_url || "",
+    avatarSource: user.avatar_source || "",
     credits: Number(user.credits || 0),
     status: user.status || "active",
     preferredAiModelId: user.preferred_ai_model_id || "",
@@ -894,9 +895,9 @@ const getOrCreateWechatUser = async ({ openid, unionid = "", nickname = "", avat
   if (!user) {
     const id = uid("user");
     await db.exec(
-      `INSERT INTO users (id, nickname, wechat_openid, wechat_unionid, avatar_url, status, credits, created_at, updated_at, last_login_at)
-       VALUES (?, ?, ?, ?, ?, 'active', 0, NOW(), NOW(), NOW())`,
-      [id, cleanNickname || `微信用户${cleanOpenid.slice(-6)}`, cleanOpenid, cleanUnionid || null, cleanAvatarUrl || null]
+      `INSERT INTO users (id, nickname, wechat_openid, wechat_unionid, avatar_url, avatar_source, status, credits, created_at, updated_at, last_login_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'active', 0, NOW(), NOW(), NOW())`,
+      [id, cleanNickname || `微信用户${cleanOpenid.slice(-6)}`, cleanOpenid, cleanUnionid || null, cleanAvatarUrl || null, cleanAvatarUrl ? "wechat" : null]
     );
     return (await db.query("SELECT * FROM users WHERE id = ? LIMIT 1", [id]))[0];
   }
@@ -906,11 +907,12 @@ const getOrCreateWechatUser = async ({ openid, unionid = "", nickname = "", avat
      SET wechat_openid = ?,
          wechat_unionid = CASE WHEN ? <> '' THEN ? ELSE wechat_unionid END,
          nickname = CASE WHEN ? <> '' THEN ? ELSE nickname END,
-         avatar_url = CASE WHEN ? <> '' THEN ? ELSE avatar_url END,
+         avatar_url = CASE WHEN ? <> '' AND COALESCE(avatar_source, '') <> 'custom' THEN ? ELSE avatar_url END,
+         avatar_source = CASE WHEN ? <> '' AND COALESCE(avatar_source, '') <> 'custom' THEN 'wechat' ELSE avatar_source END,
          last_login_at = NOW(),
          updated_at = NOW()
      WHERE id = ?`,
-    [cleanOpenid, cleanUnionid, cleanUnionid, cleanNickname, cleanNickname, cleanAvatarUrl, cleanAvatarUrl, user.id]
+    [cleanOpenid, cleanUnionid, cleanUnionid, cleanNickname, cleanNickname, cleanAvatarUrl, cleanAvatarUrl, cleanAvatarUrl, user.id]
   );
   return (await db.query("SELECT * FROM users WHERE id = ? LIMIT 1", [user.id]))[0];
 };
@@ -1371,6 +1373,7 @@ const ensureSchema = async () => {
       wechat_openid VARCHAR(191) UNIQUE,
       wechat_unionid VARCHAR(191),
       avatar_url VARCHAR(500),
+      avatar_source VARCHAR(40),
       preferred_ai_model_id VARCHAR(40),
       credits INT NOT NULL DEFAULT 0,
       status VARCHAR(32) NOT NULL DEFAULT 'active',
@@ -1601,6 +1604,8 @@ const ensureSchema = async () => {
   await addColumnIfMissing("ai_image_tasks", "prompt_snapshot_json", "TEXT");
   await addColumnIfMissing("ai_image_tasks", "input_image_urls_json", "TEXT");
   await addColumnIfMissing("users", "username", "VARCHAR(64) UNIQUE");
+  await addColumnIfMissing("users", "avatar_source", "VARCHAR(40)");
+  await db.exec("UPDATE users SET avatar_source = 'wechat' WHERE (avatar_source IS NULL OR avatar_source = '') AND avatar_url IS NOT NULL AND avatar_url <> ''");
   const usersWithoutUsername = await db.query("SELECT id, phone FROM users WHERE username IS NULL OR username = ''");
   for (const user of usersWithoutUsername) {
     const fallback = user.phone ? `u${String(user.phone).slice(-6)}` : `user_${String(user.id).slice(-8)}`;
@@ -1865,6 +1870,22 @@ const routeApi = async (req, res, url) => {
     const user = await requireUser(req);
     if (!user) return json(res, 401, { message: "未登录。" });
     return json(res, 200, { user: await publicUser(user) });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/users/me/avatar") {
+    const user = await requireUser(req);
+    if (!user) return json(res, 401, { message: "请先登录。" });
+    const asset = await createMediaAssetFromDataUrl(body.imageData, {
+      ownerType: "user",
+      ownerId: user.id,
+      visibility: "public",
+      prefix: `${OBJECT_STORAGE.uploadPrefix}/avatars/${user.id}`,
+      maxSize: 6 * 1024 * 1024
+    });
+    const avatarUrl = mediaUrl(asset.id, "preview");
+    await db.exec("UPDATE users SET avatar_url = ?, avatar_source = 'custom', updated_at = NOW() WHERE id = ?", [avatarUrl, user.id]);
+    const fresh = (await db.query("SELECT * FROM users WHERE id = ? LIMIT 1", [user.id]))[0];
+    return json(res, 200, { user: await publicUser(fresh) });
   }
 
   if (req.method === "GET" && url.pathname === "/api/membership-plans") {

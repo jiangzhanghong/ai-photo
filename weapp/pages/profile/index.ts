@@ -37,6 +37,7 @@ Page({
     cumulativeRecharge: 0,
     cumulativeSpend: 0,
     loggingIn: false,
+    updatingAvatar: false,
     actions: profileActions
   },
 
@@ -116,6 +117,46 @@ Page({
       wx.showToast({ title: (error as Error).message, icon: "none" });
     } finally {
       this.setData({ loggingIn: false });
+    }
+  },
+
+  fileToDataUrl(filePath: string) {
+    const lowerPath = filePath.toLowerCase();
+    const mime = lowerPath.endsWith(".png") ? "image/png" : "image/jpeg";
+    return new Promise<string>((resolve, reject) => {
+      wx.getFileSystemManager().readFile({
+        filePath,
+        encoding: "base64",
+        success: (res) => resolve(`data:${mime};base64,${res.data}`),
+        fail: () => reject(new Error("头像读取失败。"))
+      });
+    });
+  },
+
+  async chooseAvatar(event: { detail: { avatarUrl?: string } }) {
+    if (!this.data.user || this.data.updatingAvatar) return;
+    const tempAvatarUrl = String(event.detail.avatarUrl || "");
+    if (!tempAvatarUrl) return;
+    const previousAvatarUrl = this.data.avatarUrl;
+    this.setData({ avatarUrl: tempAvatarUrl, updatingAvatar: true });
+    try {
+      const imageData = await this.fileToDataUrl(tempAvatarUrl);
+      const data = await request<{ user: User }>("/api/users/me/avatar", {
+        method: "POST",
+        data: { imageData }
+      });
+      saveSession({ user: data.user });
+      getApp<{ globalData: { user: User | null } }>().globalData.user = data.user;
+      this.setData({
+        user: data.user,
+        avatarUrl: getDisplayAvatar(data.user)
+      });
+      wx.showToast({ title: "头像已更新", icon: "success" });
+    } catch (error) {
+      this.setData({ avatarUrl: previousAvatarUrl });
+      wx.showToast({ title: (error as Error).message, icon: "none" });
+    } finally {
+      this.setData({ updatingAvatar: false });
     }
   },
 
