@@ -41,6 +41,7 @@ const rawRequest = <T>(path: string, options: RequestOptions = {}): Promise<T> =
         resolve(response.data as T);
         return;
       }
+      console.warn("[request]", options.method || "GET", normalizeUrl(path), response.statusCode, data?.message || response.data);
       reject(new RequestError(data?.message || `请求失败：${response.statusCode}`, response.statusCode));
     },
     fail: () => reject(new RequestError("网络请求失败。"))

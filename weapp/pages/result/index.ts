@@ -8,6 +8,10 @@ interface ResultImage {
   previewUrl: string;
 }
 
+const imageKey = (images: MediaImage[]) => images
+  .map((item) => `${item.assetId || ""}|${item.originalUrl || ""}|${item.previewUrl || ""}|${item.thumbUrl || ""}`)
+  .join(";");
+
 Page({
   data: {
     taskId: "",
@@ -27,6 +31,8 @@ Page({
   },
 
   pollTimer: 0 as number,
+  resultImageKey: "",
+  referenceImageKey: "",
 
   async onLoad(query: { id?: string }) {
     const taskId = String(query.id || "");
@@ -68,12 +74,23 @@ Page({
     const referenceItems = task.inputImages?.length
       ? task.inputImages
       : (task.inputImageUrls?.length ? task.inputImageUrls.map((url) => normalizeMediaImage({ originalUrl: url, previewUrl: url, thumbUrl: url })).filter(Boolean) as MediaImage[] : []);
-    const [resolvedResults, resolvedReferences] = await Promise.all([
-      resolveMediaImages(resultItems),
-      resolveMediaImages(referenceItems)
-    ]);
-    const resultUrls = resolvedResults.map((item) => ({ url: item.originalUrl, previewUrl: item.previewUrl || item.originalUrl }));
-    const referenceUrls = resolvedReferences.map((item) => ({ url: item.originalUrl, previewUrl: item.thumbUrl || item.previewUrl || item.originalUrl }));
+    const nextResultImageKey = imageKey(resultItems);
+    const nextReferenceImageKey = imageKey(referenceItems);
+    let resultUrls = this.data.images;
+    let referenceUrls = this.data.references;
+
+    if (nextResultImageKey !== this.resultImageKey) {
+      const resolvedResults = await resolveMediaImages(resultItems);
+      resultUrls = resolvedResults.map((item) => ({ url: item.originalUrl, previewUrl: item.previewUrl || item.originalUrl }));
+      this.resultImageKey = nextResultImageKey;
+    }
+
+    if (nextReferenceImageKey !== this.referenceImageKey) {
+      const resolvedReferences = await resolveMediaImages(referenceItems);
+      referenceUrls = resolvedReferences.map((item) => ({ url: item.originalUrl, previewUrl: item.thumbUrl || item.previewUrl || item.originalUrl }));
+      this.referenceImageKey = nextReferenceImageKey;
+    }
+
     const currentIndex = Math.min(this.data.currentIndex, Math.max(0, resultUrls.length - 1));
     this.setData({
       task,

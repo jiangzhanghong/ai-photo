@@ -257,6 +257,10 @@ Page({
     return images;
   },
 
+  mediaUrl(media: MediaImage) {
+    return media.originalUrl || media.previewUrl || media.thumbUrl || media.compressedUrl || "";
+  },
+
   async submitTask() {
     if (!this.data.user) {
       wx.showToast({ title: "请先在我的页完成登录", icon: "none" });
@@ -282,6 +286,7 @@ Page({
     this.setData({ submitting: true, message: "" }, () => this.syncGenerationState());
     try {
       const inputImages = await this.uploadReferences();
+      const inputImageUrls = inputImages.map((item) => this.mediaUrl(item)).filter(Boolean);
       const response = await request<{ task: Task; user: User }>("/api/ai-image-tasks", {
         method: "POST",
         data: {
@@ -291,9 +296,8 @@ Page({
           ratio: this.data.selectedRatio,
           size: this.currentRequestSize(),
           count: this.data.count,
-          inputImageUrl: inputImages[0]?.originalUrl || "",
-          inputImageUrls: inputImages,
-          inputImages,
+          inputImageUrl: inputImageUrls[0] || "",
+          inputImageUrls,
           userInstruction: this.data.selectedTemplateTitle
         }
       });
