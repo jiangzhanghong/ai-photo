@@ -10,7 +10,6 @@ import {
   getDisplayAvatar,
   getDisplayCredits,
   getDisplayName,
-  getWechatBindingLabel,
   profileActions
 } from "../../utils/showcase";
 
@@ -18,7 +17,6 @@ const actionIcons: Record<string, string> = {
   recharge: "coin",
   orders: "doc",
   flows: "list",
-  bindWechat: "chat",
   protocol: "shield",
   privacy: "lock",
   contact: "mail",
@@ -38,9 +36,6 @@ Page({
     creditBalance: 0,
     cumulativeRecharge: 0,
     cumulativeSpend: 0,
-    loginMode: "wechat",
-    account: "",
-    password: "",
     loggingIn: false,
     actions: profileActions
   },
@@ -80,7 +75,7 @@ Page({
       actions: profileActions.map((item) => ({
         ...item,
         iconText: actionIcons[item.key] || item.label.slice(0, 1),
-        value: item.key === "bindWechat" ? getWechatBindingLabel(user) : item.value
+        value: item.value
       }))
     });
   },
@@ -124,61 +119,10 @@ Page({
     }
   },
 
-  switchLoginMode(event: WechatMiniprogram.TouchEvent) {
-    this.setData({ loginMode: String(event.currentTarget.dataset.mode || "wechat") });
-  },
-
-  onAccountInput(event: WechatMiniprogram.Input) {
-    this.setData({ account: String(event.detail.value || "").trim() });
-  },
-
-  onPasswordInput(event: WechatMiniprogram.Input) {
-    this.setData({ password: String(event.detail.value || "") });
-  },
-
-  async loginWithAccount() {
-    const account = String(this.data.account || "").trim();
-    const password = String(this.data.password || "");
-    if (!account) {
-      wx.showToast({ title: "请输入账号", icon: "none" });
-      return;
-    }
-    if (!password) {
-      wx.showToast({ title: "请输入密码", icon: "none" });
-      return;
-    }
-    this.setData({ loggingIn: true });
-    try {
-      const data = await request<LoginResponse>("/api/auth/login/password", {
-        method: "POST",
-        auth: false,
-        data: { account, password }
-      });
-      saveSession(data);
-      getApp<{ globalData: { user: User | null } }>().globalData.user = data.user;
-      this.setData({ password: "" });
-      await this.refreshProfile();
-      this.redirectAfterLogin();
-      wx.showToast({ title: "登录成功", icon: "success" });
-    } catch (error) {
-      wx.showToast({ title: (error as Error).message, icon: "none" });
-    } finally {
-      this.setData({ loggingIn: false });
-    }
-  },
-
   async handleAction(event: WechatMiniprogram.TouchEvent) {
     const key = String(event.currentTarget.dataset.key || "");
     if (key === "recharge") {
       wx.navigateTo({ url: "/pages/wallet/index" });
-      return;
-    }
-    if (key === "bindWechat") {
-      if (this.data.user?.username) {
-        wx.showToast({ title: "账号登录暂不支持绑定微信", icon: "none" });
-        return;
-      }
-      wx.showToast({ title: "当前账号为微信登录", icon: "none" });
       return;
     }
     if (key === "logout") {

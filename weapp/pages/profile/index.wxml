@@ -56,50 +56,18 @@
       <image class="profile-avatar" mode="aspectFill" src="{{avatarUrl}}" />
       <view class="profile-copy">
         <text class="profile-name">登录后查看积分与作品</text>
-        <text class="profile-desc">默认微信授权登录，也支持账号密码登录</text>
+        <text class="profile-desc">使用微信授权登录，同步你的积分、作品和订单</text>
       </view>
     </view>
 
     <view class="card login-panel">
-      <view class="login-switch">
-        <button
-          class="login-switch-item {{loginMode === 'wechat' ? 'active' : ''}}"
-          data-mode="wechat"
-          bindtap="switchLoginMode"
-        >
-          微信登录
-        </button>
-        <button
-          class="login-switch-item {{loginMode === 'account' ? 'active' : ''}}"
-          data-mode="account"
-          bindtap="switchLoginMode"
-        >
-          账号登录
-        </button>
-      </view>
-
       <button
-        wx:if="{{loginMode === 'wechat'}}"
         class="login-primary-btn"
         loading="{{loggingIn}}"
         bindtap="loginWithWechat"
       >
         微信授权登录
       </button>
-
-      <view wx:else class="account-form">
-        <input class="auth-input" placeholder="请输入账号" value="{{account}}" bindinput="onAccountInput" />
-        <input
-          class="auth-input"
-          password
-          placeholder="请输入密码"
-          value="{{password}}"
-          bindinput="onPasswordInput"
-        />
-        <button class="login-primary-btn" loading="{{loggingIn}}" bindtap="loginWithAccount">
-          账号登录
-        </button>
-      </view>
     </view>
   </block>
 </view>

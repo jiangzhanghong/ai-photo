@@ -255,31 +255,8 @@
   padding: 24rpx;
 }
 
-.login-switch {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14rpx;
-}
-
-.login-switch-item {
-  height: 76rpx;
-  border-radius: 20rpx;
-  background: #f5f1ea;
-  color: #68736d;
-  font-size: 28rpx;
-  line-height: 76rpx;
-  text-align: center;
-}
-
-.login-switch-item.active {
-  background: #143d2f;
-  color: #ffffff;
-  font-weight: 700;
-}
-
 .login-primary-btn {
   height: 88rpx;
-  margin-top: 22rpx;
   border-radius: 24rpx;
   background: linear-gradient(180deg, #174b39 0%, #103728 100%);
   color: #ffffff;
@@ -287,19 +264,4 @@
   font-weight: 700;
   line-height: 88rpx;
   text-align: center;
-}
-
-.account-form {
-  display: grid;
-  gap: 18rpx;
-  margin-top: 22rpx;
-}
-
-.auth-input {
-  height: 84rpx;
-  padding: 0 24rpx;
-  border-radius: 22rpx;
-  background: #f7f4ee;
-  color: #1f2824;
-  font-size: 26rpx;
 }
