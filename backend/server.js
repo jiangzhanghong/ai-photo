@@ -1029,6 +1029,16 @@ const taskDto = (task) => {
   };
 };
 
+const creditTransactionDto = (transaction) => ({
+  id: transaction.id,
+  amount: Number(transaction.amount || 0),
+  transactionType: transaction.transaction_type,
+  relatedType: transaction.related_type || "",
+  relatedId: transaction.related_id || "",
+  remark: transaction.remark || "",
+  createdAt: toIso(transaction.created_at)
+});
+
 const promptImageItems = (value) => {
   const text = String(value || "").trim();
   if (!text) return [];
@@ -2069,6 +2079,13 @@ const routeApi = async (req, res, url) => {
     if (!user) return json(res, 401, { message: "请先登录。" });
     const rows = await db.query("SELECT * FROM ai_image_tasks WHERE user_id = ? ORDER BY created_at DESC LIMIT 50", [user.id]);
     return json(res, 200, { tasks: rows.map(taskDto) });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/credit-transactions") {
+    const user = await requireUser(req);
+    if (!user) return json(res, 401, { message: "请先登录。" });
+    const rows = await db.query("SELECT * FROM credit_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 100", [user.id]);
+    return json(res, 200, { transactions: rows.map(creditTransactionDto) });
   }
 
   if (req.method === "POST" && url.pathname === "/api/admin/login") {

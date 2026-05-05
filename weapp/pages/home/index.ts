@@ -87,10 +87,13 @@ Page({
     selectedTemplateSize: "",
     selectedRatio: "1:1",
     selectedResolution: "2K",
+    requestSize: "2048x2048",
     settingsPanelVisible: false,
     selectedRatioUsage: "头像、证件照、社交封面",
     count: 4,
     estimatedCost: 8,
+    creditShortage: 0,
+    estimatedTimeLabel: "约 30-90 秒",
     uploadedImages: [] as UploadItem[],
     submitting: false,
     message: "",
@@ -157,6 +160,8 @@ Page({
     const hasUploadedImage = Boolean(this.data.uploadedImages.length);
     const hasTemplate = Boolean(this.data.selectedTemplateId);
     const hasEnoughCredits = Number(this.data.creditBalance || 0) >= estimatedCost;
+    const creditShortage = Math.max(0, estimatedCost - Number(this.data.creditBalance || 0));
+    const requestSize = this.currentRequestSize();
     let generateButtonText = "立即生成";
     let generateButtonDisabled = false;
     let generateHint = `剩余积分：${this.data.creditBalance}`;
@@ -174,15 +179,18 @@ Page({
       generateButtonDisabled = true;
       generateHint = "先选择一个写真风格模板";
     } else if (!hasEnoughCredits) {
-      generateButtonText = "积分不足，去充值";
+      generateButtonText = `差 ${creditShortage} 积分，去充值`;
       generateButtonDisabled = false;
-      generateHint = `本次需 ${estimatedCost} 积分，当前剩余 ${this.data.creditBalance}`;
+      generateHint = `本次需要 ${estimatedCost} 积分，当前 ${this.data.creditBalance} 积分，还差 ${creditShortage} 积分`;
     } else {
+      generateButtonText = `消耗 ${estimatedCost} 积分生成`;
       generateHint = `本次消耗 ${estimatedCost} 积分，剩余 ${this.data.creditBalance}`;
     }
 
     this.setData({
       estimatedCost,
+      creditShortage,
+      requestSize,
       generateButtonText,
       generateButtonDisabled,
       generateHint
@@ -227,12 +235,12 @@ Page({
       selectedRatio,
       selectedTemplateSize: "",
       selectedRatioUsage: this.ratioUsage(selectedRatio)
-    });
+    }, () => this.syncGenerationState());
   },
 
   selectResolution(event: WechatMiniprogram.TouchEvent) {
     const selectedResolution = normalizeResolution(String(event.currentTarget.dataset.value || "2K"));
-    this.setData({ selectedResolution, selectedTemplateSize: "" });
+    this.setData({ selectedResolution, selectedTemplateSize: "" }, () => this.syncGenerationState());
   },
 
   ratioUsage(ratio: string) {

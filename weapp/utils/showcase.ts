@@ -25,7 +25,10 @@ export interface ShowcaseWork {
   createdLabel: string;
   ratio: string;
   creditCost: number;
-  filter: "all" | "saved" | "pending";
+  filter: "all" | "succeeded" | "pending" | "failed";
+  status: string;
+  statusLabel: string;
+  statusHint: string;
   buttonText?: string;
 }
 
@@ -34,15 +37,6 @@ export interface WalletPackage {
   priceLabel: string;
   creditsLabel: string;
   bonusLabel: string;
-}
-
-export interface WalletRecord {
-  id: string;
-  title: string;
-  createdLabel: string;
-  amountLabel: string;
-  creditsLabel: string;
-  statusLabel: string;
 }
 
 export interface ProfileAction {
@@ -168,88 +162,10 @@ const fallbackTemplates: ShowcaseTemplate[] = [
   }
 ];
 
-const fallbackWorks: ShowcaseWork[] = [
-  {
-    id: "demo-work-1",
-    title: "法式复古",
-    imageUrl: localImages.flower,
-    createdLabel: "2024-05-20 14:30",
-    ratio: "3:4",
-    creditCost: 2,
-    filter: "all"
-  },
-  {
-    id: "demo-work-2",
-    title: "海边日记",
-    imageUrl: localImages.sea,
-    createdLabel: "2024-05-19 18:45",
-    ratio: "9:16",
-    creditCost: 3,
-    filter: "saved"
-  },
-  {
-    id: "demo-work-3",
-    title: "校园光影",
-    imageUrl: localImages.campus,
-    createdLabel: "2024-05-18 10:22",
-    ratio: "1:1",
-    creditCost: 2,
-    filter: "saved"
-  },
-  {
-    id: "demo-work-4",
-    title: "纪实日常",
-    imageUrl: localImages.hat,
-    createdLabel: "2024-05-17 16:30",
-    ratio: "3:4",
-    creditCost: 1,
-    filter: "pending",
-    buttonText: "查看详情"
-  },
-  {
-    id: "demo-work-5",
-    title: "韩系清新",
-    imageUrl: localImages.refB,
-    createdLabel: "2024-05-16 20:18",
-    ratio: "3:4",
-    creditCost: 2,
-    filter: "saved"
-  },
-  {
-    id: "demo-work-6",
-    title: "胶片写真",
-    imageUrl: localImages.refA,
-    createdLabel: "2024-05-15 09:12",
-    ratio: "2:3",
-    creditCost: 2,
-    filter: "all",
-    buttonText: "再次生成"
-  }
-];
-
 export const walletPackages: WalletPackage[] = [
   { id: "pkg-200", priceLabel: "9.9 元", creditsLabel: "200 积分", bonusLabel: "限时赠送 20 积分" },
   { id: "pkg-500", priceLabel: "19.9 元", creditsLabel: "500 积分", bonusLabel: "限时赠送 50 积分" },
   { id: "pkg-900", priceLabel: "29.9 元", creditsLabel: "900 积分", bonusLabel: "限时赠送 100 积分" }
-];
-
-export const walletRecords: WalletRecord[] = [
-  {
-    id: "record-500",
-    title: "积分充值 500 积分",
-    createdLabel: "2024-05-20 14:32",
-    amountLabel: "19.9 元",
-    creditsLabel: "+500 积分",
-    statusLabel: "支付成功"
-  },
-  {
-    id: "record-200",
-    title: "积分充值 200 积分",
-    createdLabel: "2024-05-18 11:20",
-    amountLabel: "9.9 元",
-    creditsLabel: "+200 积分",
-    statusLabel: "支付成功"
-  }
 ];
 
 export const profileActions: ProfileAction[] = [
@@ -282,8 +198,6 @@ const promptImage = (prompt: Prompt) => {
 };
 
 export const getFallbackTemplates = () => fallbackTemplates.slice();
-
-export const getFallbackWorks = () => fallbackWorks.slice();
 
 export const toShowcaseTemplates = (prompts: Prompt[]) => {
   if (!prompts.length) return getFallbackTemplates();
@@ -335,7 +249,7 @@ const ratioFromSize = (size = "") => {
 };
 
 export const toShowcaseWorks = (tasks: Task[]) => {
-  if (!tasks.length) return getFallbackWorks();
+  if (!tasks.length) return [];
   return tasks.map((task, index) => ({
     id: task.id,
     taskId: task.id,
@@ -344,8 +258,11 @@ export const toShowcaseWorks = (tasks: Task[]) => {
     createdLabel: formatDate(task.createdAt) || "刚刚生成",
     ratio: ratioFromSize(task.size),
     creditCost: Number(task.creditCost || 0),
-    filter: task.status === "succeeded" ? (index % 2 === 0 ? "saved" : "all") : "pending",
-    buttonText: task.status === "succeeded" && index === 0 ? "查看详情" : ""
+    filter: task.status === "succeeded" ? "succeeded" : (task.status === "failed" ? "failed" : "pending"),
+    status: task.status,
+    statusLabel: statusText(task.status),
+    statusHint: task.status === "failed" ? "失败任务会自动退回积分" : (task.status === "succeeded" ? "可保存到相册" : "生成完成后可查看"),
+    buttonText: task.status === "succeeded" ? "查看详情" : (task.status === "failed" ? "查看原因" : "查看进度")
   }));
 };
 
@@ -394,8 +311,9 @@ export const clearSelectedTemplate = () => {
 
 export const workFilterTabs = [
   { key: "all", label: "全部" },
-  { key: "saved", label: "已保存" },
-  { key: "pending", label: "待下载" }
+  { key: "succeeded", label: "已完成" },
+  { key: "pending", label: "生成中" },
+  { key: "failed", label: "失败" }
 ] as const;
 
 export const templateFilterTabs = ["推荐", "校园", "日常", "胶片", "复古", "清新", "韩系"] as const;

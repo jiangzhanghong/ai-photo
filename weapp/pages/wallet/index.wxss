@@ -65,6 +65,15 @@
   font-weight: 400;
 }
 
+.balance-desc {
+  display: block;
+  margin-top: 18rpx;
+  max-width: 480rpx;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 23rpx;
+  line-height: 1.5;
+}
+
 .balance-mark {
   position: absolute;
   right: 34rpx;
@@ -224,56 +233,14 @@
   text-align: center;
 }
 
-.section-gap {
-  margin-top: 34rpx;
-}
-
-.record-list {
+.wallet-note {
   display: grid;
-  gap: 16rpx;
-  margin-top: 18rpx;
-}
-
-.record-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18rpx;
+  gap: 12rpx;
+  margin-top: 24rpx;
   padding: 22rpx;
   border-radius: 24rpx;
-  background: rgba(255, 255, 255, 0.92);
-}
-
-.record-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.record-title,
-.record-credits {
-  color: #1f2824;
-  font-size: 28rpx;
-}
-
-.record-bottom {
-  display: flex;
-  align-items: center;
-  gap: 18rpx;
-  margin-top: 10rpx;
-}
-
-.record-amount {
-  color: #7b857f;
-  font-size: 22rpx;
-}
-
-.record-credits {
-  color: #d08f2d;
-  font-weight: 700;
-}
-
-.record-side {
-  display: grid;
-  justify-items: end;
-  gap: 8rpx;
+  background: rgba(255, 255, 255, 0.78);
+  color: #607069;
+  font-size: 23rpx;
+  line-height: 1.45;
 }

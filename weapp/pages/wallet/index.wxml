@@ -9,20 +9,8 @@
     <view class="balance-card">
       <view class="balance-label">我的积分</view>
       <view class="balance-value">{{creditBalance}} <text class="balance-unit">积分</text></view>
+      <text class="balance-desc">生成 1 张写真通常消耗 2-3 积分，以模板实际标价为准。</text>
       <text class="balance-mark">P</text>
-    </view>
-
-    <view class="quick-grid">
-      <button class="quick-card" data-key="orders" bindtap="handleQuickAction">
-        <text class="quick-icon doc-icon"></text>
-        <text class="quick-title">订单</text>
-        <text class="quick-subtitle">查看订单记录</text>
-      </button>
-      <button class="quick-card" data-key="records" bindtap="handleQuickAction">
-        <text class="quick-icon gold wallet-icon"></text>
-        <text class="quick-title">充值记录</text>
-        <text class="quick-subtitle">查看充值明细</text>
-      </button>
     </view>
 
     <view class="section-title">充值套餐</view>
@@ -42,21 +30,10 @@
 
     <button class="recharge-btn" bindtap="rechargeNow">立即充值</button>
 
-    <view class="section-title section-gap">近期订单</view>
-    <view class="record-list">
-      <view wx:for="{{records}}" wx:key="id" class="record-card">
-        <view class="record-main">
-          <view class="record-title">{{item.title}}</view>
-          <view class="record-bottom">
-            <text class="record-time">{{item.createdLabel}}</text>
-            <text class="record-amount">{{item.amountLabel}}</text>
-          </view>
-        </view>
-        <view class="record-side">
-          <text class="record-credits">{{item.creditsLabel}}</text>
-          <text class="record-status">{{item.statusLabel}}</text>
-        </view>
-      </view>
+    <view class="wallet-note">
+      <text>支付接通前不会生成虚假订单。</text>
+      <text>充值成功后，订单和流水会分别在“我的”页查看。</text>
+      <text>生成失败会自动退回对应积分。</text>
     </view>
   </block>
 </view>

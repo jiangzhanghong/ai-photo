@@ -26,6 +26,53 @@
   text-align: center;
 }
 
+.message-card.failed {
+  color: #8a3b2b;
+  background: #fff4ef;
+}
+
+.message-title,
+.pending-title {
+  color: #1d2823;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.refund-note {
+  color: #9a6b25;
+  font-size: 23rpx;
+  line-height: 1.5;
+}
+
+.status-summary {
+  display: grid;
+  gap: 8rpx;
+  margin-bottom: 20rpx;
+  padding: 20rpx 22rpx;
+  border-radius: 22rpx;
+  font-size: 24rpx;
+}
+
+.status-summary text:first-child {
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.status-summary.success {
+  background: rgba(20, 61, 47, 0.08);
+  color: #224f3f;
+}
+
+.status-summary.pending {
+  background: rgba(210, 154, 60, 0.12);
+  color: #8f6322;
+}
+
+.status-summary.failed {
+  background: rgba(188, 82, 54, 0.12);
+  color: #8a3b2b;
+}
+
 .result-view {
   overflow: hidden;
   border-radius: 16rpx;
@@ -70,7 +117,7 @@
 
 .action-row {
   display: grid;
-  grid-template-columns: 1fr 180rpx;
+  grid-template-columns: 1fr 160rpx 160rpx;
   gap: 16rpx;
   margin-top: 22rpx;
 }
@@ -105,4 +152,14 @@
 .record-btn {
   width: 100%;
   margin-top: 28rpx;
+}
+
+.promise-card {
+  display: grid;
+  gap: 12rpx;
+  margin-top: 22rpx;
+  padding: 24rpx;
+  color: #607069;
+  font-size: 23rpx;
+  line-height: 1.45;
 }

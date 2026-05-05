@@ -86,6 +86,16 @@ export interface Task {
   updatedAt: string;
 }
 
+export interface CreditTransaction {
+  id: string;
+  amount: number;
+  transactionType: string;
+  relatedType: string;
+  relatedId: string;
+  remark: string;
+  createdAt: string;
+}
+
 export interface LoginResponse {
   user: User;
   accessToken: string;

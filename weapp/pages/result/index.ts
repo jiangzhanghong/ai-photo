@@ -26,6 +26,8 @@ Page({
     message: "",
     loading: true,
     isPending: false,
+    isFailed: false,
+    resultStatusDesc: "",
     taskCount: 0,
     creditCost: 0
   },
@@ -92,6 +94,8 @@ Page({
     }
 
     const currentIndex = Math.min(this.data.currentIndex, Math.max(0, resultUrls.length - 1));
+    const isPending = task.status === "queued" || task.status === "processing";
+    const isFailed = task.status === "failed";
     this.setData({
       task,
       images: resultUrls,
@@ -101,7 +105,11 @@ Page({
       statusLabel: statusText(task.status),
       latencyLabel: formatLatency(task.providerLatencyMs),
       createdLabel: formatDate(task.createdAt),
-      isPending: task.status === "queued" || task.status === "processing",
+      isPending,
+      isFailed,
+      resultStatusDesc: isFailed
+        ? "本次未生成成功，失败任务会自动退回对应积分。"
+        : (isPending ? "生成完成后会自动刷新，请不要重复提交。" : "已生成完成，可保存图片或继续创作。"),
       taskCount: task.count,
       creditCost: task.creditCost,
       message: task.failureReason || ""
@@ -169,5 +177,9 @@ Page({
 
   goCreate() {
     wx.switchTab({ url: "/pages/create/index" });
+  },
+
+  goHome() {
+    wx.switchTab({ url: "/pages/home/index" });
   }
 });

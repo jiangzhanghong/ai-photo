@@ -7,14 +7,23 @@
     <view class="pill">{{statusLabel}}</view>
   </view>
 
-  <view wx:if="{{message}}" class="card message-card">{{message}}</view>
+  <view wx:if="{{message}}" class="card message-card {{isFailed ? 'failed' : ''}}">
+    <text class="message-title">{{isFailed ? '生成失败' : '提示'}}</text>
+    <text>{{message}}</text>
+    <text wx:if="{{isFailed}}" class="refund-note">未成功生成的任务会自动退回对应积分，可稍后换模板或重新生成。</text>
+  </view>
 
   <view wx:if="{{currentUrl}}" class="result-view">
     <image class="result-image" mode="widthFix" src="{{currentUrl}}" bindtap="previewCurrent" />
   </view>
   <view wx:elif="{{isPending}}" class="card pending-card">
-    <view>{{statusLabel}}</view>
-    <view class="muted">生成完成后会自动刷新</view>
+    <view class="pending-title">{{statusLabel}}</view>
+    <view class="muted">通常 30-90 秒完成，完成后会自动刷新。</view>
+  </view>
+
+  <view wx:if="{{task}}" class="status-summary {{isFailed ? 'failed' : (isPending ? 'pending' : 'success')}}">
+    <text>{{statusLabel}}</text>
+    <text>{{resultStatusDesc}}</text>
   </view>
 
   <scroll-view wx:if="{{images.length > 1}}" scroll-x class="thumb-scroll">
@@ -25,12 +34,13 @@
 
   <view class="action-row">
     <button class="primary-btn" bindtap="saveCurrent" disabled="{{!currentUrl}}">保存图片</button>
-    <button class="ghost-btn" bindtap="goCreate">再生成</button>
+    <button class="ghost-btn" bindtap="goHome">再生成</button>
+    <button class="ghost-btn" bindtap="goCreate">换模板</button>
   </view>
 
   <view class="card info-card">
     <view class="info-line">
-      <text>生成完成</text>
+      <text>任务状态</text>
       <text>{{statusLabel}}</text>
     </view>
     <view class="info-line">
@@ -45,6 +55,12 @@
       <text>生成耗时</text>
       <text>{{latencyLabel}}</text>
     </view>
+  </view>
+
+  <view class="card promise-card">
+    <text>图片仅用于本次生成，不会公开展示。</text>
+    <text>生成失败自动退回积分。</text>
+    <text>如保存失败，可先点图片预览后长按保存。</text>
   </view>
 
   <view wx:if="{{references.length}}" class="reference-section">

@@ -1,9 +1,9 @@
-import type { Task, User } from "../../types/api";
+import type { CreditTransaction, User } from "../../types/api";
 import { requireLogin } from "../../utils/auth";
-import { formatDate, statusText } from "../../utils/format";
+import { formatDate } from "../../utils/format";
 import { request } from "../../utils/request";
 import { getStoredUser } from "../../utils/session";
-import { getDisplayCredits, walletRecords } from "../../utils/showcase";
+import { getDisplayCredits } from "../../utils/showcase";
 import { syncCurrentUser } from "../../utils/user";
 
 interface FlowRecord {
@@ -16,20 +16,31 @@ interface FlowRecord {
   type: "income" | "expense";
 }
 
-const toTaskFlow = (task: Task): FlowRecord => ({
-  id: `task-${task.id}`,
-  title: task.promptTitle || "AI 写真生成",
-  createdLabel: formatDate(task.createdAt),
-  amountLabel: `${task.count || 1} 张`,
-  creditsLabel: `-${Number(task.creditCost || 0)} 积分`,
-  statusLabel: statusText(task.status),
-  type: "expense"
-});
+const transactionTitle = (transaction: CreditTransaction) => {
+  if (transaction.transactionType === "task_spend") return "AI 写真生成";
+  if (transaction.transactionType === "task_refund") return "生成失败退回";
+  if (transaction.transactionType === "admin_adjust") return "后台积分调整";
+  return transaction.remark || "积分变动";
+};
 
-const fallbackIncomeFlows = walletRecords.map((item) => ({
-  ...item,
-  type: "income" as const
-}));
+const transactionStatus = (transaction: CreditTransaction) => {
+  if (transaction.transactionType === "task_refund") return "已退回";
+  if (transaction.transactionType === "task_spend") return "已扣除";
+  return "已入账";
+};
+
+const toFlowRecord = (transaction: CreditTransaction): FlowRecord => {
+  const amount = Number(transaction.amount || 0);
+  return {
+    id: transaction.id,
+    title: transactionTitle(transaction),
+    createdLabel: formatDate(transaction.createdAt),
+    amountLabel: transaction.remark || transaction.relatedType || "积分账户",
+    creditsLabel: `${amount > 0 ? "+" : ""}${amount} 积分`,
+    statusLabel: transactionStatus(transaction),
+    type: amount >= 0 ? "income" : "expense"
+  };
+};
 
 Page({
   data: {
@@ -73,13 +84,12 @@ Page({
     }
 
     try {
-      const data = await request<{ tasks: Task[] }>("/api/ai-image-tasks");
-      const taskFlows = (data.tasks || []).map(toTaskFlow);
+      const data = await request<{ transactions: CreditTransaction[] }>("/api/credit-transactions");
       this.setData({
         user,
         needsLogin: false,
         creditBalance: getDisplayCredits(user),
-        records: [...taskFlows, ...fallbackIncomeFlows],
+        records: (data.transactions || []).map(toFlowRecord),
         loading: false
       });
     } catch {
@@ -87,7 +97,7 @@ Page({
         user,
         needsLogin: false,
         creditBalance: getDisplayCredits(user),
-        records: fallbackIncomeFlows,
+        records: [],
         loading: false
       });
     }

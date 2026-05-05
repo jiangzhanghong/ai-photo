@@ -1,7 +1,6 @@
 import type { User } from "../../types/api";
 import { requireLogin } from "../../utils/auth";
 import { getStoredUser } from "../../utils/session";
-import { walletRecords } from "../../utils/showcase";
 import { syncCurrentUser } from "../../utils/user";
 
 interface OrderRecord {
@@ -17,7 +16,7 @@ Page({
   data: {
     user: null as User | null,
     needsLogin: false,
-    orders: walletRecords as OrderRecord[],
+    orders: [] as OrderRecord[],
     loading: false
   },
 
@@ -44,7 +43,7 @@ Page({
     this.setData({
       user,
       needsLogin: !user,
-      orders: user ? walletRecords : [],
+      orders: [],
       loading: false
     });
   },

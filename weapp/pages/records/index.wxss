@@ -66,11 +66,21 @@
 }
 
 .work-card {
+  position: relative;
   overflow: hidden;
   border-radius: 24rpx;
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 14rpx 28rpx rgba(20, 51, 38, 0.06);
   text-align: left;
+}
+
+.work-card.failed {
+  background: rgba(255, 247, 242, 0.95);
+}
+
+.work-card.processing,
+.work-card.queued {
+  background: rgba(255, 252, 244, 0.95);
 }
 
 .work-image-wrap {
@@ -92,6 +102,27 @@
   background: rgba(255, 255, 255, 0.92);
   color: #4d544f;
   font-size: 22rpx;
+}
+
+.work-status {
+  position: absolute;
+  left: 14rpx;
+  top: 14rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(20, 61, 47, 0.88);
+  color: #ffffff;
+  font-size: 20rpx;
+  font-weight: 700;
+}
+
+.work-status.failed {
+  background: rgba(176, 70, 45, 0.90);
+}
+
+.work-status.processing,
+.work-status.queued {
+  background: rgba(194, 138, 46, 0.92);
 }
 
 .work-body {
@@ -117,4 +148,28 @@
   gap: 10rpx;
   color: #7c847f;
   font-size: 22rpx;
+}
+
+.work-hint {
+  color: #9a6b25;
+  font-size: 21rpx;
+}
+
+.works-empty {
+  display: grid;
+  gap: 16rpx;
+  padding: 42rpx 28rpx;
+  text-align: center;
+}
+
+.works-empty-title {
+  color: #1f2824;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.works-empty-desc {
+  color: #7c847f;
+  font-size: 24rpx;
+  line-height: 1.6;
 }

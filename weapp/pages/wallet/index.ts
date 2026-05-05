@@ -4,8 +4,7 @@ import { getStoredUser } from "../../utils/session";
 import { syncCurrentUser } from "../../utils/user";
 import {
   getDisplayCredits,
-  walletPackages,
-  walletRecords
+  walletPackages
 } from "../../utils/showcase";
 
 Page({
@@ -14,8 +13,7 @@ Page({
     creditBalance: 0,
     needsLogin: false,
     packages: walletPackages,
-    selectedPackageId: walletPackages[1].id,
-    records: walletRecords
+    selectedPackageId: walletPackages[1].id
   },
 
   async onShow() {
@@ -48,15 +46,6 @@ Page({
       title: selected ? `${selected.priceLabel} 充值待接支付` : "充值能力待接支付",
       icon: "none"
     });
-  },
-
-  handleQuickAction(event: WechatMiniprogram.TouchEvent) {
-    if (!this.data.user) {
-      wx.switchTab({ url: "/pages/profile/index" });
-      return;
-    }
-    const key = String(event.currentTarget.dataset.key || "");
-    wx.navigateTo({ url: key === "orders" ? "/pages/orders/index" : "/pages/flows/index" });
   },
 
   goLogin() {

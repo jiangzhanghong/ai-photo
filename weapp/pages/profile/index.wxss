@@ -265,3 +265,12 @@
   line-height: 88rpx;
   text-align: center;
 }
+
+.login-safe-note {
+  display: block;
+  margin-top: 18rpx;
+  color: #7b8580;
+  font-size: 22rpx;
+  line-height: 1.5;
+  text-align: center;
+}

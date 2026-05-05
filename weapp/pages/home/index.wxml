@@ -16,7 +16,7 @@
   <view class="card upload-card">
     <view class="upload-copy">
       <view class="card-title">上传参考图</view>
-      <view class="card-subtitle">上传一张清晰的正脸照片</view>
+      <view class="card-subtitle">建议上传清晰正脸照，图片仅用于本次生成</view>
       <button class="upload-action" bindtap="chooseImages">+</button>
       <text class="upload-script">Upload</text>
     </view>
@@ -25,6 +25,12 @@
       <image class="upload-preview front" mode="aspectFill" src="{{uploadedImages.length ? uploadedImages[0].previewUrl : avatarUrl}}" />
       <text class="sample-flag">{{uploadedImages.length ? '已上传' : '示例'}}</text>
     </view>
+  </view>
+
+  <view class="trust-strip">
+    <text>图片不公开展示</text>
+    <text>失败自动退积分</text>
+    <text>作品同步账号</text>
   </view>
 
   <view class="section-head">
@@ -41,10 +47,20 @@
         bindtap="selectTemplate"
       >
         <image class="template-thumb-image" mode="aspectFill" src="{{item.imageUrl}}" />
+        <text wx:if="{{item.id === selectedTemplateId}}" class="template-check">✓</text>
         <text class="template-thumb-title">{{item.title}}</text>
       </button>
     </view>
   </scroll-view>
+
+  <view class="selected-template-card">
+    <image class="selected-template-cover" mode="aspectFill" src="{{selectedTemplateImage}}" />
+    <view class="selected-template-copy">
+      <text class="selected-template-label">已选模板</text>
+      <text class="selected-template-title">{{selectedTemplateTitle}}</text>
+      <text class="selected-template-desc">{{selectedTemplatePromptText}}</text>
+    </view>
+  </view>
 
   <button class="settings-summary" bindtap="openSettingsPanel">
     <view class="settings-summary-item">
@@ -70,6 +86,34 @@
         <text class="step-value">{{count}}</text>
         <button class="step-btn" bindtap="increaseCount">+</button>
       </view>
+    </view>
+  </view>
+
+  <view class="generate-summary">
+    <view class="summary-title-row">
+      <text class="summary-title">生成确认</text>
+      <text class="summary-time">{{estimatedTimeLabel}}</text>
+    </view>
+    <view class="summary-grid">
+      <view class="summary-item">
+        <text class="summary-label">模板</text>
+        <text class="summary-value">{{selectedTemplateTitle}}</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-label">比例 / 清晰度</text>
+        <text class="summary-value">{{selectedRatio}} · {{selectedResolution}}</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-label">尺寸</text>
+        <text class="summary-value">{{requestSize}}</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-label">数量 / 积分</text>
+        <text class="summary-value">{{count}} 张 · {{estimatedCost}} 积分</text>
+      </view>
+    </view>
+    <view wx:if="{{creditShortage}}" class="summary-warning">
+      本次还差 {{creditShortage}} 积分，充值后即可继续生成。
     </view>
   </view>
 

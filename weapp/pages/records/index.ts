@@ -5,7 +5,6 @@ import { request } from "../../utils/request";
 import { getStoredUser } from "../../utils/session";
 import { getPageChrome } from "../../utils/layout";
 import {
-  getFallbackWorks,
   toShowcaseWorks,
   workFilterTabs,
   type ShowcaseWork
@@ -19,8 +18,8 @@ Page({
     needsLogin: false,
     filters: [...workFilterTabs],
     activeFilter: "all",
-    works: getFallbackWorks(),
-    displayWorks: getFallbackWorks()
+    works: [] as ShowcaseWork[],
+    displayWorks: [] as ShowcaseWork[]
   },
 
   onLoad() {
@@ -66,7 +65,7 @@ Page({
       }));
       this.setData({ works: toShowcaseWorks(tasks) });
     } catch {
-      this.setData({ works: getFallbackWorks() });
+      this.setData({ works: [] });
     }
   },
 

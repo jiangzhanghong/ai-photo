@@ -22,16 +22,17 @@
       </button>
     </view>
 
-    <view class="works-grid">
+    <view wx:if="{{displayWorks.length}}" class="works-grid">
       <button
         wx:for="{{displayWorks}}"
         wx:key="id"
-        class="work-card"
+        class="work-card {{item.status}}"
         data-id="{{item.id}}"
         bindtap="openWork"
       >
         <view class="work-image-wrap">
           <image class="work-image" mode="aspectFill" src="{{item.imageUrl}}" />
+          <text class="work-status {{item.status}}">{{item.statusLabel}}</text>
           <button
             wx:if="{{item.buttonText}}"
             class="work-action"
@@ -48,8 +49,14 @@
             <text>{{item.ratio}}</text>
             <text>消耗 {{item.creditCost}} 积分</text>
           </view>
+          <text class="work-hint">{{item.statusHint}}</text>
         </view>
       </button>
+    </view>
+
+    <view wx:else class="card works-empty">
+      <text class="works-empty-title">暂无作品</text>
+      <text class="works-empty-desc">生成成功、生成中和失败任务都会按真实状态展示在这里。</text>
     </view>
   </block>
 </view>

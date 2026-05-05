@@ -68,6 +68,7 @@
       >
         微信授权登录
       </button>
+      <text class="login-safe-note">仅用于识别账号和同步作品、积分，不会公开你的头像昵称。</text>
     </view>
   </block>
 </view>
