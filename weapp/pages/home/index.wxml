@@ -1,12 +1,15 @@
 <view class="page create-home" style="padding-top: {{safeTop}}px;">
-  <view class="hero-panel phone-shell">
+  <view class="hero-panel">
     <view class="hero-copy">
       <view class="hero-title">Hello, 早安</view>
       <view class="hero-subtitle">欢迎回来，今天想创作点什么呢？</view>
     </view>
     <view class="credit-badge">
-      <text class="credit-badge-label">积分</text>
-      <text class="credit-badge-value">{{creditBalance}}</text>
+      <text class="credit-coin">P</text>
+      <view class="credit-badge-copy">
+        <text class="credit-badge-label">积分</text>
+        <text class="credit-badge-value">{{creditBalance}}</text>
+      </view>
     </view>
   </view>
 
@@ -15,6 +18,7 @@
       <view class="card-title">上传参考图</view>
       <view class="card-subtitle">上传一张清晰的正脸照片</view>
       <button class="upload-action" bindtap="chooseImages">+</button>
+      <text class="upload-script">Upload</text>
     </view>
     <view class="upload-preview-stack">
       <image class="upload-preview back" mode="aspectFill" src="{{selectedTemplateImage}}" />
@@ -74,7 +78,10 @@
   <button class="generate-btn" loading="{{submitting}}" bindtap="submitTask">
     {{submitting ? '生成中...' : '立即生成'}}
   </button>
-  <view class="remaining-text">剩余积分：{{creditBalance}}</view>
+  <view class="remaining-text">
+    剩余积分：
+    <text class="remaining-value">{{creditBalance}}</text>
+  </view>
   <view wx:if="{{message}}" class="message-line">{{message}}</view>
 
   <view wx:if="{{uploadedImages.length}}" class="selected-images">

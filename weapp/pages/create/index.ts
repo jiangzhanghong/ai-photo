@@ -16,7 +16,7 @@ Page({
   data: {
     safeTop: 32,
     user: null as User | null,
-    creditBalance: 320,
+    creditBalance: 0,
     categories: [...templateFilterTabs],
     activeCategory: "推荐",
     searchValue: "",
@@ -54,9 +54,13 @@ Page({
         cursor += count;
         return { ...prompt, exampleImages };
       });
-      this.setData({ templates: toShowcaseTemplates(hydrated) });
+      this.setData({ templates: toShowcaseTemplates(hydrated) }, () => {
+        this.applyFilter();
+      });
     } catch {
-      this.setData({ templates: getFallbackTemplates() });
+      this.setData({ templates: getFallbackTemplates() }, () => {
+        this.applyFilter();
+      });
     }
   },
 
@@ -88,9 +92,9 @@ Page({
     const template = this.data.templates.find((item) => item.id === id) as ShowcaseTemplate | undefined;
     if (!template) return;
     saveSelectedTemplate(selectedTemplatePayload(template));
-    wx.showToast({ title: "已设为当前模板", icon: "none" });
-    setTimeout(() => {
-      wx.switchTab({ url: "/pages/home/index" });
-    }, 250);
+      wx.showToast({ title: "已设为当前模板", icon: "none" });
+      setTimeout(() => {
+        wx.switchTab({ url: "/pages/home/index" });
+      }, 250);
   }
 });

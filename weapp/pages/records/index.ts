@@ -12,6 +12,8 @@ import {
 Page({
   data: {
     safeTop: 32,
+    user: null as ReturnType<typeof getStoredUser>,
+    needsLogin: false,
     filters: [...workFilterTabs],
     activeFilter: "all",
     works: getFallbackWorks(),
@@ -24,6 +26,8 @@ Page({
   },
 
   async onShow() {
+    const user = getStoredUser();
+    this.setData({ user, needsLogin: !user });
     await this.loadWorks();
     this.applyFilter();
   },
@@ -36,7 +40,10 @@ Page({
 
   async loadWorks() {
     if (!getStoredUser()) {
-      this.setData({ works: getFallbackWorks() });
+      this.setData({
+        works: [],
+        displayWorks: []
+      });
       return;
     }
     try {
@@ -85,5 +92,9 @@ Page({
       current: work.imageUrl,
       urls: this.data.works.map((item) => item.imageUrl)
     });
+  },
+
+  goLogin() {
+    wx.switchTab({ url: "/pages/profile/index" });
   }
 });

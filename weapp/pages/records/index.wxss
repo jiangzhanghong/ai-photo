@@ -2,7 +2,38 @@
   padding-bottom: 150rpx;
   background:
     radial-gradient(circle at top center, rgba(221, 198, 162, 0.16), transparent 42%),
-    linear-gradient(180deg, #fbf7f0 0%, #f6f2eb 100%);
+    linear-gradient(180deg, #fbf7f0 0%, #f4efe6 100%);
+}
+
+.login-empty {
+  display: grid;
+  gap: 18rpx;
+  padding: 40rpx 28rpx;
+  text-align: center;
+}
+
+.login-empty-title {
+  color: #1f2824;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.login-empty-desc {
+  color: #7c847f;
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.login-empty-btn {
+  height: 88rpx;
+  margin-top: 8rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #174b39 0%, #103728 100%);
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 88rpx;
+  text-align: center;
 }
 
 .filter-row {
@@ -48,7 +79,7 @@
 
 .work-image {
   width: 100%;
-  height: 248rpx;
+  height: 252rpx;
   background: #e9e4db;
 }
 

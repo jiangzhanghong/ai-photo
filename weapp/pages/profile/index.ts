@@ -1,6 +1,6 @@
 import type { LoginResponse, Task, User } from "../../types/api";
 import { request } from "../../utils/request";
-import { clearSession, getStoredUser, saveSession } from "../../utils/session";
+import { clearSession, getRefreshToken, getStoredUser, saveSession } from "../../utils/session";
 import {
   getCumulativeRecharge,
   getCumulativeSpend,
@@ -11,6 +11,17 @@ import {
   profileActions
 } from "../../utils/showcase";
 
+const actionIcons: Record<string, string> = {
+  recharge: "P",
+  orders: "D",
+  flows: "L",
+  bindWechat: "W",
+  protocol: "A",
+  privacy: "S",
+  contact: "@",
+  logout: "O"
+};
+
 Page({
   data: {
     safeTop: 32,
@@ -18,9 +29,13 @@ Page({
     tasks: [] as Task[],
     avatarUrl: getDisplayAvatar(null),
     displayName: getDisplayName(null),
-    creditBalance: 320,
-    cumulativeRecharge: 520,
-    cumulativeSpend: 200,
+    creditBalance: 0,
+    cumulativeRecharge: 0,
+    cumulativeSpend: 0,
+    loginMode: "wechat",
+    account: "",
+    password: "",
+    loggingIn: false,
     actions: profileActions
   },
 
@@ -34,18 +49,24 @@ Page({
   },
 
   async refreshProfile() {
-    const user = getStoredUser();
+    let user = getStoredUser();
     let tasks: Task[] = [];
     if (user) {
       try {
+        const auth = await request<{ user: User }>("/api/auth/me");
+        user = auth.user;
+        saveSession({ user });
         const data = await request<{ tasks: Task[] }>("/api/ai-image-tasks");
         tasks = data.tasks || [];
       } catch {
+        clearSession();
+        getApp<{ globalData: { user: User | null } }>().globalData.user = null;
+        user = null;
         tasks = [];
       }
     }
-    const cumulativeSpend = user ? getCumulativeSpend(tasks) || 200 : 200;
-    const cumulativeRecharge = user ? getCumulativeRecharge(user, tasks) : 520;
+    const cumulativeSpend = user ? getCumulativeSpend(tasks) : 0;
+    const cumulativeRecharge = user ? getCumulativeRecharge(user, tasks) : 0;
     this.setData({
       user,
       tasks,
@@ -54,43 +75,92 @@ Page({
       creditBalance: getDisplayCredits(user),
       cumulativeRecharge,
       cumulativeSpend,
-      actions: profileActions.map((item) => (
-        item.key === "bindWechat"
-          ? { ...item, value: getWechatBindingLabel(user) }
-          : item
-      ))
+      actions: profileActions.map((item) => ({
+        ...item,
+        iconText: actionIcons[item.key] || item.label.slice(0, 1),
+        value: item.key === "bindWechat" ? getWechatBindingLabel(user) : item.value
+      }))
     });
   },
 
   async loginWithWechat() {
-    const loginResult = await new Promise<{ code?: string }>((resolve, reject) => {
-      wx.login({
-        success: (res: { code?: string }) => resolve(res || {}),
-        fail: reject
+    this.setData({ loggingIn: true });
+    try {
+      const loginResult = await new Promise<{ code?: string }>((resolve, reject) => {
+        wx.login({
+          success: (res: { code?: string }) => resolve(res || {}),
+          fail: reject
+        });
       });
-    });
-    if (!loginResult.code) throw new Error("微信授权未返回登录凭证。");
-    const profile = await new Promise<{ nickName?: string; avatarUrl?: string }>((resolve) => {
-      if (typeof wx.getUserProfile !== "function") return resolve({});
-      wx.getUserProfile({
-        desc: "用于同步小程序用户资料",
-        success: (res: { userInfo?: { nickName?: string; avatarUrl?: string } }) => resolve(res.userInfo || {}),
-        fail: () => resolve({})
+      if (!loginResult.code) throw new Error("微信授权未返回登录凭证。");
+      const profile = await new Promise<{ nickName?: string; avatarUrl?: string }>((resolve) => {
+        if (typeof wx.getUserProfile !== "function") return resolve({});
+        wx.getUserProfile({
+          desc: "用于同步小程序用户资料",
+          success: (res: { userInfo?: { nickName?: string; avatarUrl?: string } }) => resolve(res.userInfo || {}),
+          fail: () => resolve({})
+        });
       });
-    });
-    const data = await request<LoginResponse>("/api/auth/wechat/miniapp-login", {
-      method: "POST",
-      auth: false,
-      data: {
-        code: loginResult.code,
-        nickname: profile.nickName || "",
-        avatarUrl: profile.avatarUrl || ""
-      }
-    });
-    saveSession(data);
-    getApp<{ globalData: { user: User | null } }>().globalData.user = data.user;
-    await this.refreshProfile();
-    wx.showToast({ title: "微信已绑定", icon: "success" });
+      const data = await request<LoginResponse>("/api/auth/wechat/miniapp-login", {
+        method: "POST",
+        auth: false,
+        data: {
+          code: loginResult.code,
+          nickname: profile.nickName || "",
+          avatarUrl: profile.avatarUrl || ""
+        }
+      });
+      saveSession(data);
+      getApp<{ globalData: { user: User | null } }>().globalData.user = data.user;
+      await this.refreshProfile();
+      wx.showToast({ title: "登录成功", icon: "success" });
+    } catch (error) {
+      wx.showToast({ title: (error as Error).message, icon: "none" });
+    } finally {
+      this.setData({ loggingIn: false });
+    }
+  },
+
+  switchLoginMode(event: WechatMiniprogram.TouchEvent) {
+    this.setData({ loginMode: String(event.currentTarget.dataset.mode || "wechat") });
+  },
+
+  onAccountInput(event: WechatMiniprogram.Input) {
+    this.setData({ account: String(event.detail.value || "").trim() });
+  },
+
+  onPasswordInput(event: WechatMiniprogram.Input) {
+    this.setData({ password: String(event.detail.value || "") });
+  },
+
+  async loginWithAccount() {
+    const account = String(this.data.account || "").trim();
+    const password = String(this.data.password || "");
+    if (!account) {
+      wx.showToast({ title: "请输入账号", icon: "none" });
+      return;
+    }
+    if (!password) {
+      wx.showToast({ title: "请输入密码", icon: "none" });
+      return;
+    }
+    this.setData({ loggingIn: true });
+    try {
+      const data = await request<LoginResponse>("/api/auth/login/password", {
+        method: "POST",
+        auth: false,
+        data: { account, password }
+      });
+      saveSession(data);
+      getApp<{ globalData: { user: User | null } }>().globalData.user = data.user;
+      this.setData({ password: "" });
+      await this.refreshProfile();
+      wx.showToast({ title: "登录成功", icon: "success" });
+    } catch (error) {
+      wx.showToast({ title: (error as Error).message, icon: "none" });
+    } finally {
+      this.setData({ loggingIn: false });
+    }
   },
 
   async handleAction(event: WechatMiniprogram.TouchEvent) {
@@ -100,18 +170,26 @@ Page({
       return;
     }
     if (key === "bindWechat") {
-      if (this.data.user) {
-        wx.showToast({ title: "当前账号已绑定微信", icon: "none" });
+      if (this.data.user?.username) {
+        wx.showToast({ title: "账号登录暂不支持绑定微信", icon: "none" });
         return;
       }
-      try {
-        await this.loginWithWechat();
-      } catch (error) {
-        wx.showToast({ title: (error as Error).message, icon: "none" });
-      }
+      wx.showToast({ title: "当前账号为微信登录", icon: "none" });
       return;
     }
     if (key === "logout") {
+      const refreshToken = getRefreshToken();
+      try {
+        if (refreshToken) {
+          await request<{ message: string }>("/api/auth/logout", {
+            method: "POST",
+            auth: false,
+            data: { refreshToken }
+          });
+        }
+      } catch {
+        // Ignore network failures and always clear the local session.
+      }
       clearSession();
       getApp<{ globalData: { user: User | null } }>().globalData.user = null;
       await this.refreshProfile();

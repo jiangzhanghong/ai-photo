@@ -41,7 +41,7 @@ Page({
     safeTop: 32,
     user: null as User | null,
     avatarUrl: getDisplayAvatar(null),
-    creditBalance: 320,
+    creditBalance: 0,
     templates: getFallbackTemplates(),
     ratioOptions,
     selectedTemplateId: "",
@@ -121,7 +121,8 @@ Page({
         cursor += count;
         return { ...prompt, exampleImages };
       });
-      this.setData({ templates: toShowcaseTemplates(hydrated) });
+      const templates = toShowcaseTemplates(hydrated);
+      this.setData({ templates });
     } catch {
       this.setData({ templates: getFallbackTemplates() });
     }

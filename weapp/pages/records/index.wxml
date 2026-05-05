@@ -1,48 +1,55 @@
 <view class="page works-page" style="padding-top: {{safeTop}}px;">
   <view class="custom-nav">
     <text class="custom-nav-title">作品</text>
-    <text class="custom-nav-action">管理</text>
   </view>
 
-  <view class="filter-row">
-    <button
-      wx:for="{{filters}}"
-      wx:key="key"
-      class="filter-chip {{item.key === activeFilter ? 'active' : ''}}"
-      data-value="{{item.key}}"
-      bindtap="selectFilter"
-    >
-      {{item.label}}
-    </button>
+  <view wx:if="{{needsLogin}}" class="card login-empty">
+    <text class="login-empty-title">登录后查看作品记录</text>
+    <text class="login-empty-desc">生成结果、保存记录和下载进度会同步到你的账号。</text>
+    <button class="login-empty-btn" bindtap="goLogin">去登录</button>
   </view>
 
-  <view class="works-grid">
-    <button
-      wx:for="{{displayWorks}}"
-      wx:key="id"
-      class="work-card"
-      data-id="{{item.id}}"
-      bindtap="openWork"
-    >
-      <view class="work-image-wrap">
-        <image class="work-image" mode="aspectFill" src="{{item.imageUrl}}" />
-        <button
-          wx:if="{{item.buttonText}}"
-          class="work-action"
-          data-id="{{item.id}}"
-          catchtap="openWork"
-        >
-          {{item.buttonText}}
-        </button>
-      </view>
-      <view class="work-body">
-        <text class="work-title">{{item.title}}</text>
-        <text class="work-time">{{item.createdLabel}}</text>
-        <view class="work-meta">
-          <text>{{item.ratio}}</text>
-          <text>消耗 {{item.creditCost}} 积分</text>
+  <block wx:else>
+    <view class="filter-row">
+      <button
+        wx:for="{{filters}}"
+        wx:key="key"
+        class="filter-chip {{item.key === activeFilter ? 'active' : ''}}"
+        data-value="{{item.key}}"
+        bindtap="selectFilter"
+      >
+        {{item.label}}
+      </button>
+    </view>
+
+    <view class="works-grid">
+      <button
+        wx:for="{{displayWorks}}"
+        wx:key="id"
+        class="work-card"
+        data-id="{{item.id}}"
+        bindtap="openWork"
+      >
+        <view class="work-image-wrap">
+          <image class="work-image" mode="aspectFill" src="{{item.imageUrl}}" />
+          <button
+            wx:if="{{item.buttonText}}"
+            class="work-action"
+            data-id="{{item.id}}"
+            catchtap="openWork"
+          >
+            {{item.buttonText}}
+          </button>
         </view>
-      </view>
-    </button>
-  </view>
+        <view class="work-body">
+          <text class="work-title">{{item.title}}</text>
+          <text class="work-time">{{item.createdLabel}}</text>
+          <view class="work-meta">
+            <text>{{item.ratio}}</text>
+            <text>消耗 {{item.creditCost}} 积分</text>
+          </view>
+        </view>
+      </button>
+    </view>
+  </block>
 </view>

@@ -46,6 +46,7 @@ export interface ProfileAction {
   key: string;
   label: string;
   value?: string;
+  iconText?: string;
 }
 
 export interface SelectedTemplatePayload {
@@ -319,23 +320,27 @@ export const toShowcaseWorks = (tasks: Task[]) => {
   }));
 };
 
-export const getDisplayCredits = (user?: User | null) => Number(user?.credits || 320);
+export const getDisplayCredits = (user?: User | null) => Number(user?.credits || 0);
 
-export const getDisplayName = (user?: User | null) => user?.nickname || "小鹿渲渲";
+export const getDisplayName = (user?: User | null) => user?.nickname || "立即登录";
 
 export const getDisplayAvatar = (user?: User | null) => {
   if (user?.avatarUrl) return absoluteUrl(user.avatarUrl);
   return localImages.avatar;
 };
 
-export const getWechatBindingLabel = (user?: User | null) => user ? "已绑定" : "去绑定";
+export const getWechatBindingLabel = (user?: User | null) => {
+  if (!user) return "去登录";
+  return user.username ? "账号登录" : "微信登录";
+};
 
 export const getCumulativeSpend = (tasks: Task[]) => tasks.reduce((sum, item) => sum + Number(item.creditCost || 0), 0);
 
 export const getCumulativeRecharge = (user: User | null | undefined, tasks: Task[]) => {
+  if (!user) return 0;
   const credits = getDisplayCredits(user);
   const spent = getCumulativeSpend(tasks);
-  return Math.max(credits + spent, 520);
+  return credits + spent;
 };
 
 export const selectedTemplatePayload = (template: ShowcaseTemplate): SelectedTemplatePayload => ({

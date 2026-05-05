@@ -8,12 +8,8 @@
   </view>
 
   <view class="search-shell">
-    <input
-      class="search-input"
-      placeholder="搜索你喜欢的模板"
-      value="{{searchValue}}"
-      bindinput="onSearchInput"
-    />
+    <text class="search-icon">⌕</text>
+    <input class="search-input" placeholder="搜索你喜欢的模板" value="{{searchValue}}" bindinput="onSearchInput" />
   </view>
 
   <scroll-view scroll-x class="category-scroll">
@@ -30,7 +26,7 @@
     </view>
   </scroll-view>
 
-  <view class="template-grid">
+  <view wx:if="{{filteredTemplates.length}}" class="template-grid">
     <button
       wx:for="{{filteredTemplates}}"
       wx:key="id"
@@ -51,5 +47,10 @@
         </view>
       </view>
     </button>
+  </view>
+
+  <view wx:else class="card empty-card">
+    <text class="empty-title">没有找到匹配模板</text>
+    <text class="empty-desc">换个关键词，或者切回“推荐”看看。</text>
   </view>
 </view>

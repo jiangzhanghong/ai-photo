@@ -22,14 +22,14 @@
       {
         "pagePath": "pages/home/index",
         "text": "创作",
-        "iconPath": "assets/tab/create.png",
-        "selectedIconPath": "assets/tab/create-active.png"
+        "iconPath": "assets/tab/home.png",
+        "selectedIconPath": "assets/tab/home-active.png"
       },
       {
         "pagePath": "pages/create/index",
         "text": "模板",
-        "iconPath": "assets/tab/home.png",
-        "selectedIconPath": "assets/tab/home-active.png"
+        "iconPath": "assets/tab/gallery.png",
+        "selectedIconPath": "assets/tab/gallery-active.png"
       },
       {
         "pagePath": "pages/records/index",
@@ -40,14 +40,14 @@
       {
         "pagePath": "pages/wallet/index",
         "text": "钱包",
-        "iconPath": "assets/tab/create.png",
-        "selectedIconPath": "assets/tab/create-active.png"
+        "iconPath": "assets/tab/wallet.png",
+        "selectedIconPath": "assets/tab/wallet-active.png"
       },
       {
         "pagePath": "pages/profile/index",
         "text": "我的",
-        "iconPath": "assets/tab/home.png",
-        "selectedIconPath": "assets/tab/home-active.png"
+        "iconPath": "assets/tab/profile.png",
+        "selectedIconPath": "assets/tab/profile-active.png"
       }
     ]
   },
