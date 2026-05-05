@@ -11,6 +11,20 @@ interface RequestOptions {
 
 const normalizeUrl = (path: string) => `${API_BASE_URL}${path}`;
 
+export class RequestError extends Error {
+  statusCode: number;
+
+  constructor(message: string, statusCode = 0) {
+    super(message);
+    this.name = "RequestError";
+    this.statusCode = statusCode;
+  }
+}
+
+export const isUnauthorizedError = (error: unknown) => (
+  error instanceof RequestError && error.statusCode === 401
+);
+
 const rawRequest = <T>(path: string, options: RequestOptions = {}): Promise<T> => new Promise((resolve, reject) => {
   const token = getAccessToken();
   wx.request({
@@ -27,9 +41,9 @@ const rawRequest = <T>(path: string, options: RequestOptions = {}): Promise<T> =
         resolve(response.data as T);
         return;
       }
-      reject(new Error(data?.message || `请求失败：${response.statusCode}`));
+      reject(new RequestError(data?.message || `请求失败：${response.statusCode}`, response.statusCode));
     },
-    fail: () => reject(new Error("网络请求失败。"))
+    fail: () => reject(new RequestError("网络请求失败。"))
   });
 });
 
@@ -38,7 +52,7 @@ export const request = async <T>(path: string, options: RequestOptions = {}): Pr
     return await rawRequest<T>(path, options);
   } catch (error) {
     const refreshToken = getRefreshToken();
-    if (!refreshToken || options.auth === false) throw error;
+    if (!refreshToken || options.auth === false || !isUnauthorizedError(error)) throw error;
     try {
       const refreshed = await rawRequest<{ accessToken: string; refreshToken: string; user: any }>("/api/auth/token/refresh", {
         method: "POST",
@@ -47,8 +61,8 @@ export const request = async <T>(path: string, options: RequestOptions = {}): Pr
       });
       saveSession(refreshed);
       return await rawRequest<T>(path, options);
-    } catch {
-      clearSession();
+    } catch (refreshError) {
+      if (isUnauthorizedError(refreshError)) clearSession();
       throw error;
     }
   }

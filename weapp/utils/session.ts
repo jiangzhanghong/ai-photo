@@ -12,6 +12,8 @@ export const getStoredUser = (): User | null => {
   return wx.getStorageSync(USER_KEY) as User || null;
 };
 
+export const hasStoredSession = () => Boolean(getStoredUser() || getAccessToken() || getRefreshToken());
+
 export const saveSession = (payload: { accessToken?: string; refreshToken?: string; user?: User }) => {
   if (payload.accessToken) wx.setStorageSync(ACCESS_TOKEN_KEY, payload.accessToken);
   if (payload.refreshToken) wx.setStorageSync(REFRESH_TOKEN_KEY, payload.refreshToken);

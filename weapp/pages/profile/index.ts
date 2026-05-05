@@ -1,5 +1,5 @@
 import type { LoginResponse, Task, User } from "../../types/api";
-import { request } from "../../utils/request";
+import { isUnauthorizedError, request } from "../../utils/request";
 import { clearSession, getRefreshToken, getStoredUser, saveSession } from "../../utils/session";
 import { getPageChrome } from "../../utils/layout";
 import {
@@ -57,13 +57,20 @@ Page({
         const auth = await request<{ user: User }>("/api/auth/me");
         user = auth.user;
         saveSession({ user });
-        const data = await request<{ tasks: Task[] }>("/api/ai-image-tasks");
-        tasks = data.tasks || [];
-      } catch {
-        clearSession();
-        getApp<{ globalData: { user: User | null } }>().globalData.user = null;
-        user = null;
-        tasks = [];
+      } catch (error) {
+        if (isUnauthorizedError(error)) {
+          clearSession();
+          getApp<{ globalData: { user: User | null } }>().globalData.user = null;
+          user = null;
+        }
+      }
+      if (user) {
+        try {
+          const data = await request<{ tasks: Task[] }>("/api/ai-image-tasks");
+          tasks = data.tasks || [];
+        } catch {
+          tasks = [];
+        }
       }
     }
     const cumulativeSpend = user ? getCumulativeSpend(tasks) : 0;
