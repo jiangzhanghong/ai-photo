@@ -26,6 +26,7 @@ interface UploadItem {
 }
 
 const ratioOptions = [
+  { label: "智能", value: "adaptive", usage: "按参考图和模型自动判断画幅" },
   { label: "1:1", value: "1:1", usage: "头像、证件照、社交封面" },
   { label: "3:4", value: "3:4", usage: "写真、半身照、模板默认" },
   { label: "2:3", value: "2:3", usage: "竖版海报、全身照" },
@@ -310,6 +311,7 @@ Page({
   currentRequestSize() {
     if (this.data.selectedTemplateSize) return this.data.selectedTemplateSize;
     const resolution = normalizeResolution(this.data.selectedResolution);
+    if (this.data.selectedRatio === "adaptive") return resolution;
     const sizes = recommendedSizes[resolution as keyof typeof recommendedSizes] || recommendedSizes["2K"];
     return sizes[this.data.selectedRatio as keyof typeof sizes] || sizes["1:1"];
   },
