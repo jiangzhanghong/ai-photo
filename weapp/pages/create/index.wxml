@@ -71,4 +71,35 @@
     <text class="empty-title">没有找到匹配模板</text>
     <text class="empty-desc">换个关键词，或者切回“推荐”看看。</text>
   </view>
+
+  <view wx:if="{{previewVisible}}" class="template-preview-mask" catchtap="closeTemplatePreview">
+    <view class="template-preview-sheet" catchtap="noop">
+      <view class="template-preview-head">
+        <view>
+          <view class="template-preview-kicker">{{previewTemplate.category || previewTemplate.subtitle}}</view>
+          <view class="template-preview-title">{{previewTemplate.title}}</view>
+        </view>
+        <button class="template-preview-close" bindtap="closeTemplatePreview">×</button>
+      </view>
+      <scroll-view scroll-x class="template-preview-scroll">
+        <view class="template-preview-track">
+          <image
+            wx:for="{{previewImages}}"
+            wx:key="*this"
+            class="template-preview-image"
+            mode="aspectFill"
+            src="{{item}}"
+          />
+        </view>
+      </scroll-view>
+      <view class="template-preview-desc">{{previewTemplate.promptText}}</view>
+      <view class="template-preview-tags">
+        <text wx:if="{{previewTemplate.defaultRatio}}" class="template-preview-tag">{{previewTemplate.defaultRatio === 'adaptive' ? '智能比例' : previewTemplate.defaultRatio}}</text>
+        <text wx:if="{{previewTemplate.defaultResolution}}" class="template-preview-tag">{{previewTemplate.defaultResolution}}</text>
+        <text class="template-preview-tag">{{previewTemplate.creditCost}} 积分/张</text>
+        <text wx:for="{{previewTemplate.categoryTags}}" wx:key="*this" class="template-preview-tag">{{item}}</text>
+      </view>
+      <button class="template-preview-use" bindtap="usePreviewTemplate">使用这个模板</button>
+    </view>
+  </view>
 </view>

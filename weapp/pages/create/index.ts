@@ -14,6 +14,16 @@ import {
   type ShowcaseTemplate
 } from "../../utils/showcase";
 
+const categoriesFromTemplates = (templates: ShowcaseTemplate[]) => {
+  const categories = Array.from(new Set(templates.map((item) => item.category).filter(Boolean)));
+  return ["推荐", ...categories];
+};
+
+const templatePreviewImages = (template?: ShowcaseTemplate | null) => {
+  const images = (template?.exampleImages || []).map((item) => item.previewUrl || item.thumbUrl || item.originalUrl).filter(Boolean);
+  return images.length ? images : (template?.imageUrl ? [template.imageUrl] : []);
+};
+
 Page({
   data: {
     safeTop: 32,
@@ -26,6 +36,9 @@ Page({
     templates: getFallbackTemplates(),
     filteredTemplates: getFallbackTemplates(),
     selectedTemplateId: "",
+    previewVisible: false,
+    previewTemplate: null as ShowcaseTemplate | null,
+    previewImages: [] as string[],
     loadingPrompts: false,
     promptLoadFailed: false,
     skeletonItems: [1, 2, 3, 4]
@@ -63,7 +76,14 @@ Page({
         cursor += count;
         return { ...prompt, exampleImages };
       });
-      this.setData({ templates: toShowcaseTemplates(hydrated), loadingPrompts: false }, () => {
+      const templates = toShowcaseTemplates(hydrated);
+      const categories = categoriesFromTemplates(templates);
+      this.setData({
+        templates,
+        categories,
+        activeCategory: categories.includes(this.data.activeCategory) ? this.data.activeCategory : "推荐",
+        loadingPrompts: false
+      }, () => {
         this.applyFilter();
       });
     } catch {
@@ -100,13 +120,33 @@ Page({
     const id = String(event.currentTarget.dataset.id || "");
     const template = this.data.templates.find((item) => item.id === id) as ShowcaseTemplate | undefined;
     if (!template) return;
+    this.openTemplatePreview(template);
+  },
+
+  openTemplatePreview(template: ShowcaseTemplate) {
+    this.setData({
+      previewVisible: true,
+      previewTemplate: template,
+      previewImages: templatePreviewImages(template)
+    });
+  },
+
+  closeTemplatePreview() {
+    this.setData({ previewVisible: false });
+  },
+
+  usePreviewTemplate() {
+    const template = this.data.previewTemplate;
+    if (!template) return;
     saveSelectedTemplate(selectedTemplatePayload(template));
-    this.setData({ selectedTemplateId: template.id });
+    this.setData({ selectedTemplateId: template.id, previewVisible: false });
     wx.showToast({ title: "已设为当前模板", icon: "none" });
     setTimeout(() => {
       wx.switchTab({ url: "/pages/home/index" });
     }, 250);
   },
+
+  noop() {},
 
   retryLoadPrompts() {
     this.loadPrompts();

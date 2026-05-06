@@ -1,4 +1,4 @@
-import type { Prompt, Task, User } from "../types/api";
+import type { MediaImage, Prompt, Task, User } from "../types/api";
 import { absoluteUrl } from "./config";
 import { formatDate, statusText } from "./format";
 
@@ -10,6 +10,8 @@ export interface ShowcaseTemplate {
   imageUrl: string;
   creditCost: number;
   category: string;
+  categoryTags?: string[];
+  exampleImages?: MediaImage[];
   badge?: string;
   promptText: string;
   defaultRatio?: string;
@@ -54,6 +56,9 @@ export interface SelectedTemplatePayload {
   imageUrl: string;
   creditCost: number;
   promptText: string;
+  category?: string;
+  categoryTags?: string[];
+  exampleImages?: MediaImage[];
   defaultRatio?: string;
   defaultSize?: string;
   defaultResolution?: string;
@@ -208,7 +213,9 @@ export const toShowcaseTemplates = (prompts: Prompt[]) => {
     subtitle: prompt.scene || prompt.categoryTags?.[0] || "多风格写真模板",
     imageUrl: promptImage(prompt),
     creditCost: Number(prompt.creditCost || 0),
-    category: normalizeCategory(`${prompt.scene} ${prompt.categoryTags?.join(" ")} ${prompt.title}`),
+    category: prompt.scene || normalizeCategory(`${prompt.scene} ${prompt.categoryTags?.join(" ")} ${prompt.title}`),
+    categoryTags: prompt.categoryTags || [],
+    exampleImages: prompt.exampleImages || [],
     badge: index === 0 ? "推荐" : (index === 1 ? "NEW" : ""),
     promptText: prompt.userDescription || prompt.promptPreview || prompt.title,
     defaultRatio: prompt.defaultParams?.ratio || "",
@@ -292,6 +299,9 @@ export const selectedTemplatePayload = (template: ShowcaseTemplate): SelectedTem
   imageUrl: template.imageUrl,
   creditCost: template.creditCost,
   promptText: template.promptText,
+  category: template.category,
+  categoryTags: template.categoryTags,
+  exampleImages: template.exampleImages,
   defaultRatio: template.defaultRatio,
   defaultSize: template.defaultSize,
   defaultResolution: template.defaultResolution

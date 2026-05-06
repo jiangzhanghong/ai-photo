@@ -77,6 +77,11 @@ const greetingText = () => {
   return "晚上好";
 };
 
+const templatePreviewImages = (template?: SelectedTemplatePayload | ShowcaseTemplate | null) => {
+  const images = (template?.exampleImages || []).map((item) => item.previewUrl || item.thumbUrl || item.originalUrl).filter(Boolean);
+  return images.length ? images : (template?.imageUrl ? [template.imageUrl] : []);
+};
+
 Page({
   data: {
     safeTop: 32,
@@ -105,6 +110,9 @@ Page({
     creditShortage: 0,
     estimatedTimeLabel: "约 30-90 秒",
     uploadedImages: [] as UploadItem[],
+    previewVisible: false,
+    previewTemplate: null as (SelectedTemplatePayload | ShowcaseTemplate | null),
+    previewImages: [] as string[],
     submitting: false,
     message: "",
     generateButtonText: "请先上传参考图",
@@ -236,8 +244,27 @@ Page({
     const id = String(event.currentTarget.dataset.id || "");
     const template = this.data.templates.find((item) => item.id === id);
     if (!template) return;
+    this.openTemplatePreview(template);
+  },
+
+  openTemplatePreview(template: SelectedTemplatePayload | ShowcaseTemplate) {
+    this.setData({
+      previewVisible: true,
+      previewTemplate: template,
+      previewImages: templatePreviewImages(template)
+    });
+  },
+
+  closeTemplatePreview() {
+    this.setData({ previewVisible: false });
+  },
+
+  usePreviewTemplate() {
+    const template = this.data.previewTemplate;
+    if (!template) return;
     this.applyTemplate(template);
-    saveSelectedTemplate(selectedTemplatePayload(template));
+    saveSelectedTemplate(selectedTemplatePayload(template as ShowcaseTemplate));
+    this.setData({ previewVisible: false });
     this.syncCost();
   },
 

@@ -523,7 +523,8 @@
   text-align: center;
 }
 
-.settings-mask {
+.settings-mask,
+.template-preview-mask {
   position: fixed;
   inset: 0;
   z-index: 20;
@@ -532,7 +533,8 @@
   background: rgba(16, 27, 22, 0.42);
 }
 
-.settings-sheet {
+.settings-sheet,
+.template-preview-sheet {
   width: 100%;
   max-height: 78vh;
   overflow-y: auto;
@@ -661,6 +663,90 @@
 .settings-done {
   height: 88rpx;
   margin-top: 30rpx;
+  border-radius: 24rpx;
+  background: #143d2f;
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 88rpx;
+  text-align: center;
+}
+
+.template-preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.template-preview-kicker {
+  color: #c28a2e;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.template-preview-title {
+  margin-top: 8rpx;
+  color: #1f2723;
+  font-size: 34rpx;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.template-preview-close {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: rgba(31, 39, 35, 0.08);
+  color: #4f5953;
+  font-size: 34rpx;
+  line-height: 56rpx;
+  text-align: center;
+}
+
+.template-preview-scroll {
+  margin-top: 24rpx;
+  white-space: nowrap;
+}
+
+.template-preview-track {
+  display: inline-flex;
+  gap: 14rpx;
+  padding-right: 12rpx;
+}
+
+.template-preview-image {
+  width: 360rpx;
+  height: 460rpx;
+  border-radius: 22rpx;
+  background: #e9e4db;
+}
+
+.template-preview-desc {
+  margin-top: 22rpx;
+  color: #5f6b65;
+  font-size: 25rpx;
+  line-height: 1.55;
+}
+
+.template-preview-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 18rpx;
+}
+
+.template-preview-tag {
+  padding: 9rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(20, 61, 47, 0.08);
+  color: #315446;
+  font-size: 22rpx;
+}
+
+.template-preview-use {
+  height: 88rpx;
+  margin-top: 28rpx;
   border-radius: 24rpx;
   background: #143d2f;
   color: #ffffff;
