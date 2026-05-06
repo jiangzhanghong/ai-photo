@@ -1098,8 +1098,10 @@
                     <option value="0">下架</option>
                   </select>
                   <button class="btn secondary" type="button" data-prompt-import>导入</button>
+                  <button class="btn secondary" type="button" data-prompt-import-template>下载模板</button>
                   <button class="btn secondary" type="button" data-prompt-export>导出</button>
-                  <input type="file" accept="application/json,.json" hidden data-prompt-import-file />
+                  <input type="file" accept="application/json,.json,text/csv,.csv" hidden data-prompt-import-file />
+                  <input type="file" accept="image/*" multiple hidden data-prompt-import-images />
                 </div>
               </div>
               <div class="table-wrap"><table><thead><tr><th>标题</th><th>示例图</th><th>类型</th><th>大类</th><th>标签</th><th>版本</th><th>积分</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody data-prompt-list></tbody></table></div>
@@ -1287,9 +1289,9 @@
         const normalizePromptImageSettings = (params = {}) => {
           const ratio = promptRatioOptions.some((item) => item.value === params.ratio) ? params.ratio : "1:1";
           const resolution = params.resolution === "4K" || params.size === "4K" ? "4K" : "2K";
-          return { resolution: ratio === "adaptive" ? "4K" : resolution, ratio };
+          return { resolution, ratio };
         };
-        const promptImageSize = (settings) => settings.ratio === "adaptive" ? "4K" : (promptImageSizes[settings.resolution]?.[settings.ratio] || "2048x2048");
+        const promptImageSize = (settings) => settings.ratio === "adaptive" ? settings.resolution : (promptImageSizes[settings.resolution]?.[settings.ratio] || "2048x2048");
         const adminImageControlHtml = (params = {}) => {
           const settings = normalizePromptImageSettings(params);
           const ratio = promptRatioOption(settings.ratio);
@@ -1392,6 +1394,77 @@
           renderPromptImageList("[data-prompt-image-list]", promptDraftImages, "data-remove-prompt-image");
           setText("[data-prompt-message]", "示例图片已上传。");
         };
+        const choosePromptImportImages = () => new Promise((resolve) => {
+          const input = $("[data-prompt-import-images]");
+          input.value = "";
+          let done = false;
+          const finish = (files) => {
+            if (done) return;
+            done = true;
+            input.onchange = null;
+            window.removeEventListener("focus", onFocus);
+            resolve(files);
+          };
+          const onFocus = () => {
+            setTimeout(() => finish(Array.from(input.files || [])), 300);
+          };
+          input.onchange = (event) => {
+            finish(Array.from(event.target.files || []));
+          };
+          window.addEventListener("focus", onFocus);
+          input.click();
+        });
+        const imageFileMap = (files) => {
+          const map = new Map();
+          Array.from(files || []).filter((file) => file?.type?.startsWith("image/")).forEach((file) => {
+            const keys = [file.webkitRelativePath, file.name, basename(file.name)].map(normalizeFileKey).filter(Boolean);
+            keys.forEach((key) => {
+              if (!map.has(key)) map.set(key, file);
+            });
+          });
+          return map;
+        };
+        const attachImportImages = async (prompts, files) => {
+          const map = imageFileMap(files);
+          const uploaded = new Map();
+          const missing = [];
+          for (const prompt of prompts) {
+            const refs = Array.isArray(prompt.exampleImageNames) ? prompt.exampleImageNames : [];
+            const images = [];
+            for (const ref of refs) {
+              const key = normalizeFileKey(ref);
+              const file = map.get(key) || map.get(basename(key));
+              if (!file) {
+                missing.push(`${prompt.title}: ${ref}`);
+                continue;
+              }
+              const uploadKey = normalizeFileKey(file.webkitRelativePath || file.name);
+              if (!uploaded.has(uploadKey)) uploaded.set(uploadKey, await uploadPromptImagePair(file));
+              const media = uploaded.get(uploadKey);
+              if (media) images.push(media);
+            }
+            if (images.length) prompt.exampleImages = images;
+          }
+          return missing;
+        };
+        const importPrompts = async (prompts) => {
+          let created = 0;
+          let updated = 0;
+          for (const prompt of prompts) {
+            const exists = prompt.id && cache.prompts.some((item) => item.id === prompt.id);
+            if (exists) {
+              await api(`/api/admin/prompt-templates/${prompt.id}`, { method: "PATCH", body: JSON.stringify(promptPayload(prompt)) });
+              updated += 1;
+            } else {
+              const result = await api("/api/admin/prompt-templates", { method: "POST", body: JSON.stringify(promptPayload(prompt)) });
+              if (prompt.isActive === false && result.id) {
+                await api(`/api/admin/prompt-templates/${result.id}`, { method: "PATCH", body: JSON.stringify({ ...promptPayload(prompt), isActive: false }) });
+              }
+              created += 1;
+            }
+          }
+          return { created, updated };
+        };
         const addEditPromptImages = async (files) => {
           if (editState?.type !== "prompt") return;
           const list = Array.from(files || []).filter((file) => file?.type?.startsWith("image/"));
@@ -1477,6 +1550,15 @@
           link.click();
           URL.revokeObjectURL(url);
         };
+        const downloadText = (filename, text, type = "text/plain;charset=utf-8") => {
+          const blob = new Blob([text], { type });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = filename;
+          link.click();
+          URL.revokeObjectURL(url);
+        };
         const copyText = async (text) => {
           if (navigator.clipboard?.writeText) {
             await navigator.clipboard.writeText(text);
@@ -1498,6 +1580,75 @@
         };
         const splitList = (value) => Array.isArray(value) ? value : String(value || "").split(/[\n,，]/).map((item) => item.trim()).filter(Boolean);
         const variableNames = (value) => splitList(value).map((item) => typeof item === "string" ? item : item.name).filter(Boolean);
+        const normalizeFileKey = (value = "") => String(value || "").trim().replace(/\\/g, "/").replace(/^\.?\//, "").toLowerCase();
+        const basename = (value = "") => normalizeFileKey(value).split("/").pop();
+        const promptImportTemplate = () => [
+          ["title", "taskType", "scene", "categoryTags", "creditCost", "sortOrder", "isActive", "ratio", "resolution", "size", "promptContent", "negativePrompt", "exampleImages"].join(","),
+          [
+            "校园毕业写真",
+            "image_to_image",
+            "校园",
+            "毕业季;校园;写真",
+            "8",
+            "10",
+            "1",
+            "3:4",
+            "2K",
+            "1728x2304",
+            "参考上传人像生成高级校园毕业写真，自然柔光，浅景深，皮肤真实通透。",
+            "脸部变形，低清晰度，过度磨皮",
+            "campus-01.jpg;campus-02.jpg"
+          ].map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")
+        ].join("\n");
+        const parseCsv = (text) => {
+          const rows = [];
+          let row = [];
+          let cell = "";
+          let quoted = false;
+          for (let index = 0; index < text.length; index += 1) {
+            const char = text[index];
+            const next = text[index + 1];
+            if (quoted) {
+              if (char === "\"" && next === "\"") {
+                cell += "\"";
+                index += 1;
+              } else if (char === "\"") {
+                quoted = false;
+              } else {
+                cell += char;
+              }
+              continue;
+            }
+            if (char === "\"") {
+              quoted = true;
+            } else if (char === ",") {
+              row.push(cell);
+              cell = "";
+            } else if (char === "\n") {
+              row.push(cell);
+              rows.push(row);
+              row = [];
+              cell = "";
+            } else if (char !== "\r") {
+              cell += char;
+            }
+          }
+          row.push(cell);
+          rows.push(row);
+          return rows.filter((item) => item.some((value) => String(value || "").trim()));
+        };
+        const csvRowsToObjects = (text) => {
+          const rows = parseCsv(text);
+          const headers = (rows.shift() || []).map((item) => String(item || "").trim());
+          return rows.map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] || ""])));
+        };
+        const defaultParamsFromImport = (item) => {
+          const params = item.defaultParams && typeof item.defaultParams === "object" ? item.defaultParams : {};
+          const ratio = item.ratio || params.ratio || "";
+          const resolution = item.resolution || params.resolution || "";
+          const size = item.size || params.size || "";
+          return { ...params, ...(ratio ? { ratio } : {}), ...(resolution ? { resolution } : {}), ...(size ? { size } : {}) };
+        };
         const promptPayload = (prompt) => ({
           title: prompt.title || "新提示词",
           taskType: prompt.taskType || "generate",
@@ -1507,13 +1658,30 @@
           variables: [],
           promptContent: prompt.promptContent || "",
           negativePrompt: prompt.negativePrompt || "",
-          defaultParams: prompt.defaultParams || {},
+          defaultParams: defaultParamsFromImport(prompt),
           creditCost: Number(prompt.creditCost || 0),
           exampleImages: promptImages(prompt),
           sortOrder: Number(prompt.sortOrder || 0),
           isActive: boolValue(prompt.isActive, true),
           version: prompt.version || "v1"
         });
+        const normalizePromptCsvImport = (text) => csvRowsToObjects(text).map((item) => ({
+          id: item.id || "",
+          title: item.title || item["标题"] || "",
+          taskType: item.taskType || item.task_type || item["类型"] || "image_to_image",
+          scene: item.scene || item["大类"] || "",
+          categoryTags: splitList(item.categoryTags || item.tags || item["标签"] || "").flatMap((value) => String(value).split(";")).map((value) => value.trim()).filter(Boolean),
+          promptContent: item.promptContent || item.prompt_content || item["核心prompt"] || item["核心 prompt"] || "",
+          negativePrompt: item.negativePrompt || item.negative_prompt || item["反向prompt"] || item["反向 prompt"] || "",
+          creditCost: item.creditCost ?? item.credit_cost ?? item["积分"],
+          sortOrder: item.sortOrder ?? item.sort_order ?? item["排序"],
+          isActive: boolValue(item.isActive ?? item.is_active ?? item["状态"], true),
+          ratio: item.ratio || item["比例"] || "",
+          resolution: item.resolution || item["清晰度"] || "",
+          size: item.size || item["尺寸"] || "",
+          version: item.version || "",
+          exampleImageNames: splitList(item.exampleImages || item.exampleImageNames || item.example_image_names || item["示例图片"] || "").flatMap((value) => String(value).split(";")).map((value) => value.trim()).filter(Boolean)
+        })).filter((item) => item.title && item.promptContent);
         const normalizePromptImport = (data) => {
           const items = Array.isArray(data) ? data : Array.isArray(data.prompts) ? data.prompts : [];
           return items.map((item) => {
@@ -2147,30 +2315,33 @@
             downloadJson(`prompt-templates-${new Date().toISOString().slice(0, 10)}.json`, { exportedAt: new Date().toISOString(), prompts });
             setText("[data-prompt-message]", `已导出 ${prompts.length} 条提示词。`);
           });
+          $("[data-prompt-import-template]").addEventListener("click", () => {
+            downloadText("prompt-import-template.csv", promptImportTemplate(), "text/csv;charset=utf-8");
+            setText("[data-prompt-message]", "已下载 CSV 模板，Excel 可编辑后另存为 CSV 再导入。");
+          });
           $("[data-prompt-import]").addEventListener("click", () => $("[data-prompt-import-file]").click());
           $("[data-prompt-import-file]").addEventListener("change", async (event) => {
             const file = event.target.files[0];
             if (!file) return;
             try {
-              const prompts = normalizePromptImport(JSON.parse(await file.text()));
+              const text = await file.text();
+              const isCsv = /\.csv$/i.test(file.name) || file.type.includes("csv");
+              if (/\.xlsx?$/i.test(file.name)) throw new Error("请先在 Excel 中另存为 CSV，再导入。");
+              const prompts = isCsv ? normalizePromptCsvImport(text) : normalizePromptImport(JSON.parse(text));
               if (!prompts.length) throw new Error("没有可导入的提示词。");
-              let created = 0;
-              let updated = 0;
-              for (const prompt of prompts) {
-                const exists = prompt.id && cache.prompts.some((item) => item.id === prompt.id);
-                if (exists) {
-                  await api(`/api/admin/prompt-templates/${prompt.id}`, { method: "PATCH", body: JSON.stringify(promptPayload(prompt)) });
-                  updated += 1;
-                } else {
-                  const result = await api("/api/admin/prompt-templates", { method: "POST", body: JSON.stringify(promptPayload(prompt)) });
-                  if (prompt.isActive === false && result.id) {
-                    await api(`/api/admin/prompt-templates/${result.id}`, { method: "PATCH", body: JSON.stringify({ ...promptPayload(prompt), isActive: false }) });
-                  }
-                  created += 1;
-                }
+              let missing = [];
+              const imageRefCount = prompts.reduce((sum, prompt) => sum + (prompt.exampleImageNames?.length || 0), 0);
+              if (isCsv && imageRefCount) {
+                setText("[data-prompt-message]", `CSV 引用了 ${imageRefCount} 个图片文件，请选择对应图片。`);
+                const files = await choosePromptImportImages();
+                setText("[data-prompt-message]", "正在上传并匹配示例图片...");
+                missing = await attachImportImages(prompts, files);
               }
+              setText("[data-prompt-message]", "正在导入提示词...");
+              const { created, updated } = await importPrompts(prompts);
               await loadPrompts();
-              setText("[data-prompt-message]", `导入完成：新增 ${created} 条，更新 ${updated} 条。`);
+              const missingText = missing.length ? ` 缺失图片 ${missing.length} 个：${missing.slice(0, 3).join("；")}${missing.length > 3 ? "..." : ""}` : "";
+              setText("[data-prompt-message]", `导入完成：新增 ${created} 条，更新 ${updated} 条。${missingText}`);
             } catch (error) {
               setText("[data-prompt-message]", error.message);
             } finally {
